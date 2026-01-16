@@ -14,7 +14,10 @@ if time.time() - st.session_state.start_time >  29*60:
     st.rerun()
 
 def auto_refresh(seconds=1741):
-    st.markdown(   f"""  <meta http-equiv="refresh" content="{seconds}" >   """,  unsafe_allow_html=True )
+        st.markdown(
+            f'<meta http-equiv="refresh" content="{seconds}">',
+            unsafe_allow_html=True
+        )
 
 auto_refresh(1741)
 
@@ -49,6 +52,9 @@ def Procesos1(usuario,puesto):
 
         placeholder8_2 = st.empty()
         precampo_juridico_2 = placeholder8_2.button(":orange[Precampo Jurídico]", key="precampo_juridico_2")
+        
+        placeholder8_1_2 = st.empty()
+        descarga_partidas_juridico_2 = placeholder8_1_2.button(":orange[Descarga Partidas Jurídico]", key="descarga_partidas_juridico_2")
 
         placeholder9_2 = st.empty()
         cc_precampo_juridico_2 = placeholder9_2.button(":orange[Control de Calidad Precampo Jurídico]",key="cc_precampo_juridico_2")
@@ -98,6 +104,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -126,6 +133,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -154,6 +162,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -182,6 +191,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -210,6 +220,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -239,6 +250,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -253,7 +265,25 @@ def Procesos1(usuario,puesto):
             st.session_state.Procesos=True
             st.session_state.Precampo_Juridico=True
             Precampo_Juridico.Precampo_Juridico(usuario,puesto) 
-                
+
+        # ----- Descarga_Partidas_Juridico ---- #
+
+        elif descarga_partidas_juridico_2:
+
+            placeholder1_2.empty()
+            placeholder2_2.empty()
+            placeholder3_2.empty()
+            placeholder4_2.empty()
+            placeholder5_2.empty()
+            placeholder6_2.empty()
+            placeholder7_2.empty()
+            placeholder8_2.empty()
+            placeholder8_1_2.empty()
+            placeholder9_2.empty()
+
+            st.session_state.Procesos=True
+            st.session_state.Descarga_Partidas_Juridico=True
+            Descarga_Partidas_Juridico.Descarga_Partidas_Juridico(usuario,puesto)                
                   
                
         # ----- Control Calidad Precampo Juridico ---- #
@@ -268,6 +298,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -294,6 +325,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -322,6 +354,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -350,6 +383,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -378,6 +412,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -406,6 +441,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -434,6 +470,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -462,6 +499,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -490,6 +528,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -570,6 +609,7 @@ def Procesos1(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
             placeholder10_2.empty()
             placeholder11_2.empty()
@@ -602,7 +642,10 @@ def Procesos1(usuario,puesto):
 
         elif st.session_state.Precampo_Juridico==True:
             Precampo_Juridico.Precampo_Juridico(usuario,puesto)
-           
+        
+        elif st.session_state.Descarga_Partidas_Juridico==True:
+            Descarga_Partidas_Juridico.Descarga_Partidas_Juridico(usuario,puesto)
+        
         elif st.session_state.CC_Precampo_Juridico==True:
             CC_Precampo_Juridico.CC_Precampo_Juridico(usuario,puesto)
 
@@ -1062,6 +1105,9 @@ def Procesos3(usuario,puesto):
 
         placeholder8_2 = st.empty()
         precampo_juridico_2 = placeholder8_2.button("Precampo Jurídico",key="precampo_juridico_2")
+
+        placeholder8_1_2 = st.empty()
+        descarga_partidas_juridico_2 = placeholder8_1_2.button(":orange[Descarga Partidas Jurídico]", key="descarga_partidas_juridico_2")
       
         placeholder9_2 = st.empty()
         cc_precampo_juridico_2 = placeholder9_2.button("Control de Calidad Precampo Jurídico",key="cc_precampo_juridico_2")
@@ -1084,6 +1130,7 @@ def Procesos3(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
 
             st.session_state.Procesos=True
@@ -1102,6 +1149,7 @@ def Procesos3(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
 
             st.session_state.Procesos=True
@@ -1120,6 +1168,7 @@ def Procesos3(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
 
             st.session_state.Procesos=True
@@ -1138,6 +1187,7 @@ def Procesos3(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
 
             st.session_state.Procesos=True
@@ -1156,6 +1206,7 @@ def Procesos3(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
 
             st.session_state.Ingreso = False
@@ -1175,11 +1226,31 @@ def Procesos3(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
 
             st.session_state.Procesos=True
             st.session_state.Precampo_Juridico=True
             Precampo_Juridico.Precampo_Juridico(usuario,puesto)
+
+                # ----- Descarga_Partidas_Juridico ---- #
+
+        elif descarga_partidas_juridico_2:
+
+            placeholder1_2.empty()
+            placeholder2_2.empty()
+            placeholder3_2.empty()
+            placeholder4_2.empty()
+            placeholder5_2.empty()
+            placeholder6_2.empty()
+            placeholder7_2.empty()
+            placeholder8_2.empty()
+            placeholder8_1_2.empty()
+            placeholder9_2.empty()
+
+            st.session_state.Procesos=True
+            st.session_state.Descarga_Partidas_Juridico=True
+            Descarga_Partidas_Juridico.Descarga_Partidas_Juridico(usuario,puesto)
 
       
         # ----- Control de Calidad Precampo Jurídico ---- #
@@ -1194,6 +1265,7 @@ def Procesos3(usuario,puesto):
             placeholder6_2.empty()
             placeholder7_2.empty()
             placeholder8_2.empty()
+            placeholder8_1_2.empty()
             placeholder9_2.empty()
 
             st.session_state.Procesos=True
@@ -1254,6 +1326,9 @@ def Procesos3(usuario,puesto):
 
         elif st.session_state.Precampo_Juridico==True:
             Precampo_Juridico.Precampo_Juridico(usuario,puesto)
+
+        elif st.session_state.Descarga_Partidas_Juridico==True:
+            Descarga_Partidas_Juridico.Descarga_Partidas_Juridico(usuario,puesto)
         
         elif st.session_state.CC_Precampo_Juridico==True:
             CC_Precampo_Juridico.CC_Precampo_Juridico(usuario,puesto)
