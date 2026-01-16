@@ -89,7 +89,7 @@ def Vinculacion_Precampo(usuario, puesto):
             key="unidades_catastrales_3"
         )
     else:
-        placeholder14_3.empty()
+        placeholder14_3.caption("No aplica para Puntos Jurídicos")
         unidades_catastrales_3 = 0
 
     placeholder15_3 = st.empty()
