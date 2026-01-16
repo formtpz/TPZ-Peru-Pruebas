@@ -369,27 +369,27 @@ def Vinculacion_Precampo(usuario, puesto):
     # =========================
     # NAVEGACIÓN
     # =========================
-    if procesos_3:
-        st.session_state.Vinculacion_Precampo = False
-        Procesos.Procesos1(usuario, puesto)
+    #if procesos_3:
+       # st.session_state.Vinculacion_Precampo = False
+        #Procesos.Procesos1(usuario, puesto)
 
-    elif historial_3:
-        st.session_state.Vinculacion_Precampo = False
-        Historial.Historial(usuario, puesto)
+    #elif historial_3:
+     #   st.session_state.Vinculacion_Precampo = False
+      #  Historial.Historial(usuario, puesto)
 
-    elif capacitacion_3:
-        st.session_state.Vinculacion_Precampo = False
-        Capacitacion.Capacitacion(usuario, puesto)
+    #elif capacitacion_3:
+     #   st.session_state.Vinculacion_Precampo = False
+      #  Capacitacion.Capacitacion(usuario, puesto)
 
-    elif otros_registros_3:
-        st.session_state.Vinculacion_Precampo = False
-        Otros_Registros.Otros_Registros(usuario, puesto)
+    #elif otros_registros_3:
+     #   st.session_state.Vinculacion_Precampo = False
+      #  Otros_Registros.Otros_Registros(usuario, puesto)
 
-    elif bonos_extras_3:
-        st.session_state.Vinculacion_Precampo = False
-        Bonos_Extras.Bonos_Extras(usuario, puesto)
+#    elif bonos_extras_3:
+ #       st.session_state.Vinculacion_Precampo = False
+  #      Bonos_Extras.Bonos_Extras(usuario, puesto)
 
-    elif salir_3:
-        st.session_state.Vinculacion_Precampo = False
-        st.session_state.Salir = True
-        Salir.Salir()
+   # elif salir_3:
+    #    st.session_state.Vinculacion_Precampo = False
+     #   st.session_state.Salir = True
+      #  Salir.Salir()
