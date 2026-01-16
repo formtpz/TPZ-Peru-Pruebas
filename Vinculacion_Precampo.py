@@ -138,6 +138,188 @@ def Vinculacion_Precampo(usuario, puesto):
     placeholder21_3 = st.empty()
     reporte_3 = placeholder21_3.button("Generar Reporte", key="reporte_3")
 
+    # ----- Procesos ---- #
+    if procesos_3:
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        placeholder6_3.empty()
+        placeholder7_3.empty()
+    
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
+    
+        st.session_state.Procesos = False
+        st.session_state.Vinculacion_Precampo = False
+    
+        perfil = pd.read_sql(
+            f"select perfil from usuarios where usuario ='{usuario}'",
+            uri
+        ).loc[0, 'perfil']
+    
+        if perfil == "1":
+            Procesos.Procesos1(usuario, puesto)
+        elif perfil == "2":
+            Procesos.Procesos2(usuario, puesto)
+        elif perfil == "3":
+            Procesos.Procesos3(usuario, puesto)
+
+        # ----- Historial ---- #
+    elif historial_3:
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        placeholder6_3.empty()
+        placeholder7_3.empty()
+    
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
+    
+        st.session_state.Vinculacion_Precampo = False
+        st.session_state.Historial = True
+        Historial.Historial(usuario, puesto)
+
+
+        # ----- Capacitación ---- #
+    elif capacitacion_3:
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        placeholder6_3.empty()
+        placeholder7_3.empty()
+    
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
+    
+        st.session_state.Vinculacion_Precampo = False
+        st.session_state.Capacitacion = True
+        Capacitacion.Capacitacion(usuario, puesto)
+
+    # ----- Otros Registros ---- #
+    elif otros_registros_3:
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        placeholder6_3.empty()
+        placeholder7_3.empty()
+    
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
+    
+        st.session_state.Vinculacion_Precampo = False
+        st.session_state.Otros_Registros = True
+        Otros_Registros.Otros_Registros(usuario, puesto)
+
+    # ----- Bonos y Horas Extras ---- #
+    elif bonos_extras_3:
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        placeholder6_3.empty()
+        placeholder7_3.empty()
+    
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
+    
+        st.session_state.Vinculacion_Precampo = False
+        st.session_state.Bonos_Extras = True
+        Bonos_Extras.Bonos_Extras(usuario, puesto)
+
+    # ----- Salir ---- #
+    elif salir_3:
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        placeholder6_3.empty()
+        placeholder7_3.empty()
+    
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
+    
+        st.session_state.Ingreso = False
+        st.session_state.Vinculacion_Precampo = False
+        st.session_state.Salir = True
+        Salir.Salir()
+
+    
     # =========================
     # GENERAR REPORTE
     # =========================
