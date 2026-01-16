@@ -288,6 +288,7 @@ def Procesos1(usuario,puesto):
             placeholder15_2.empty()
             placeholder16_2.empty()
             placeholder17_2.empty()
+            placeholder20_2.empty()
 
             st.session_state.Procesos=True
             st.session_state.Descarga_Partidas_Juridico=True
