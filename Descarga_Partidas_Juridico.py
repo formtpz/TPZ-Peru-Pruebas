@@ -36,7 +36,7 @@ def Descarga_Partidas_Juridico(usuario,puesto):
   salir_3 = placeholder7_3.button("Salir",key="salir_3")
 
   placeholder8_3 = st.empty()
-  Descarga_Partidas_Juridico_3 = placeholder8_3.title("Precampo Jurídico")
+  Descarga_Partidas_Juridico_3 = placeholder8_3.title("Descarga Partidas Jurídico")
 
   default_date_3 = datetime.now(pytz.timezone('America/Guatemala'))
 
