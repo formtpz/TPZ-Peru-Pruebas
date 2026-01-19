@@ -113,7 +113,7 @@ def Correcciones(usuario, puesto):
             if "id" in df.columns:
                 dfc["id"] = dfc["id"].astype(str)
 
-            st.subheader("Reportes")
+            st.subheader("Registro")
             st.dataframe(df, use_container_width=True)
 
             st.subheader("Otros Registros")
