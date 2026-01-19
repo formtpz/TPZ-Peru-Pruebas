@@ -149,21 +149,27 @@ def Correcciones(usuario, puesto):
                     (
                         "Estado Incorrecto",
                         "Fecha Incorrecta",
-                        "Hora Incorrecta",
-                        "Predios Incorrectos",
+                        "Distrito Incorrecto",
+                        "Tipo Incorrecto",
+                        "Horas Incorrectas",
+                        "Manzana Incorrecta",
+                        "Sector Incorrecto",
+                        "Lote Incorrecto",
+                        "Aprobados-Rechazados Incorrectos",
                         "Área Incorrecta",
-                        "Municipio Incorrecto",
-                        "Zona Incorrecta",
+                        "Edificas Incorrectos",                        
+                        "Unidades Catastrales Incorrectas",
                         "Partida Incorrecta",
+                        "Zona Incorrecta",
                         "Otro"
                     )
                 )
 
                 columna = st.text_input(
-                    "Columna a corregir (según como usted la conoce)"
+                    "Columna a corregir (según se visualiza en las tablas anteriores)"
                 )
 
-                nuevo_valor = st.text_input("Nuevo valor")
+                nuevo_valor = st.text_input("Nuevo valor (reemplaza al erroneo, en caso de Aprobados-Rechazados Ej: 3-2 = 3 aprobados, 2 rechazados)")
 
             else:
                 descripcion1 = st.radio(
