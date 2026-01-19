@@ -104,6 +104,9 @@ def Correcciones(usuario, puesto):
             dfo = pd.read_sql(query_otros, con)
             dfc = pd.read_sql(query_capacitacion, con)
 
+            if "id" in df.columns:
+                df["id"] = df["id"].astype(str)
+
             st.subheader("Reportes")
             st.dataframe(df, use_container_width=True)
 
