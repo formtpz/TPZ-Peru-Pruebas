@@ -107,6 +107,12 @@ def Correcciones(usuario, puesto):
             if "id" in df.columns:
                 df["id"] = df["id"].astype(str)
 
+            if "id" in df.columns:
+                dfo["id"] = df["id"].astype(str)
+
+            if "id" in df.columns:
+                dfc["id"] = df["id"].astype(str)
+
             st.subheader("Reportes")
             st.dataframe(df, use_container_width=True)
 
