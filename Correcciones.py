@@ -166,7 +166,7 @@ def Correcciones(usuario, puesto):
                 )
 
                 columna = st.text_input(
-                    "Columna a corregir (según se visualiza en las tablas anteriores)"
+                    "Columna a corregir (según se visualiza en las tablas anteriores, debe estar ligado al motivo)"
                 )
 
                 nuevo_valor = st.text_input("Nuevo valor (reemplaza al erroneo, en caso de Aprobados-Rechazados Ej: 3-2 = 3 aprobados, 2 rechazados)")
