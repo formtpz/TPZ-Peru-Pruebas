@@ -341,9 +341,7 @@ def Vinculacion_Precampo(usuario, puesto):
         año_3 = fecha_3.isocalendar()[0]
         horas_bi = float(horas_3)
 
-        cursor.execute(f"INSERT INTO registro (marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año, distrito, tipo, lotes, aprobados, rechazados, horas, manzana, sector, numero_lote, estado, area, unidades_catastrales, edificas, partida, con_fmi, sin_fmi, observaciones, zona, tipo_calidad, horas_bi, area_bi, operador_cc, total_de_errores, errores_por_excepciones, tipo_de_errores, conteo_de_errores) 
-        VALUES ('{marca_3}','{usuario}','{nombre_3}','{puesto}','{supervisor_3}','{proceso_3}','{fecha_3}','{semana_3}','{año_3}','{distrito_3}','{tipo_3}','0','0','0','{horas_3}','{manzana_3}','{sector_3}','{numero_lote_3}','{estado_3}','0.0','{unidades_catastrales_3}','0','N/A','0','0','{observaciones_3}','N/A','N/A','{horas_bi}','0.0','N/A','0','0','N/A','0')")
-
+        cursor.execute(f"INSERT INTO registro (marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año, distrito, tipo, lotes, aprobados, rechazados, horas, manzana, sector, numero_lote, estado, area, unidades_catastrales, edificas, partida, con_fmi, sin_fmi, observaciones, zona, tipo_calidad, horas_bi, area_bi, operador_cc, total_de_errores, errores_por_excepciones, tipo_de_errores, conteo_de_errores) VALUES ('{marca_3}','{usuario}','{nombre_3}','{puesto}','{supervisor_3}','{proceso_3}','{fecha_3}','{semana_3}','{año_3}','{distrito_3}','{tipo_3}','0','0','0','{horas_3}','{manzana_3}','{sector_3}','{numero_lote_3}','{estado_3}','0.0','{unidades_catastrales_3}','0','N/A','0','0','{observaciones_3}','N/A','N/A','{horas_bi}','0.0','N/A','0','0','N/A','0')")
         con.commit()
         st.success("Reporte generado correctamente")
 
