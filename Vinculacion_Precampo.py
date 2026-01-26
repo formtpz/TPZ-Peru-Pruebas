@@ -334,33 +334,45 @@ def Vinculacion_Precampo(usuario, puesto):
 
         cursor.execute("""
             INSERT INTO registro (
-                usuario,
-                proceso,
-                fecha,
-                distrito,
-                sector,
-                manzana,
-                unidades_catastrales,
-                tipo,
-                estado,
-                numero_lote,
-                horas,
-                observaciones
+                marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año, distrito, tipo, lotes, aprobados, rechazados, horas, manzana, sector, numero_lote, estado, area, unidades_catastrales, edificas, partida, con_fmi, sin_fmi, observaciones, zona, tipo_calidad, horas_bi, area_bi, operador_cc, total_de_errores, errores_por_excepciones, tipo_de_errores, conteo_de_errores
             )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, (
+            marca_3,
             usuario,
+            nombre_3,
+            puesto,
+            supervisor_3,
             proceso_3,
             fecha_3,
+            semana_3,
+            año_3,
             distrito_3,
-            sector_3,
-            manzana_3,
-            unidades_catastrales_3,
             tipo_3,
-            estado_3,
-            numero_lote_3,
+            0,          # lotes
+            0,          # aprobados
+            0,          # rechazados
             horas_3,
-            observaciones_3
+            manzana_3,
+            sector_3,
+            numero_lote_3,
+            estado_3,
+            0.0,        # area
+            unidades_catastrales_3,
+            0,          # edificas
+            "N/A",      # partida
+            0,          # con_fmi
+            0,          # sin_fmi
+            observaciones_3,
+            "N/A",      # zona
+            "N/A",      # tipo_calidad
+            horas_bi,
+            0.0,        # area_bi
+            "N/A",      # operador_cc
+            0,          # total_de_errores
+            0,          # errores_por_excepciones
+            "N/A",      # tipo_de_errores
+            0           # conteo_de_errores
         ))
 
         con.commit()
