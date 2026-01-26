@@ -332,6 +332,15 @@ def Vinculacion_Precampo(usuario, puesto):
 
         cursor = con.cursor()
 
+        marca_3= datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
+        nombre_3= pd.read_sql(f"select nombre from usuarios where usuario ='{usuario}'",uri)
+        nombre_3 = nombre_3.loc[0,'nombre']
+        supervisor_3= pd.read_sql(f"select supervisor from usuarios where usuario ='{usuario}'",uri)
+        supervisor_3 = supervisor_3.loc[0,'supervisor']
+        semana_3 = fecha_3.isocalendar()[1]
+        año_3 = fecha_3.isocalendar()[0]
+        horas_bi = float(horas_3)
+
         cursor.execute("""
             INSERT INTO registro (
                 marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año, distrito, tipo, lotes, aprobados, rechazados, horas, manzana, sector, numero_lote, estado, area, unidades_catastrales, edificas, partida, con_fmi, sin_fmi, observaciones, zona, tipo_calidad, horas_bi, area_bi, operador_cc, total_de_errores, errores_por_excepciones, tipo_de_errores, conteo_de_errores
