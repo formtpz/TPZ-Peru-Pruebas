@@ -127,12 +127,18 @@ def Correcciones(usuario, puesto):
             st.subheader("Capacitaciones")
             st.dataframe(dfc, use_container_width=True)
 
-            # -----------------------------
-            # NUEVO: Solicitudes del usuario
-            # -----------------------------
+            # =====================================================
+            # NUEVO: Mis solicitudes de corrección + filtro
+            # =====================================================
             st.subheader("Mis solicitudes de corrección")
 
-            query_mis_correcciones = f"""
+            filtro_corr = st.selectbox(
+                "Mostrar solicitudes",
+                ("Todos", "Pendiente"),
+                key="filtro_mis_correcciones"
+            )
+
+            query_mis_corr = f"""
                 SELECT
                     id,
                     fecha,
@@ -145,16 +151,20 @@ def Correcciones(usuario, puesto):
                     estado
                 FROM correcciones
                 WHERE usuario = '{usuario}'
-                ORDER BY fecha DESC
             """
 
-            df_mis_corr = pd.read_sql(query_mis_correcciones, con)
+            if filtro_corr == "Pendiente":
+                query_mis_corr += " AND estado = 'Pendiente'"
+
+            query_mis_corr += " ORDER BY fecha DESC"
+
+            df_mis_corr = pd.read_sql(query_mis_corr, con)
 
             if "id" in df_mis_corr.columns:
                 df_mis_corr["id"] = df_mis_corr["id"].astype(str)
 
             if df_mis_corr.empty:
-                st.info("Aún no has realizado solicitudes de corrección.")
+                st.info("No hay solicitudes para mostrar.")
             else:
                 st.dataframe(df_mis_corr, use_container_width=True)
 
@@ -174,9 +184,6 @@ def Correcciones(usuario, puesto):
                 "Tabla",
                 ("registro", "otros_registros", "capacitaciones")
             )
-
-            columna = None
-            nuevo_valor = None
 
             if tipo_correccion == "Modificar valor":
 
@@ -352,3 +359,4 @@ def Correcciones(usuario, puesto):
             Procesos.Procesos2(usuario, puesto)
         elif perfil == "3":
             Procesos.Procesos3(usuario, puesto)
+
