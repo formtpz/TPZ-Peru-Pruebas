@@ -26,7 +26,7 @@ def Correcciones(usuario, puesto):
     cursor = con.cursor()
 
     # =============================
-    # Utilidad: convertir numpy → python
+    # Utilidad numpy → python
     # =============================
     def to_python(v):
         return v.item() if hasattr(v, "item") else v
@@ -35,7 +35,7 @@ def Correcciones(usuario, puesto):
     # Menú lateral (placeholders)
     # =============================
     placeholder1_3 = st.sidebar.empty()
-    titulo = placeholder1_3.title("Menú")
+    placeholder1_3.title("Menú")
 
     placeholder2_3 = st.sidebar.empty()
     procesos_3 = placeholder2_3.button("Regresar", key="procesos_3")
@@ -110,13 +110,11 @@ def Correcciones(usuario, puesto):
             dfo = pd.read_sql(query_otros, con)
             dfc = pd.read_sql(query_capacitacion, con)
 
-            # ----- Evitar formato 2,000 en IDs -----
+            # ----- IDs como texto -----
             if "id" in df.columns:
                 df["id"] = df["id"].astype(str)
-
             if "id" in dfo.columns:
                 dfo["id"] = dfo["id"].astype(str)
-
             if "id" in dfc.columns:
                 dfc["id"] = dfc["id"].astype(str)
 
@@ -128,6 +126,37 @@ def Correcciones(usuario, puesto):
 
             st.subheader("Capacitaciones")
             st.dataframe(dfc, use_container_width=True)
+
+            # -----------------------------
+            # NUEVO: Solicitudes del usuario
+            # -----------------------------
+            st.subheader("Mis solicitudes de corrección")
+
+            query_mis_correcciones = f"""
+                SELECT
+                    id,
+                    fecha,
+                    tabla,
+                    id_asociado,
+                    tipo_error,
+                    columna,
+                    nuevo_valor,
+                    solucion,
+                    estado
+                FROM correcciones
+                WHERE usuario = '{usuario}'
+                ORDER BY fecha DESC
+            """
+
+            df_mis_corr = pd.read_sql(query_mis_correcciones, con)
+
+            if "id" in df_mis_corr.columns:
+                df_mis_corr["id"] = df_mis_corr["id"].astype(str)
+
+            if df_mis_corr.empty:
+                st.info("Aún no has realizado solicitudes de corrección.")
+            else:
+                st.dataframe(df_mis_corr, use_container_width=True)
 
             # -----------------------------
             # Solicitud de corrección
@@ -235,7 +264,7 @@ def Correcciones(usuario, puesto):
                 con.commit()
                 st.success("Solicitud registrada correctamente")
 
-        pass  # fin page usuario
+        pass  # fin usuario
 
     # =========================================================
     # COORDINADOR
@@ -247,10 +276,7 @@ def Correcciones(usuario, puesto):
 
             st.title("Gestión de Correcciones")
 
-            filtro = st.selectbox(
-                "Mostrar",
-                ("Todos", "Pendiente")
-            )
+            filtro = st.selectbox("Mostrar", ("Todos", "Pendiente"))
 
             query_corr = "SELECT * FROM correcciones"
             if filtro == "Pendiente":
@@ -297,7 +323,7 @@ def Correcciones(usuario, puesto):
                 con.commit()
                 st.success("Cambios guardados correctamente")
 
-        pass  # fin page coordinador
+        pass  # fin coordinador
 
     # =========================================================
     # Regresar a Procesos
@@ -326,4 +352,3 @@ def Correcciones(usuario, puesto):
             Procesos.Procesos2(usuario, puesto)
         elif perfil == "3":
             Procesos.Procesos3(usuario, puesto)
-
