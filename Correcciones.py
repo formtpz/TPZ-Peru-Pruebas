@@ -26,6 +26,12 @@ def Correcciones(usuario, puesto):
     cursor = con.cursor()
 
     # =============================
+    # Utilidad: convertir numpy → python
+    # =============================
+    def to_python(v):
+        return v.item() if hasattr(v, "item") else v
+
+    # =============================
     # Menú lateral (placeholders)
     # =============================
     placeholder1_3 = st.sidebar.empty()
@@ -104,13 +110,14 @@ def Correcciones(usuario, puesto):
             dfo = pd.read_sql(query_otros, con)
             dfc = pd.read_sql(query_capacitacion, con)
 
+            # ----- Evitar formato 2,000 en IDs -----
             if "id" in df.columns:
                 df["id"] = df["id"].astype(str)
 
-            if "id" in df.columns:
+            if "id" in dfo.columns:
                 dfo["id"] = dfo["id"].astype(str)
 
-            if "id" in df.columns:
+            if "id" in dfc.columns:
                 dfc["id"] = dfc["id"].astype(str)
 
             st.subheader("Registro")
@@ -157,7 +164,7 @@ def Correcciones(usuario, puesto):
                         "Lote Incorrecto",
                         "Aprobados-Rechazados Incorrectos",
                         "Área Incorrecta",
-                        "Edificas Incorrectos",                        
+                        "Edificas Incorrectos",
                         "Unidades Catastrales Incorrectas",
                         "Partida Incorrecta",
                         "Zona Incorrecta",
@@ -166,10 +173,12 @@ def Correcciones(usuario, puesto):
                 )
 
                 columna = st.text_input(
-                    "Columna a corregir (según se visualiza en las tablas anteriores, debe estar ligado al motivo)"
+                    "Columna a corregir (según se visualiza en las tablas anteriores)"
                 )
 
-                nuevo_valor = st.text_input("Nuevo valor (reemplaza al erroneo, en caso de Aprobados-Rechazados Ej: 3-2 = 3 aprobados, 2 rechazados)")
+                nuevo_valor = st.text_input(
+                    "Nuevo valor (Ej: Aprobados-Rechazados = 3-2)"
+                )
 
             else:
                 descripcion1 = st.radio(
@@ -204,29 +213,24 @@ def Correcciones(usuario, puesto):
 
                 solicitud = "Modificar" if tipo_correccion == "Modificar valor" else "Eliminar"
 
-                insert_query = """
+                cursor.execute("""
                     INSERT INTO correcciones (
                         usuario, nombre, tipo_error, id_asociado,
                         fecha, solucion, tabla, columna, nuevo_valor, estado
                     )
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                """
-
-                cursor.execute(
-                    insert_query,
-                    (
-                        usuario,
-                        nombre,
-                        descripcion1,
-                        id_reporte,
-                        marca,
-                        solicitud,
-                        tabla,
-                        columna,
-                        nuevo_valor,
-                        "Pendiente"
-                    )
-                )
+                """, (
+                    usuario,
+                    nombre,
+                    descripcion1,
+                    id_reporte,
+                    marca,
+                    solicitud,
+                    tabla,
+                    columna,
+                    nuevo_valor,
+                    "Pendiente"
+                ))
 
                 con.commit()
                 st.success("Solicitud registrada correctamente")
@@ -248,11 +252,7 @@ def Correcciones(usuario, puesto):
                 ("Todos", "Pendiente")
             )
 
-            query_corr = """
-                SELECT *
-                FROM correcciones
-            """
-
+            query_corr = "SELECT * FROM correcciones"
             if filtro == "Pendiente":
                 query_corr += " WHERE estado = 'Pendiente'"
 
@@ -283,7 +283,8 @@ def Correcciones(usuario, puesto):
                     ]
 
                     set_clause = ", ".join(f"{col} = %s" for col in columnas_cambiadas)
-                    valores = [fila_nueva[col] for col in columnas_cambiadas]
+                    valores = [to_python(fila_nueva[col]) for col in columnas_cambiadas]
+                    id_python = to_python(fila_nueva["id"])
 
                     sql = f"""
                         UPDATE correcciones
@@ -291,7 +292,7 @@ def Correcciones(usuario, puesto):
                         WHERE id = %s
                     """
 
-                    cursor.execute(sql, valores + [fila_nueva["id"]])
+                    cursor.execute(sql, valores + [id_python])
 
                 con.commit()
                 st.success("Cambios guardados correctamente")
@@ -325,3 +326,4 @@ def Correcciones(usuario, puesto):
             Procesos.Procesos2(usuario, puesto)
         elif perfil == "3":
             Procesos.Procesos3(usuario, puesto)
+
