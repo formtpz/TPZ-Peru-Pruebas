@@ -55,10 +55,13 @@ def Entregas_Postcampo(usuario,puesto):
   manzana_3= placeholder12_3.selectbox("Manzana", options=("001","002","003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022","023","024","025","026","027","028","029","030","031","032","033","034","035","036","037","038","039","040","041","042","043","044","045","046","047","048","049","050","051","052","053","054","055","056","057","058","058","059","060","061","062","063","064","065","066","067","068","069","070","071","072","073","074","075","076","077","078","079","080","081","082","083","084","085","086","087","088","089","090","091","092","093","094","095","096","097","098","099","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120"), key="manzana_3")
 
   placeholder13_3= st.empty()
-  estado_3= placeholder13_3.selectbox("Estado", options=("Finalizado","En conflicto"), key="estado_3")
-
+  tipo_3= placeholder13_3.selectbox("Tipo", options=("Ordinario","Reproceso Ordinario","Corrección de Calidad","Corrección de Calidad Extraordinaria","Producción Horas Extras"), key="tipo_3")
+    
   placeholder14_3= st.empty()
-  tipo_de_errores_3= placeholder14_3.multiselect("Errores Entregas Postcampo", options=("Topológicos con apertura de manzana","Topológicos sin apertura de manzana","Alfanuméricos con apertura de manzana","Alfanuméricos sin apertura de manzana"), key="tipo_de_errores_3")
+  estado_3= placeholder14_3.selectbox("Estado", options=("Finalizado","En conflicto"), key="estado_3")
+
+  placeholder15_3= st.empty()
+  tipo_de_errores_3= placeholder15_3.multiselect("Errores Entregas Postcampo", options=("Topológicos con apertura de manzana","Topológicos sin apertura de manzana","Alfanuméricos con apertura de manzana","Alfanuméricos sin apertura de manzana"), key="tipo_de_errores_3")
 
   #placeholder15_3= st.empty()
   #rechazados_3= placeholder15_3.number_input("Cantidad de Predios Rechazados",min_value=0,step=1,key="rechazados_3")
@@ -86,7 +89,7 @@ def Entregas_Postcampo(usuario,puesto):
     placeholder12_3.empty()
     placeholder13_3.empty()
     placeholder14_3.empty()
-    #placeholder15_3.empty()
+    placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
     st.session_state.Procesos=False
@@ -124,7 +127,7 @@ def Entregas_Postcampo(usuario,puesto):
     placeholder12_3.empty()
     placeholder13_3.empty()
     placeholder14_3.empty()
-    #placeholder15_3.empty()
+    placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
     st.session_state.Entregas=False
@@ -148,7 +151,7 @@ def Entregas_Postcampo(usuario,puesto):
     placeholder12_3.empty()
     placeholder13_3.empty()
     placeholder14_3.empty()
-    #placeholder15_3.empty()
+    placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
     st.session_state.Entregas=False
@@ -172,7 +175,7 @@ def Entregas_Postcampo(usuario,puesto):
     placeholder12_3.empty()
     placeholder13_3.empty()
     placeholder14_3.empty()
-    #placeholder15_3.empty()
+    placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
     st.session_state.Entregas=False
@@ -194,9 +197,9 @@ def Entregas_Postcampo(usuario,puesto):
     placeholder10_3.empty()
     placeholder11_3.empty()
     placeholder12_3.empty()
-    #placeholder13_3.empty()
+    placeholder13_3.empty()
     placeholder14_3.empty()
-    #placeholder15_3.empty()
+    placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
     st.session_state.Entregas=False
@@ -220,7 +223,7 @@ def Entregas_Postcampo(usuario,puesto):
     placeholder12_3.empty()
     placeholder13_3.empty()
     placeholder14_3.empty()
-    #placeholder15_3.empty()
+    placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
     st.session_state.Ingreso = False
