@@ -20,6 +20,8 @@ import importlib
 
 importlib.reload(Procesos)
 
+
+
 # ----- CSS GLOBAL (Ocultar menú + Wallpaper dinámico) ----- #
 custom_style = """
 <style>
@@ -32,91 +34,63 @@ div[data-testid="stStatusWidget"] {visibility: visible; height: 0%; position: fi
 header {visibility: hidden; height: 0%;}
 footer {visibility: hidden; height: 0%;}
 
-/* ===== WALLPAPER DINÁMICO CORPORATIVO ===== */
-.stApp {
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+/* ===== FONDO ANIMADO CORPORATIVO PREMIUM ===== */
+
+/* Gradiente animado */
+div[data-testid="stAppViewContainer"] {
+    background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #1c3b52);
+    background-size: 400% 400%;
+    animation: gradientMove 25s ease infinite;
     overflow: hidden;
 }
 
-.stApp::before,
-.stApp::after {
+/* Destellos suaves tipo luz */
+div[data-testid="stAppViewContainer"]::before {
     content: "";
     position: fixed;
-    top: 0;
-    left: 0;
+    top: -50%;
+    left: -50%;
     width: 200%;
     height: 200%;
-    background-repeat: repeat;
-    background-image: radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px);
-    background-size: 40px 40px;
-    opacity: 0.12;
-    animation: moveParticles 80s linear infinite;
+    background: repeating-linear-gradient(
+        120deg,
+        rgba(255,255,255,0.08) 0px,
+        rgba(255,255,255,0.08) 2px,
+        transparent 2px,
+        transparent 180px
+    );
+    animation: lightSweep 18s linear infinite;
+    pointer-events: none;
     z-index: -1;
 }
 
-.stApp::after {
-    background-size: 60px 60px;
-    animation-duration: 140s;
-    opacity: 0.06;
+/* Animación del gradiente */
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
-@keyframes moveParticles {
-    from { transform: translate(0, 0); }
+/* Movimiento suave de destellos */
+@keyframes lightSweep {
+    0% {
+        transform: translateX(-20%) translateY(-20%);
+        opacity: 0;
+    }
+    30% { opacity: 0.4; }
+    70% { opacity: 0.4; }
+    100% {
+        transform: translateX(20%) translateY(20%);
+        opacity: 0;
+    }
+}
     to { transform: translate(-600px, -600px); }
 }
 
 </style>
 """
 
-st.markdown("""
-<style>
-
-/* Fondo base */
-div[data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-    overflow: hidden;
-}
-
-/* Hacer contenedores transparentes */
-div[data-testid="stHeader"],
-section[data-testid="stSidebar"],
-.main {
-    background: transparent !important;
-}
-
-/* Partículas */
-div[data-testid="stAppViewContainer"]::before,
-div[data-testid="stAppViewContainer"]::after {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 200%;
-    height: 200%;
-    background-repeat: repeat;
-    background-image: radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px);
-    background-size: 40px 40px;
-    opacity: 0.15;
-    animation: moveParticles 80s linear infinite;
-    z-index: -1;
-
-    /* 👇 ESTA ES LA CLAVE */
-    pointer-events: none;
-}
-
-div[data-testid="stAppViewContainer"]::after {
-    background-size: 60px 60px;
-    animation-duration: 140s;
-    opacity: 0.08;
-}
-
-@keyframes moveParticles {
-    from { transform: translate(0, 0); }
-    to { transform: translate(-600px, -600px); }
-}
-
-</style>
-""", unsafe_allow_html=True)
+st.markdown(custom_style, unsafe_allow_html=True)
 
 # ----- Conexión, Botones y Memoria ---- #
 uri = st.secrets.db_credentials.URI
