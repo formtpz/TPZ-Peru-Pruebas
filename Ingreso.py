@@ -79,7 +79,6 @@ div[data-testid="stAppViewContainer"] {
 
 /* Hacer contenedores transparentes */
 div[data-testid="stHeader"],
-div[data-testid="stToolbar"],
 section[data-testid="stSidebar"],
 .main {
     background: transparent !important;
@@ -99,7 +98,10 @@ div[data-testid="stAppViewContainer"]::after {
     background-size: 40px 40px;
     opacity: 0.15;
     animation: moveParticles 80s linear infinite;
-    z-index: 0;
+    z-index: -1;
+
+    /* 👇 ESTA ES LA CLAVE */
+    pointer-events: none;
 }
 
 div[data-testid="stAppViewContainer"]::after {
