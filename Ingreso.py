@@ -2,14 +2,13 @@
 import streamlit as st
 from PIL import Image
 
-import Autenticacion
-import Procesos
-import importlib
-
+# IMPORTANTE:
+# `st.set_page_config(...)` debe ejecutarse antes de cualquier otro comando de Streamlit.
 img = Image.open('logoicon.png')
 st.set_page_config(page_title="Formularios TPZ", page_icon=img, layout="wide")
 
-importlib.reload(Procesos)
+import Autenticacion
+import Procesos
 
 hide_streamlit_style = """
                 <style>
