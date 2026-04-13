@@ -2,12 +2,12 @@
 import streamlit as st
 from PIL import Image
 
-img = Image.open('logoicon.png')
-st.set_page_config(page_title="Formularios TPZ", page_icon=img, layout="wide")
-
 import Autenticacion
 import Procesos
 import importlib
+
+img = Image.open('logoicon.png')
+st.set_page_config(page_title="Formularios TPZ", page_icon=img, layout="wide")
 
 importlib.reload(Procesos)
 
