@@ -100,7 +100,8 @@ def Vinculacion_Precampo(usuario, puesto):
             "Reproceso Ordinario",
             "Corrección de Calidad",
             "Corrección de Calidad Extraordinaria",
-            "Producción Horas Extras"
+            "Producción Horas Extras",
+            "Reproceso Horas Extras"
         ),
         key="tipo_3"
     )
@@ -112,13 +113,36 @@ def Vinculacion_Precampo(usuario, puesto):
         key="estado_3"
     )
 
+    #placeholder18_3 = st.empty()
+    #numero_lote_3 = placeholder18_3.selectbox(
+    #    "Número de lote",
+    #    options=[f"{i:03d}" for i in range(1, 249)],
+    #    key="numero_lote_3"
+    #)
+        # =========================
+    # Generar lista dinámica
+    # =========================
+    lotes = ["Todos"] + [f"{i:03d}" for i in range(1,249)]
+    
     placeholder18_3 = st.empty()
-    numero_lote_3 = placeholder18_3.selectbox(
-        "Número de lote",
-        options=[f"{i:03d}" for i in range(1, 249)],
+    
+    numero_lote_3 = placeholder18_3.multiselect(
+        "Número de Lote",
+        options=lotes,
         key="numero_lote_3"
     )
-
+    
+    # =========================
+    # Lógica para "Todos"
+    # =========================
+    if "Todos" in numero_lote_3:
+        numero_lote_3 = ["Todos"]
+    
+    # =========================
+    # Convertir a texto para guardar
+    # =========================
+    numero_lote_3 = ",".join(numero_lote_3)
+    
     placeholder19_3 = st.empty()
     horas_3 = placeholder19_3.number_input(
         "Cantidad de Horas Trabajadas en el Proceso",
