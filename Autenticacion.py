@@ -1,40 +1,31 @@
-import pandas as pd
-import streamlit as st
-import psycopg2
-from urllib.parse import urlparse
+from db_core import (
+    con,
+    hostname,
+    database,
+    username,
+    pwd,
+    port_id,
+    fetch_df,
+    fetch_one,
+)
 
-# --- Cargar URI desde secrets ---
-uri = st.secrets.db_credentials.URI
 
-# --- Parsear URI ---
-result = urlparse(uri)
-hostname = result.hostname
-database = result.path[1:]
-username = result.username
-pwd = result.password
-port_id = result.port
-
-# --- Función para recuperar contraseña ---
 def contraseña(usuario):
-    query = f"""
-        SELECT contraseña 
-        FROM usuarios 
-        WHERE usuario = '{usuario}' 
+    query = """
+        SELECT contraseña
+        FROM usuarios
+        WHERE usuario = %s
           AND estado = 'Activo'
     """
-    return pd.read_sql(query, con)
+    return fetch_df(query, params=[usuario])
 
-# --- Crear una sola conexión global (cacheada) ---
-@st.cache_resource
-def init_connection():
-    return psycopg2.connect(
-        host=hostname,
-        dbname=database,
-        user=username,
-        password=pwd,
-        port=port_id
-    )
 
-# --- Abrir conexión compartida ---
-con = init_connection()
-
+def obtener_usuario_activo(usuario):
+    query = """
+        SELECT usuario, contraseña, nombre, puesto, perfil, supervisor
+        FROM usuarios
+        WHERE usuario = %s
+          AND estado = 'Activo'
+        LIMIT 1
+    """
+    return fetch_one(query, params=[usuario])
