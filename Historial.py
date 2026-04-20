@@ -4,12 +4,10 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import pytz
-import plotly.graph_objects as go
-import plotly.express as px
 
 # Importaciones de módulos de navegación
 import Procesos, Capacitacion, Otros_Registros, Bonos_Extras, Salir
-from db_core import fetch_df, con
+from db_core import fetch_df
 
 # -------------------------------------------------------------------
 # FUNCIONES AUXILIARES DE DATOS
@@ -17,7 +15,6 @@ from db_core import fetch_df, con
 
 def cargar_datos_supervisor(fecha_inicio, fecha_fin, personal, proceso, tipo, nombre_usuario):
     """Carga los datos para el perfil Supervisor/Coordinador según filtros."""
-    # Consultas base
     base_r = fetch_df(
         """
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año,
@@ -48,12 +45,10 @@ def cargar_datos_supervisor(fecha_inicio, fecha_fin, personal, proceso, tipo, no
         params=[fecha_inicio, fecha_fin]
     )
 
-    # Copias para filtros
     data_r = base_r.copy()
     data_c = base_c.copy()
     data_o = base_o.copy()
 
-    # Filtro Personal
     if personal == "Operarios":
         data_r = data_r[data_r["puesto"] == "Operario Catastral"]
         data_c = data_c[data_c["puesto"] == "Operario Catastral"]
@@ -71,11 +66,8 @@ def cargar_datos_supervisor(fecha_inicio, fecha_fin, personal, proceso, tipo, no
         data_c = data_c[data_c["supervisor"] == nombre_usuario]
         data_o = data_o[data_o["supervisor"] == nombre_usuario]
 
-    # Filtro Proceso
     if proceso != "Todos":
         data_r = data_r[data_r["proceso"] == proceso]
-
-    # Filtro Tipo
     if tipo != "Todos":
         data_r = data_r[data_r["tipo"] == tipo]
 
@@ -83,19 +75,18 @@ def cargar_datos_supervisor(fecha_inicio, fecha_fin, personal, proceso, tipo, no
 
 
 def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombre_completo):
-    """Carga los datos para el perfil Operario/Profesional Jurídico según filtros."""
-    # Construcción de condiciones dinámicas para evitar múltiples if/elif
-    condiciones = [f"usuario = '{usuario}'"]
+    condiciones = ["usuario = %s"]
+    params_where = [usuario]
     if proceso != "Todos":
-        condiciones.append(f"proceso = '{proceso}'")
+        condiciones.append("proceso = %s")
+        params_where.append(proceso)
     if tipo != "Todos":
-        condiciones.append(f"tipo = '{tipo}'")
+        condiciones.append("tipo = %s")
+        params_where.append(tipo)
 
     where_clause = " AND ".join(condiciones)
+    params = params_where + [fecha_inicio, fecha_fin]
 
-    params_fecha = params + [fecha_inicio, fecha_fin]
-
-    # Consultas principales
     data_1_r = fetch_df(
         f"""
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año,
@@ -105,12 +96,11 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
         FROM registro
         WHERE {where_clause} AND fecha::date >= %s AND fecha::date <= %s
         """,
-        params=params_fecha
+        params=params
     )
 
-    # Datos para horas normales y extras (sin filtro de tipo adicional aquí, se hace después)
     data_8_r = fetch_df(
-        f"""
+        """
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año,
                distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,
                cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
@@ -122,7 +112,7 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
         params=[usuario, fecha_inicio, fecha_fin]
     )
     data_6_r = fetch_df(
-        f"""
+        """
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año,
                distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,
                cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
@@ -134,7 +124,6 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
         params=[usuario, fecha_inicio, fecha_fin]
     )
 
-    # Datos para resumen de calidad (operador_cc)
     data_5_r = fetch_df(
         f"""
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año,
@@ -147,7 +136,6 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
         params=[nombre_completo, fecha_inicio, fecha_fin]
     )
 
-    # Capacitaciones y otros registros
     data_1_c = fetch_df(
         """
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, tema,
@@ -205,15 +193,12 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
 # -------------------------------------------------------------------
 
 def generar_resumen_horas(data_r, data_c, data_o):
-    """Genera el DataFrame de resumen de horas combinando todas las fuentes."""
-    # Filtrar por tipo de horas
     data_8_r = data_r[~data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy()
     data_6_r = data_r[data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy()
     data_6_o = data_o[data_o["motivo"].isin(["Horas Extra", "Horas Extra Apoyo Otros Proyectos", "Horas Extras"])].copy()
     data_7_o = data_o[data_o["motivo"] == "Reposición de tiempo"].copy()
     data_9_o = data_o[~data_o["motivo"].isin(["Reposición de tiempo", "Horas Extra", "Horas Extra Apoyo Otros Proyectos", "Horas Extras"])].copy()
 
-    # Funciones para agrupar o retornar vacío
     def agrupar_o_vacio(df, group_cols, agg_col, rename_dict):
         if len(df) > 0:
             res = df.groupby(group_cols, as_index=False)[[agg_col]].agg(np.sum)
@@ -229,12 +214,10 @@ def generar_resumen_horas(data_r, data_c, data_o):
     otros_extra = agrupar_o_vacio(data_6_o, ["nombre", "fecha"], "horas", {"horas": "horas_extra_otros_registros"})
     reposicion = agrupar_o_vacio(data_7_o, ["nombre", "fecha"], "horas", {"horas": "reposicion"})
 
-    # Combinar
     datos_horas = pd.concat([prod_normal, prod_extra, cap, otros, otros_extra], axis=0)
     if len(datos_horas) == 0:
         return pd.DataFrame()
 
-    # Obtener combinaciones únicas nombre-fecha
     keys = datos_horas[["nombre", "fecha"]].drop_duplicates()
     merged = keys.merge(prod_normal, on=["nombre", "fecha"], how="left")
     merged = merged.merge(prod_extra, on=["nombre", "fecha"], how="left")
@@ -244,7 +227,6 @@ def generar_resumen_horas(data_r, data_c, data_o):
     merged = merged.merge(reposicion, on=["nombre", "fecha"], how="left")
     merged = merged.fillna(0)
 
-    # Asegurar columnas numéricas
     cols_numeric = ["horas_produccion", "horas_extra_produccion", "horas_capacitacion",
                     "horas_otros_registros", "horas_extra_otros_registros", "reposicion"]
     for col in cols_numeric:
@@ -256,17 +238,13 @@ def generar_resumen_horas(data_r, data_c, data_o):
 
 
 def generar_resumen_produccion(data_r):
-    """Genera resúmenes diario y semanal de producción."""
     if len(data_r) == 0:
         return pd.DataFrame(), pd.DataFrame()
 
-    # Resumen diario
     diario = data_r.groupby(["nombre", "fecha"], as_index=False)[["lotes", "edificas", "horas"]].agg(np.sum)
     diario["rendimiento"] = (diario["edificas"] / diario["horas"]) * 8.5
 
-    # Resumen semanal
     semanal = data_r.groupby(["nombre", "semana", "proceso"], as_index=False)[["edificas", "unidades_catastrales", "horas"]].agg(np.sum)
-    # Mapeo de valores esperados por proceso (valores originales del código)
     valor_esperado_map = {
         'Precampo': 8,
         'Control de Calidad Precampo': 10,
@@ -283,11 +261,9 @@ def generar_resumen_produccion(data_r):
 
 
 def generar_resumen_calidad(data_r):
-    """Genera resumen de calidad para inspecciones."""
     if len(data_r) == 0:
         return pd.DataFrame()
 
-    # Para Supervisor usamos directamente el DataFrame filtrado; para Operario ya viene data_5_r
     data_filtrada = data_r[(data_r["tipo"] == "Inspección") & (data_r["operador_cc"].notna()) & (data_r["operador_cc"] != "N/A")]
     if len(data_filtrada) == 0:
         return pd.DataFrame()
@@ -298,7 +274,6 @@ def generar_resumen_calidad(data_r):
 
 
 def generar_resumen_calidad_operario(data_5_r):
-    """Resumen de calidad para perfil Operario (incluye unidades catastrales)."""
     if len(data_5_r) == 0:
         return pd.DataFrame()
 
@@ -316,14 +291,12 @@ def generar_resumen_calidad_operario(data_5_r):
 # -------------------------------------------------------------------
 
 def limpiar_placeholders(lista_placeholders):
-    """Vacía todos los placeholders en la lista."""
     for ph in lista_placeholders:
         if ph is not None:
             ph.empty()
 
 
 def mostrar_reporte_base(data, placeholder):
-    """Muestra el dataframe de reportes o error si está vacío."""
     if len(data) == 0:
         placeholder.error("No existen reportes para mostrar")
     else:
@@ -337,38 +310,15 @@ def mostrar_resumen_horas(datos_horas, placeholder_tabla, placeholder_error):
         placeholder_tabla.dataframe(datos_horas)
 
 
-def mostrar_resumen_produccion(diario, semanal, data_r, placeholder_diario, placeholder_semanal,
-                               placeholder_error, placeholder_grafico, placeholder_multiselect, placeholder_grafico_barras):
+def mostrar_resumen_produccion(diario, semanal, data_r, placeholder_diario, placeholder_semanal_titulo,
+                               placeholder_semanal, placeholder_error):
     if len(data_r) == 0:
         placeholder_error.error("No existe producción para mostrar")
         return
 
     placeholder_diario.dataframe(diario)
-    placeholder_semanal.subheader("Resumen Semanal")
+    placeholder_semanal_titulo.subheader("Resumen Semanal")
     placeholder_semanal.dataframe(semanal)
-
-    # Gráfico de rendimiento
-    nombres_unicos = diario["nombre"].unique().tolist()
-    seleccion = placeholder_multiselect.multiselect("Seleccionar", nombres_unicos)
-    fig = go.Figure()
-    for nombre in seleccion:
-        df_nombre = diario[diario["nombre"] == nombre]
-        fig.add_trace(go.Scatter(x=df_nombre["fecha"], y=df_nombre["rendimiento"], name=nombre))
-    placeholder_grafico.plotly_chart(fig)
-
-    # Totales por fecha/proceso
-    totales = data_r.groupby(["fecha", "proceso"], as_index=False)["edificas"].agg(np.sum)
-    fig_total = px.bar(totales, x="fecha", y="edificas", text="edificas", color="proceso", barmode="group")
-    fig_total.update_traces(textposition="outside")
-    placeholder_grafico_barras.plotly_chart(fig_total)
-
-
-def mostrar_graficos_horas(datos_horas, placeholder1, placeholder2):
-    if len(datos_horas) > 0:
-        fig1 = px.bar(datos_horas, x="fecha", y=["horas_produccion", "horas_capacitacion", "horas_otros_registros"], barmode="group")
-        placeholder1.plotly_chart(fig1)
-        fig2 = px.bar(datos_horas, x="fecha", y=["horas_produccion", "horas_capacitacion", "horas_otros_registros"])
-        placeholder2.plotly_chart(fig2)
 
 
 # -------------------------------------------------------------------
@@ -376,14 +326,12 @@ def mostrar_graficos_horas(datos_horas, placeholder1, placeholder2):
 # -------------------------------------------------------------------
 
 def Historial(usuario, puesto):
-    # Obtener nombre completo del usuario
     nombre_df = fetch_df("SELECT nombre FROM usuarios WHERE usuario = %s", params=[usuario])
     nombre_7 = nombre_df.loc[0, 'nombre'] if not nombre_df.empty else ""
 
-    # Fechas por defecto
     default_date = datetime.now(pytz.timezone('America/Guatemala'))
 
-    # --- Sidebar y placeholders principales ---
+    # --- Sidebar ---
     ph_sidebar = []
     ph_titulo = st.sidebar.empty()
     ph_titulo.title("Menú")
@@ -400,6 +348,7 @@ def Historial(usuario, puesto):
     btn_salir = st.sidebar.empty()
     ph_sidebar.append(btn_salir)
 
+    # --- Contenido principal ---
     ph_main = []
     titulo_historial = st.empty()
     ph_main.append(titulo_historial)
@@ -413,12 +362,10 @@ def Historial(usuario, puesto):
     fecha_inicio_val = fecha_inicio.date_input("Fecha de Inicio", value=default_date, key="fecha_inicio")
     fecha_fin_val = fecha_fin.date_input("Fecha de Finalización", value=default_date, key="fecha_fin")
 
-    # Placeholders para contenido dinámico (se llenarán según perfil)
     placeholders_contenido = []
 
-    # Determinar perfil y cargar datos
+    # Filtros según perfil
     if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
-        # Filtros adicionales
         filtro_personal = st.empty()
         placeholders_contenido.append(filtro_personal)
         filtro_proceso = st.empty()
@@ -430,9 +377,8 @@ def Historial(usuario, puesto):
         proceso_sel = filtro_proceso.selectbox("Proceso", options=("Todos","Postcampo Folios de Matricula Inmobiliaria","Postcampo Control de Calidad FMI","Control de Calidad Folios de Matricula Inmobiliaria","Calidad Externa XTF","Consultas de Campo","Folios de Matricula Inmobiliaria","Precampo","Control de Calidad Precampo","Preparación de Insumos","Entregas Postcampo","Postcampo","Control de Calidad Postcampo","Restitución de Tierras","Revisión de Predios Segregados","Vinculación Precampo","Control de Calidad Vinculación Precampo"), key="proceso_sup")
         tipo_sel = filtro_tipo.selectbox("Tipo", options=("Todos","Ordinario","Corrección","Corrección Inspección","Corrección Primera Reinspección","Reproceso Ordinario","Reproceso Corrección Inspección","Reproceso Corrección Primera Reinspección","Inspección","Reinspección","Primera Reinspección","Segunda Reinspección","Reproceso Inspección","Reproceso Primera Reinspección","Reproceso Segunda Reinspección"), key="tipo_sup")
 
-        # Cargar datos
         data_r, data_c, data_o = cargar_datos_supervisor(fecha_inicio_val, fecha_fin_val, personal_sel, proceso_sel, tipo_sel, nombre_7)
-    else:  # Operario Catastral / Profesional Jurídico
+    else:
         filtro_proceso_op = st.empty()
         placeholders_contenido.append(filtro_proceso_op)
         filtro_tipo_op = st.empty()
@@ -444,13 +390,11 @@ def Historial(usuario, puesto):
         data_1_r, data_8_r, data_6_r, data_5_r, data_1_c, data_1_o, data_6_o, data_9_o, data_7_o = cargar_datos_operario(
             usuario, fecha_inicio_val, fecha_fin_val, proceso_sel, tipo_sel, nombre_7
         )
-        # Asignar para unificar nombres en el resto del código
         data_r = data_1_r
         data_c = data_1_c
         data_o = data_1_o
-        # Para horas se usarán las versiones específicas dentro de generar_resumen_horas_operario (adaptaremos)
 
-    # Placeholders para secciones de resultados
+    # --- Placeholders para secciones de resultados (orden correcto) ---
     ph_reporte_titulo = st.empty()
     placeholders_contenido.append(ph_reporte_titulo)
     ph_reporte_data = st.empty()
@@ -473,21 +417,8 @@ def Historial(usuario, puesto):
     placeholders_contenido.append(ph_prod_semanal)
     ph_prod_error = st.empty()
     placeholders_contenido.append(ph_prod_error)
-    ph_prod_grafico_multiselect = st.empty()
-    placeholders_contenido.append(ph_prod_grafico_multiselect)
-    ph_prod_grafico = st.empty()
-    placeholders_contenido.append(ph_prod_grafico)
 
-    ph_total_titulo = st.empty()
-    placeholders_contenido.append(ph_total_titulo)
-    ph_total_grafico_barras = st.empty()
-    placeholders_contenido.append(ph_total_grafico_barras)
-    ph_total_horas_graf1 = st.empty()
-    placeholders_contenido.append(ph_total_horas_graf1)
-    ph_total_horas_graf2 = st.empty()
-    placeholders_contenido.append(ph_total_horas_graf2)
-
-    # Placeholders para calidad (según perfil)
+    # Calidad
     if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
         ph_calidad_titulo = st.empty()
         placeholders_contenido.append(ph_calidad_titulo)
@@ -507,7 +438,6 @@ def Historial(usuario, puesto):
     if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
         datos_horas = generar_resumen_horas(data_r, data_c, data_o)
     else:
-        # Para operario usamos las versiones ya separadas
         def generar_horas_operario():
             prod_normal = data_8_r.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_produccion"}) if len(data_8_r) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_produccion"])
             prod_extra = data_6_r.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_extra_produccion"}) if len(data_6_r) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_extra_produccion"])
@@ -533,20 +463,15 @@ def Historial(usuario, puesto):
 
     ph_prod_titulo.subheader("Resumen de Producción")
     diario, semanal = generar_resumen_produccion(data_r)
-    mostrar_resumen_produccion(diario, semanal, data_r, ph_prod_diario, ph_prod_semanal, ph_prod_error,
-                               ph_prod_grafico, ph_prod_grafico_multiselect, ph_total_grafico_barras)
-
-    ph_total_titulo.subheader("Totales")
-    if len(data_r) == 0:
-        ph_total_grafico_barras.error("No existe producción para mostrar")
-    mostrar_graficos_horas(datos_horas, ph_total_horas_graf1, ph_total_horas_graf2)
+    mostrar_resumen_produccion(diario, semanal, data_r, ph_prod_diario, ph_prod_semanal_titulo,
+                               ph_prod_semanal, ph_prod_error)
 
     # Resumen de Calidad
     if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
         ph_calidad_titulo.subheader("Resumen Calidad")
         calidad = generar_resumen_calidad(data_r)
         if len(calidad) == 0:
-            st.error("No existen reportes para mostrar")  # placeholder genérico
+            st.error("No existen reportes para mostrar")
         else:
             calidad_vista = calidad.rename(columns={"edificas": "muestra"})
             ph_calidad_data.dataframe(calidad_vista)
@@ -563,7 +488,6 @@ def Historial(usuario, puesto):
     if btn_procesos.button("Procesos", key="procesos_hist"):
         limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
         st.session_state.Historial = False
-        # Obtener perfil
         perfil_df = fetch_df("SELECT perfil FROM usuarios WHERE usuario = %s", params=[usuario])
         perfil = str(perfil_df.loc[0, 'perfil']) if not perfil_df.empty else "1"
         if perfil == "1":
