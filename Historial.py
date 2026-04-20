@@ -2,1325 +2,596 @@
 import numpy as np
 import streamlit as st
 import pandas as pd
-import psycopg2
 from datetime import datetime
 import pytz
 import plotly.graph_objects as go
 import plotly.express as px
-from urllib.parse import urlparse
-uri=st.secrets.db_credentials.URI
-import Procesos,Capacitacion,Otros_Registros,Bonos_Extras,Salir
-from Autenticacion import hostname, database, username, pwd, port_id, con
 
-def Historial(usuario,puesto):
+# Importaciones de módulos de navegación
+import Procesos, Capacitacion, Otros_Registros, Bonos_Extras, Salir
+from db_core import fetch_df, con
 
-  # ----- Conexión, Botones y Memoria ---- #
+# -------------------------------------------------------------------
+# FUNCIONES AUXILIARES DE DATOS
+# -------------------------------------------------------------------
 
-
-  uri=st.secrets.db_credentials.URI
-
-  placeholder1_7= st.sidebar.empty()
-  titulo= placeholder1_7.title("Menú")
-
-  placeholder2_7 = st.sidebar.empty()
-  procesos_7 = placeholder2_7.button("Procesos",key="procesos_7")
-
-  placeholder3_7 = st.sidebar.empty()
-  capacitacion_7 = placeholder3_7.button("Capacitaciones",key="capacitacion_7")
-
-  placeholder4_7 = st.sidebar.empty()
-  otros_registros_7 = placeholder4_7.button("Otros Registros",key="otros_registros_7")
-
-  placeholder5_7 = st.sidebar.empty()
-  bonos_extras_7 = placeholder5_7.button("Bonos y Horas Extras",key="bonos_extras_7")
-
-  placeholder6_7 = st.sidebar.empty()
-  salir_7 = placeholder6_7.button("Salir",key="salir_7")
-
-  placeholder7_7 = st.empty()
-  historial_7 = placeholder7_7.title("Historial")
-
-  default_date_7 = datetime.now(pytz.timezone('America/Guatemala'))
-
-  placeholder8_7 = st.empty()
-  fecha_de__inicio_7 = placeholder8_7.date_input("Fecha de Inicio",value=default_date_7,key="fecha_de_inicio_7")
-
-  placeholder9_7 = st.empty()
-  fecha_de__finalizacion_7 = placeholder9_7.date_input("Fecha de Finalización",value=default_date_7,key="fecha_de_finalizacion_7")
-  
-  nombre_7= pd.read_sql(f"select nombre from usuarios where usuario ='{usuario}'",uri)
-  nombre_7 = nombre_7.loc[0,'nombre']
-
-  # ----- Supervisor y Coordinador ---- #
-
-
-
-  if puesto=="Supervisor" or puesto=="Técnico SIG" or puesto=="Coordinador": 
-
-    placeholder10_7 = st.empty()
-    personal_7 = placeholder10_7.selectbox("Personal", options=("Todos","Operarios","Profesional Jurídico","Propio","Personal Asignado"), key="filtro_7")
-
-    placeholder11_7 = st.empty()
-    proceso_7_s = placeholder11_7.selectbox("Proceso", options=("Todos","Postcampo Folios de Matricula Inmobiliaria","Postcampo Control de Calidad FMI","Control de Calidad Folios de Matricula Inmobiliaria","Calidad Externa XTF","Consultas de Campo","Folios de Matricula Inmobiliaria","Precampo","Control de Calidad Precampo","Preparación de Insumos","Entregas Postcampo","Postcampo","Control de Calidad Postcampo","Restitución de Tierras","Revisión de Predios Segregados","Vinculación Precampo","Control de Calidad Vinculación Precampo"), key="proceso_7_s")
-    
-    placeholder12_7 = st.empty()
-    tipo_7_s = placeholder12_7.selectbox("Tipo", options=("Todos","Ordinario","Corrección","Corrección Inspección","Corrección Primera Reinspección","Reproceso Ordinario","Reproceso Corrección Inspección","Reproceso Corrección Primera Reinspección","Inspección","Reinspección","Primera Reinspección","Segunda Reinspección","Reproceso Inspección","Reproceso Primera Reinspección","Reproceso Segunda Reinspección"), key="tipo_7_s")
-
-    
-    base_1_reportes =pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float)from registro where fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-    base_1_capacitaciones = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,cast(horas as float),observaciones,reporte from capacitaciones where fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-    base_1_otros = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-
-    base_r = base_1_reportes.copy()
-    base_c = base_1_capacitaciones.copy()
-    base_o = base_1_otros.copy()
-
-    # ------------------------------------------------------------------------------------------------------------------------------------
-    # FILTRO PERSONAL
-    # ----------------------------
-    
-    if personal_7 == "Operarios":
-    
-        base_r = base_r[base_r["puesto"] == "Operario Catastral"]
-        base_c = base_c[base_c["puesto"] == "Operario Catastral"]
-        base_o = base_o[base_o["puesto"] == "Operario Catastral"]
-    
-    
-    elif personal_7 == "Profesional Jurídico":
-    
-        base_r = base_r[base_r["puesto"] == "Profesional Jurídico"]
-        base_c = base_c[base_c["puesto"] == "Profesional Jurídico"]
-        base_o = base_o[base_o["puesto"] == "Profesional Jurídico"]
-    
-    
-    elif personal_7 == "Propio":
-    
-        base_r = base_r[base_r["nombre"] == nombre_7]
-        base_c = base_c[base_c["nombre"] == nombre_7]
-        base_o = base_o[base_o["nombre"] == nombre_7]
-    
-    
-    elif personal_7 == "Personal Asignado":
-    
-        base_r = base_r[base_r["supervisor"] == nombre_7]
-        base_c = base_c[base_c["supervisor"] == nombre_7]
-        base_o = base_o[base_o["supervisor"] == nombre_7]
-    
-    
-    # ----------------------------
-    # FILTRO PROCESO
-    # ----------------------------
-    
-    if proceso_7_s != "Todos":
-    
-        base_r = base_r[base_r["proceso"] == proceso_7_s]
-    
-    
-    # ----------------------------
-    # FILTRO TIPO
-    # ----------------------------
-    
-    if tipo_7_s != "Todos":
-    
-        base_r = base_r[base_r["tipo"] == tipo_7_s]
-    
-    
-    # ----------------------------
-    # DATASETS FINALES (equivalentes a los SQL)
-    # ----------------------------
-    
-    data_1_r = base_r.copy()
-    data_1_c = base_c.copy()
-    data_1_o = base_o.copy()
-    #--------------------------------------------------------------Fin Filtros----------------------------------------------------------------------------
-    # ----- Reportes ---- #
-    # ----------------------------
-    # DATASETS PARA RESUMEN HORAS (igual operador)
-    # ----------------------------
-    
-    data_8_r = base_r[
-        ~base_r["tipo"].isin([
-            "Producción Horas Extras",
-            "Inspección Horas Extras",
-            "Reproceso Horas Extras"
-        ])
-    ].copy()
-    
-    
-    data_6_r = base_r[
-        base_r["tipo"].isin([
-            "Producción Horas Extras",
-            "Inspección Horas Extras",
-            "Reproceso Horas Extras"
-        ])
-    ].copy()
-    
-    
-    data_6_o = base_o[
-        base_o["motivo"].isin([
-            "Horas Extra",
-            "Horas Extra Apoyo Otros Proyectos",
-            "Horas Extras"
-        ])
-    ].copy()
-    
-    
-    data_7_o = base_o[
-        base_o["motivo"] == "Reposición de tiempo"
-    ].copy()
-    
-    
-    data_9_o = base_o[
-        ~base_o["motivo"].isin([
-            "Reposición de tiempo",
-            "Horas Extra",
-            "Horas Extra Apoyo Otros Proyectos",
-            "Horas Extras"
-        ])
-    ].copy()
-    
-    
-    # --------------------------------------------------
-    # REPORTES
-    # --------------------------------------------------
-    
-    placeholder13_7 = st.empty()
-    reportes_7 = placeholder13_7.subheader("Reportes")
-    
-    pivot_reportes = len(data_1_r.iloc[:,0])
-    pivot_reportes_o = len(data_1_o.iloc[:,0])
-    
-    if pivot_reportes == 0 and pivot_reportes_o == 0:
-    
-        placeholder14_7 = st.empty()
-        placeholder14_7.error("No existen reportes para mostrar")
-    
-    else:
-    
-        placeholder15_7 = st.empty()
-        placeholder15_7.dataframe(data=data_1_r)
-    
-    
-    # --------------------------------------------------
-    # RESUMEN DE HORAS (VERSION SEGURA)
-    # --------------------------------------------------
-    pivot_r=len(base_r.iloc[:,0])
-    pivot_c=len(base_c.iloc[:,0])
-    pivot_o=len(base_o.iloc[:,0])
-    placeholder17_7 = st.empty()
-    placeholder17_7.subheader("Resumen de Horas")
-    
-    
-    # PRODUCCION NORMAL
-    
-    if len(data_8_r) > 0:
-    
-        data_10_r = data_8_r.groupby(
-            ["nombre","fecha"],
-            as_index=False
-        )[["horas"]].agg(np.sum)
-    
-        data_10_r.rename(
-            columns={"horas":"horas_produccion"},
-            inplace=True
-        )
-    
-    else:
-    
-        data_10_r = pd.DataFrame(
-            columns=["nombre","fecha","horas_produccion"]
-        )
-    
-    
-    # HORAS EXTRA PRODUCCION
-    
-    if len(data_6_r) > 0:
-    
-        data_12_r = data_6_r.groupby(
-            ["nombre","fecha"],
-            as_index=False
-        )[["horas"]].agg(np.sum)
-    
-        data_12_r.rename(
-            columns={"horas":"horas_extra_produccion"},
-            inplace=True
-        )
-    
-    else:
-    
-        data_12_r = pd.DataFrame(
-            columns=["nombre","fecha","horas_extra_produccion"]
-        )
-    
-    
-    # CAPACITACIONES
-    
-    if len(data_1_c) > 0:
-    
-        data_2_c = data_1_c.groupby(
-            ["nombre","fecha"],
-            as_index=False
-        )[["horas"]].agg(np.sum)
-    
-        data_2_c.rename(
-            columns={"horas":"horas_capacitacion"},
-            inplace=True
-        )
-    
-    else:
-    
-        data_2_c = pd.DataFrame(
-            columns=["nombre","fecha","horas_capacitacion"]
-        )
-    
-    
-    # OTROS REGISTROS
-    
-    if len(data_9_o) > 0:
-    
-        data_11_o = data_9_o.groupby(
-            ["nombre","fecha"],
-            as_index=False
-        )[["horas"]].agg(np.sum)
-    
-        data_11_o.rename(
-            columns={"horas":"horas_otros_registros"},
-            inplace=True
-        )
-    
-    else:
-    
-        data_11_o = pd.DataFrame(
-            columns=["nombre","fecha","horas_otros_registros"]
-        )
-    
-    
-    # HORAS EXTRA OTROS
-    
-    if len(data_6_o) > 0:
-    
-        data_13_o = data_6_o.groupby(
-            ["nombre","fecha"],
-            as_index=False
-        )[["horas"]].agg(np.sum)
-    
-        data_13_o.rename(
-            columns={"horas":"horas_extra_otros_registros"},
-            inplace=True
-        )
-    
-    else:
-    
-        data_13_o = pd.DataFrame(
-            columns=["nombre","fecha","horas_extra_otros_registros"]
-        )
-    
-    
-    # REPOSICION
-    
-    if len(data_7_o) > 0:
-    
-        data_14_o = data_7_o.groupby(
-            ["nombre","fecha"],
-            as_index=False
-        )[["horas"]].agg(np.sum)
-    
-        data_14_o.rename(
-            columns={"horas":"reposicion"},
-            inplace=True
-        )
-    
-    else:
-    
-        data_14_o = pd.DataFrame(
-            columns=["nombre","fecha","reposicion"]
-        )
-    
-    
-    # --------------------------------------------------
-    # COMBINAR RESULTADOS
-    # --------------------------------------------------
-    
-    datos_horas = pd.concat(
-        [data_10_r,data_12_r,data_2_c,data_11_o,data_13_o],
-        axis=0
+def cargar_datos_supervisor(fecha_inicio, fecha_fin, personal, proceso, tipo, nombre_usuario):
+    """Carga los datos para el perfil Supervisor/Coordinador según filtros."""
+    # Consultas base
+    base_r = fetch_df(
+        """
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año,
+               distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,
+               cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
+               tipo_de_errores, conteo_de_errores, numero_lote, observaciones, cast(horas as float)
+        FROM registro
+        WHERE fecha >= %s AND fecha <= %s
+        """,
+        params=[fecha_inicio, fecha_fin]
     )
-    
+    base_c = fetch_df(
+        """
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, tema,
+               cast(horas as float), observaciones, reporte
+        FROM capacitaciones
+        WHERE fecha >= %s AND fecha <= %s
+        """,
+        params=[fecha_inicio, fecha_fin]
+    )
+    base_o = fetch_df(
+        """
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, motivo,
+               cast(horas as float), observaciones, reporte
+        FROM otros_registros
+        WHERE fecha >= %s AND fecha <= %s
+        """,
+        params=[fecha_inicio, fecha_fin]
+    )
+
+    # Copias para filtros
+    data_r = base_r.copy()
+    data_c = base_c.copy()
+    data_o = base_o.copy()
+
+    # Filtro Personal
+    if personal == "Operarios":
+        data_r = data_r[data_r["puesto"] == "Operario Catastral"]
+        data_c = data_c[data_c["puesto"] == "Operario Catastral"]
+        data_o = data_o[data_o["puesto"] == "Operario Catastral"]
+    elif personal == "Profesional Jurídico":
+        data_r = data_r[data_r["puesto"] == "Profesional Jurídico"]
+        data_c = data_c[data_c["puesto"] == "Profesional Jurídico"]
+        data_o = data_o[data_o["puesto"] == "Profesional Jurídico"]
+    elif personal == "Propio":
+        data_r = data_r[data_r["nombre"] == nombre_usuario]
+        data_c = data_c[data_c["nombre"] == nombre_usuario]
+        data_o = data_o[data_o["nombre"] == nombre_usuario]
+    elif personal == "Personal Asignado":
+        data_r = data_r[data_r["supervisor"] == nombre_usuario]
+        data_c = data_c[data_c["supervisor"] == nombre_usuario]
+        data_o = data_o[data_o["supervisor"] == nombre_usuario]
+
+    # Filtro Proceso
+    if proceso != "Todos":
+        data_r = data_r[data_r["proceso"] == proceso]
+
+    # Filtro Tipo
+    if tipo != "Todos":
+        data_r = data_r[data_r["tipo"] == tipo]
+
+    return data_r, data_c, data_o
+
+
+def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombre_completo):
+    """Carga los datos para el perfil Operario/Profesional Jurídico según filtros."""
+    # Construcción de condiciones dinámicas para evitar múltiples if/elif
+    condiciones = [f"usuario = '{usuario}'"]
+    if proceso != "Todos":
+        condiciones.append(f"proceso = '{proceso}'")
+    if tipo != "Todos":
+        condiciones.append(f"tipo = '{tipo}'")
+
+    where_clause = " AND ".join(condiciones)
+
+    # Consultas principales
+    data_1_r = fetch_df(
+        f"""
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año,
+               distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,
+               cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
+               tipo_de_errores, conteo_de_errores, numero_lote, observaciones, cast(horas as float)
+        FROM registro
+        WHERE {where_clause} AND fecha >= %s AND fecha <= %s
+        """,
+        params=[fecha_inicio, fecha_fin]
+    )
+
+    # Datos para horas normales y extras (sin filtro de tipo adicional aquí, se hace después)
+    data_8_r = fetch_df(
+        f"""
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año,
+               distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,
+               cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
+               tipo_de_errores, conteo_de_errores, numero_lote, observaciones, cast(horas as float)
+        FROM registro
+        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+          AND tipo NOT IN ('Producción Horas Extras', 'Inspección Horas Extras', 'Reproceso Horas Extras')
+        """,
+        params=[usuario, fecha_inicio, fecha_fin]
+    )
+    data_6_r = fetch_df(
+        f"""
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año,
+               distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,
+               cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
+               tipo_de_errores, conteo_de_errores, numero_lote, observaciones, cast(horas as float)
+        FROM registro
+        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+          AND tipo IN ('Producción Horas Extras', 'Inspección Horas Extras', 'Reproceso Horas Extras')
+        """,
+        params=[usuario, fecha_inicio, fecha_fin]
+    )
+
+    # Datos para resumen de calidad (operador_cc)
+    data_5_r = fetch_df(
+        f"""
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año,
+               distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,
+               cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
+               tipo_de_errores, conteo_de_errores, numero_lote, observaciones, cast(horas as float)
+        FROM registro
+        WHERE operador_cc = %s AND fecha >= %s AND fecha <= %s
+        """,
+        params=[nombre_completo, fecha_inicio, fecha_fin]
+    )
+
+    # Capacitaciones y otros registros
+    data_1_c = fetch_df(
+        """
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, tema,
+               cast(horas as float), observaciones, reporte
+        FROM capacitaciones
+        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+        """,
+        params=[usuario, fecha_inicio, fecha_fin]
+    )
+    data_1_o = fetch_df(
+        """
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, motivo,
+               cast(horas as float), observaciones, reporte
+        FROM otros_registros
+        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+        """,
+        params=[usuario, fecha_inicio, fecha_fin]
+    )
+    data_6_o = fetch_df(
+        """
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, motivo,
+               cast(horas as float), observaciones, reporte
+        FROM otros_registros
+        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+          AND motivo IN ('Horas Extra', 'Horas Extra Apoyo Otros Proyectos', 'Horas Extras')
+        """,
+        params=[usuario, fecha_inicio, fecha_fin]
+    )
+    data_9_o = fetch_df(
+        """
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, motivo,
+               cast(horas as float), observaciones, reporte
+        FROM otros_registros
+        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+          AND motivo NOT IN ('Reposición de tiempo', 'Horas Extra', 'Horas Extra Apoyo Otros Proyectos', 'Horas Extras')
+        """,
+        params=[usuario, fecha_inicio, fecha_fin]
+    )
+    data_7_o = fetch_df(
+        """
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, motivo,
+               cast(horas as float), observaciones, reporte
+        FROM otros_registros
+        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+          AND motivo = 'Reposición de tiempo'
+        """,
+        params=[usuario, fecha_inicio, fecha_fin]
+    )
+
+    return data_1_r, data_8_r, data_6_r, data_5_r, data_1_c, data_1_o, data_6_o, data_9_o, data_7_o
+
+
+# -------------------------------------------------------------------
+# FUNCIONES DE PROCESAMIENTO DE DATOS
+# -------------------------------------------------------------------
+
+def generar_resumen_horas(data_r, data_c, data_o):
+    """Genera el DataFrame de resumen de horas combinando todas las fuentes."""
+    # Filtrar por tipo de horas
+    data_8_r = data_r[~data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy()
+    data_6_r = data_r[data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy()
+    data_6_o = data_o[data_o["motivo"].isin(["Horas Extra", "Horas Extra Apoyo Otros Proyectos", "Horas Extras"])].copy()
+    data_7_o = data_o[data_o["motivo"] == "Reposición de tiempo"].copy()
+    data_9_o = data_o[~data_o["motivo"].isin(["Reposición de tiempo", "Horas Extra", "Horas Extra Apoyo Otros Proyectos", "Horas Extras"])].copy()
+
+    # Funciones para agrupar o retornar vacío
+    def agrupar_o_vacio(df, group_cols, agg_col, rename_dict):
+        if len(df) > 0:
+            res = df.groupby(group_cols, as_index=False)[[agg_col]].agg(np.sum)
+            res.rename(columns=rename_dict, inplace=True)
+            return res
+        else:
+            return pd.DataFrame(columns=group_cols + list(rename_dict.values()))
+
+    prod_normal = agrupar_o_vacio(data_8_r, ["nombre", "fecha"], "horas", {"horas": "horas_produccion"})
+    prod_extra = agrupar_o_vacio(data_6_r, ["nombre", "fecha"], "horas", {"horas": "horas_extra_produccion"})
+    cap = agrupar_o_vacio(data_c, ["nombre", "fecha"], "horas", {"horas": "horas_capacitacion"})
+    otros = agrupar_o_vacio(data_9_o, ["nombre", "fecha"], "horas", {"horas": "horas_otros_registros"})
+    otros_extra = agrupar_o_vacio(data_6_o, ["nombre", "fecha"], "horas", {"horas": "horas_extra_otros_registros"})
+    reposicion = agrupar_o_vacio(data_7_o, ["nombre", "fecha"], "horas", {"horas": "reposicion"})
+
+    # Combinar
+    datos_horas = pd.concat([prod_normal, prod_extra, cap, otros, otros_extra], axis=0)
     if len(datos_horas) == 0:
-    
-        placeholder18_7 = st.empty()
-        placeholder18_7.error("No existen horas para mostrar")
-    
+        return pd.DataFrame()
+
+    # Obtener combinaciones únicas nombre-fecha
+    keys = datos_horas[["nombre", "fecha"]].drop_duplicates()
+    merged = keys.merge(prod_normal, on=["nombre", "fecha"], how="left")
+    merged = merged.merge(prod_extra, on=["nombre", "fecha"], how="left")
+    merged = merged.merge(cap, on=["nombre", "fecha"], how="left")
+    merged = merged.merge(otros, on=["nombre", "fecha"], how="left")
+    merged = merged.merge(otros_extra, on=["nombre", "fecha"], how="left")
+    merged = merged.merge(reposicion, on=["nombre", "fecha"], how="left")
+    merged = merged.fillna(0)
+
+    # Asegurar columnas numéricas
+    cols_numeric = ["horas_produccion", "horas_extra_produccion", "horas_capacitacion",
+                    "horas_otros_registros", "horas_extra_otros_registros", "reposicion"]
+    for col in cols_numeric:
+        if col in merged.columns:
+            merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(0)
+
+    merged["Total"] = merged["horas_produccion"] + merged["horas_capacitacion"] + merged["horas_otros_registros"]
+    return merged
+
+
+def generar_resumen_produccion(data_r):
+    """Genera resúmenes diario y semanal de producción."""
+    if len(data_r) == 0:
+        return pd.DataFrame(), pd.DataFrame()
+
+    # Resumen diario
+    diario = data_r.groupby(["nombre", "fecha"], as_index=False)[["lotes", "edificas", "horas"]].agg(np.sum)
+    diario["rendimiento"] = (diario["edificas"] / diario["horas"]) * 8.5
+
+    # Resumen semanal
+    semanal = data_r.groupby(["nombre", "semana", "proceso"], as_index=False)[["edificas", "unidades_catastrales", "horas"]].agg(np.sum)
+    # Mapeo de valores esperados por proceso (valores originales del código)
+    valor_esperado_map = {
+        'Precampo': 8,
+        'Control de Calidad Precampo': 10,
+        'Postcampo': 7,
+        'Control de Calidad Postcampo': 10,
+        'Vinculación Precampo': 8,
+        'Control de Calidad Vinculación Precampo': 10
+    }
+    semanal["valor esperado"] = semanal["proceso"].map(valor_esperado_map).fillna(0) * semanal["horas"]
+    semanal["diferencia"] = semanal["edificas"] + semanal["unidades_catastrales"] - semanal["valor esperado"]
+    semanal["ratio bruto"] = (semanal["edificas"] + semanal["unidades_catastrales"]) / semanal["horas"]
+
+    return diario, semanal
+
+
+def generar_resumen_calidad(data_r):
+    """Genera resumen de calidad para inspecciones."""
+    if len(data_r) == 0:
+        return pd.DataFrame()
+
+    # Para Supervisor usamos directamente el DataFrame filtrado; para Operario ya viene data_5_r
+    data_filtrada = data_r[(data_r["tipo"] == "Inspección") & (data_r["operador_cc"].notna()) & (data_r["operador_cc"] != "N/A")]
+    if len(data_filtrada) == 0:
+        return pd.DataFrame()
+
+    resumen = data_filtrada.groupby(["operador_cc", "semana"], as_index=False)[["edificas", "aprobados", "rechazados"]].agg(np.sum)
+    resumen["porcentaje_aprobacion"] = ((resumen["aprobados"] / resumen["edificas"]) * 100).round(2).astype(str) + "%"
+    return resumen
+
+
+def generar_resumen_calidad_operario(data_5_r):
+    """Resumen de calidad para perfil Operario (incluye unidades catastrales)."""
+    if len(data_5_r) == 0:
+        return pd.DataFrame()
+
+    data_filtrada = data_5_r[data_5_r["tipo"] == "Inspección"]
+    if len(data_filtrada) == 0:
+        return pd.DataFrame()
+
+    resumen = data_filtrada.groupby(["operador_cc", "semana"], as_index=False)[["edificas", "unidades_catastrales", "aprobados", "rechazados"]].agg(np.sum)
+    resumen["porcentaje_aprobacion"] = ((resumen["aprobados"] / (resumen["edificas"] + resumen["unidades_catastrales"])) * 100).round(2).astype(str) + "%"
+    return resumen
+
+
+# -------------------------------------------------------------------
+# FUNCIONES DE VISUALIZACIÓN (Placeholders)
+# -------------------------------------------------------------------
+
+def limpiar_placeholders(lista_placeholders):
+    """Vacía todos los placeholders en la lista."""
+    for ph in lista_placeholders:
+        if ph is not None:
+            ph.empty()
+
+
+def mostrar_reporte_base(data, placeholder):
+    """Muestra el dataframe de reportes o error si está vacío."""
+    if len(data) == 0:
+        placeholder.error("No existen reportes para mostrar")
     else:
-    
-        datos_horas = pd.DataFrame(datos_horas).groupby(
-            ["nombre","fecha"],
-            as_index=False
-        ).size()
-    
-    
-        datos_horas = pd.merge(datos_horas,data_10_r,on=["nombre","fecha"],how="left")
-        datos_horas = pd.merge(datos_horas,data_12_r,on=["nombre","fecha"],how="left")
-        datos_horas = pd.merge(datos_horas,data_2_c,on=["nombre","fecha"],how="left")
-        datos_horas = pd.merge(datos_horas,data_11_o,on=["nombre","fecha"],how="left")
-        datos_horas = pd.merge(datos_horas,data_13_o,on=["nombre","fecha"],how="left")
-        datos_horas = pd.merge(datos_horas,data_14_o,on=["nombre","fecha"],how="left")
-    
-    
-        datos_horas = datos_horas.fillna(0)
-    
-    
-        datos_horas["Total"] = (
-            datos_horas["horas_produccion"]
-            + datos_horas["horas_capacitacion"]
-            + datos_horas["horas_otros_registros"]
+        placeholder.dataframe(data)
+
+
+def mostrar_resumen_horas(datos_horas, placeholder_tabla, placeholder_error):
+    if len(datos_horas) == 0:
+        placeholder_error.error("No existen horas para mostrar")
+    else:
+        placeholder_tabla.dataframe(datos_horas)
+
+
+def mostrar_resumen_produccion(diario, semanal, data_r, placeholder_diario, placeholder_semanal,
+                               placeholder_error, placeholder_grafico, placeholder_multiselect, placeholder_grafico_barras):
+    if len(data_r) == 0:
+        placeholder_error.error("No existe producción para mostrar")
+        return
+
+    placeholder_diario.dataframe(diario)
+    placeholder_semanal.subheader("Resumen Semanal")
+    placeholder_semanal.dataframe(semanal)
+
+    # Gráfico de rendimiento
+    nombres_unicos = diario["nombre"].unique().tolist()
+    seleccion = placeholder_multiselect.multiselect("Seleccionar", nombres_unicos)
+    fig = go.Figure()
+    for nombre in seleccion:
+        df_nombre = diario[diario["nombre"] == nombre]
+        fig.add_trace(go.Scatter(x=df_nombre["fecha"], y=df_nombre["rendimiento"], name=nombre))
+    placeholder_grafico.plotly_chart(fig)
+
+    # Totales por fecha/proceso
+    totales = data_r.groupby(["fecha", "proceso"], as_index=False)["edificas"].agg(np.sum)
+    fig_total = px.bar(totales, x="fecha", y="edificas", text="edificas", color="proceso", barmode="group")
+    fig_total.update_traces(textposition="outside")
+    placeholder_grafico_barras.plotly_chart(fig_total)
+
+
+def mostrar_graficos_horas(datos_horas, placeholder1, placeholder2):
+    if len(datos_horas) > 0:
+        fig1 = px.bar(datos_horas, x="fecha", y=["horas_produccion", "horas_capacitacion", "horas_otros_registros"], barmode="group")
+        placeholder1.plotly_chart(fig1)
+        fig2 = px.bar(datos_horas, x="fecha", y=["horas_produccion", "horas_capacitacion", "horas_otros_registros"])
+        placeholder2.plotly_chart(fig2)
+
+
+# -------------------------------------------------------------------
+# FUNCIÓN PRINCIPAL Historial
+# -------------------------------------------------------------------
+
+def Historial(usuario, puesto):
+    # Obtener nombre completo del usuario
+    nombre_df = fetch_df("SELECT nombre FROM usuarios WHERE usuario = %s", params=[usuario])
+    nombre_7 = nombre_df.loc[0, 'nombre'] if not nombre_df.empty else ""
+
+    # Fechas por defecto
+    default_date = datetime.now(pytz.timezone('America/Guatemala'))
+
+    # --- Sidebar y placeholders principales ---
+    ph_sidebar = []
+    ph_titulo = st.sidebar.empty()
+    ph_titulo.title("Menú")
+    ph_sidebar.append(ph_titulo)
+
+    btn_procesos = st.sidebar.empty()
+    ph_sidebar.append(btn_procesos)
+    btn_capacitacion = st.sidebar.empty()
+    ph_sidebar.append(btn_capacitacion)
+    btn_otros = st.sidebar.empty()
+    ph_sidebar.append(btn_otros)
+    btn_bonos = st.sidebar.empty()
+    ph_sidebar.append(btn_bonos)
+    btn_salir = st.sidebar.empty()
+    ph_sidebar.append(btn_salir)
+
+    ph_main = []
+    titulo_historial = st.empty()
+    ph_main.append(titulo_historial)
+    titulo_historial.title("Historial")
+
+    fecha_inicio = st.empty()
+    ph_main.append(fecha_inicio)
+    fecha_fin = st.empty()
+    ph_main.append(fecha_fin)
+
+    fecha_inicio_val = fecha_inicio.date_input("Fecha de Inicio", value=default_date, key="fecha_inicio")
+    fecha_fin_val = fecha_fin.date_input("Fecha de Finalización", value=default_date, key="fecha_fin")
+
+    # Placeholders para contenido dinámico (se llenarán según perfil)
+    placeholders_contenido = []
+
+    # Determinar perfil y cargar datos
+    if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
+        # Filtros adicionales
+        filtro_personal = st.empty()
+        placeholders_contenido.append(filtro_personal)
+        filtro_proceso = st.empty()
+        placeholders_contenido.append(filtro_proceso)
+        filtro_tipo = st.empty()
+        placeholders_contenido.append(filtro_tipo)
+
+        personal_sel = filtro_personal.selectbox("Personal", options=("Todos", "Operarios", "Profesional Jurídico", "Propio", "Personal Asignado"), key="filtro_personal")
+        proceso_sel = filtro_proceso.selectbox("Proceso", options=("Todos","Postcampo Folios de Matricula Inmobiliaria","Postcampo Control de Calidad FMI","Control de Calidad Folios de Matricula Inmobiliaria","Calidad Externa XTF","Consultas de Campo","Folios de Matricula Inmobiliaria","Precampo","Control de Calidad Precampo","Preparación de Insumos","Entregas Postcampo","Postcampo","Control de Calidad Postcampo","Restitución de Tierras","Revisión de Predios Segregados","Vinculación Precampo","Control de Calidad Vinculación Precampo"), key="proceso_sup")
+        tipo_sel = filtro_tipo.selectbox("Tipo", options=("Todos","Ordinario","Corrección","Corrección Inspección","Corrección Primera Reinspección","Reproceso Ordinario","Reproceso Corrección Inspección","Reproceso Corrección Primera Reinspección","Inspección","Reinspección","Primera Reinspección","Segunda Reinspección","Reproceso Inspección","Reproceso Primera Reinspección","Reproceso Segunda Reinspección"), key="tipo_sup")
+
+        # Cargar datos
+        data_r, data_c, data_o = cargar_datos_supervisor(fecha_inicio_val, fecha_fin_val, personal_sel, proceso_sel, tipo_sel, nombre_7)
+    else:  # Operario Catastral / Profesional Jurídico
+        filtro_proceso_op = st.empty()
+        placeholders_contenido.append(filtro_proceso_op)
+        filtro_tipo_op = st.empty()
+        placeholders_contenido.append(filtro_tipo_op)
+
+        proceso_sel = filtro_proceso_op.selectbox("Proceso", options=("Todos","Control de Calidad Folios de Matricula Inmobiliaria","Postcampo Control de Calidad FMI","Consultas de Campo","Postcampo Folios de Matricula Inmobiliaria","Folios de Matricula Inmobiliaria","Precampo", "Control de Calidad Precampo","Preparación de Insumos","Entregas Postcampo","Postcampo","Control de Calidad Postcampo","Restitución de Tierras","Revisión de Predios Segregados","Vinculación Precampo","Control de Calidad Vinculación Precampo"), key="proceso_op")
+        tipo_sel = filtro_tipo_op.selectbox("Tipo", options=("Todos","Ordinario","Corrección","Corrección Inspección","Correccion Primera Reinspección","Inspección","Reinspección","Primera Reinspección","Segunda Reinspección","Reproceso Inspección","Reproceso Primera Reinspección"), key="tipo_op")
+
+        data_1_r, data_8_r, data_6_r, data_5_r, data_1_c, data_1_o, data_6_o, data_9_o, data_7_o = cargar_datos_operario(
+            usuario, fecha_inicio_val, fecha_fin_val, proceso_sel, tipo_sel, nombre_7
         )
-    
-    
-        placeholder19_7 = st.empty()
-        placeholder19_7.dataframe(data=datos_horas)
+        # Asignar para unificar nombres en el resto del código
+        data_r = data_1_r
+        data_c = data_1_c
+        data_o = data_1_o
+        # Para horas se usarán las versiones específicas dentro de generar_resumen_horas_operario (adaptaremos)
 
+    # Placeholders para secciones de resultados
+    ph_reporte_titulo = st.empty()
+    placeholders_contenido.append(ph_reporte_titulo)
+    ph_reporte_data = st.empty()
+    placeholders_contenido.append(ph_reporte_data)
 
+    ph_horas_titulo = st.empty()
+    placeholders_contenido.append(ph_horas_titulo)
+    ph_horas_data = st.empty()
+    placeholders_contenido.append(ph_horas_data)
+    ph_horas_error = st.empty()
+    placeholders_contenido.append(ph_horas_error)
 
-    # ----- Resumen de Producción ---- #
+    ph_prod_titulo = st.empty()
+    placeholders_contenido.append(ph_prod_titulo)
+    ph_prod_diario = st.empty()
+    placeholders_contenido.append(ph_prod_diario)
+    ph_prod_semanal_titulo = st.empty()
+    placeholders_contenido.append(ph_prod_semanal_titulo)
+    ph_prod_semanal = st.empty()
+    placeholders_contenido.append(ph_prod_semanal)
+    ph_prod_error = st.empty()
+    placeholders_contenido.append(ph_prod_error)
+    ph_prod_grafico_multiselect = st.empty()
+    placeholders_contenido.append(ph_prod_grafico_multiselect)
+    ph_prod_grafico = st.empty()
+    placeholders_contenido.append(ph_prod_grafico)
 
-    placeholder21_7 = st.empty()
-    producción_7=placeholder21_7.subheader("Resumen de Producción")  
+    ph_total_titulo = st.empty()
+    placeholders_contenido.append(ph_total_titulo)
+    ph_total_grafico_barras = st.empty()
+    placeholders_contenido.append(ph_total_grafico_barras)
+    ph_total_horas_graf1 = st.empty()
+    placeholders_contenido.append(ph_total_horas_graf1)
+    ph_total_horas_graf2 = st.empty()
+    placeholders_contenido.append(ph_total_horas_graf2)
 
-    data_2_r = data_1_r.groupby(["nombre", "fecha"], as_index=False)[["lotes","edificas","horas"]].agg(np.sum)
-
-    data_4_r = data_1_r.groupby(["nombre", "semana","proceso"], as_index=False)[["edificas","unidades_catastrales","horas"]].agg(np.sum)
-
-    if pivot_r==0:  
-
-      placeholder22_7 = st.empty()
-      error_producción= placeholder22_7.error('No existe producción para mostrar')
-
+    # Placeholders para calidad (según perfil)
+    if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
+        ph_calidad_titulo = st.empty()
+        placeholders_contenido.append(ph_calidad_titulo)
+        ph_calidad_data = st.empty()
+        placeholders_contenido.append(ph_calidad_data)
     else:
+        ph_calidad_titulo_op = st.empty()
+        placeholders_contenido.append(ph_calidad_titulo_op)
+        ph_calidad_data_op = st.empty()
+        placeholders_contenido.append(ph_calidad_data_op)
 
-      data_2_r ["rendimiento"] = data_2_r["edificas"]/data_2_r["horas"]
-      data_2_r['rendimiento'] *= 8.5 
-      
-      placeholder23_7 = st.empty()
-      historial_7_producción= placeholder23_7.dataframe(data=data_2_r)
+    # --- Procesamiento y visualización ---
+    ph_reporte_titulo.subheader("Reportes")
+    mostrar_reporte_base(data_r, ph_reporte_data)
 
-      data_4_r ["valor esperado"] = [340 if x == 'Precampo' else 510 if x == 'Control de Calidad Precampo' else 340 if x == 'Postcampo' else 765 if x == 'Control de Calidad Postcampo' else 0 for x in data_4_r['proceso']]    
-      data_4_r ["diferencia"] = data_4_r["edificas"] - data_4_r["valor esperado"]
-
-      placeholder23_2_7 = st.empty()
-      historial_7_diferencia= placeholder23_2_7.subheader("Resumen Semanal")  
-    
-      placeholder24_2_7 = st.empty()
-      descarga_7_diferencia= placeholder24_2_7.dataframe(data=data_4_r)
-
-
-      #------Creando el dataframe de Resumen Calidad--------
-      
-      # Filtramos los datos antes del groupby
-      data_filtrada = data_1_r[(data_1_r["tipo"] == "Inspección") & (data_1_r["operador_cc"].notna()) & (data_1_r["operador_cc"] != "N/A")]
-      # Agrupamos los datos filtrados
-      data_5_r = (data_filtrada.groupby(["operador_cc", "semana"], as_index=False)[["edificas", "aprobados", "rechazados"]].agg(np.sum))
-
-      # Calculamos el porcentaje de aprobación
-      data_5_r["porcentaje_aprobacion"] = ((data_5_r["aprobados"] / data_5_r["edificas"]) * 100).round(2).astype(str) + "%" 
-                  
-      placeholder25_2_7 = st.empty()
-      titulo_resumen_calidad= placeholder25_2_7.subheader("Resumen Calidad")
-
-      # Renombrar la columna 'edificas' por 'muestra' solo para visualización
-      data_5_r_vista = data_5_r.rename(columns={"edificas": "muestra"})
-
-      # Mostrar el DataFrame renombrado en Streamlit
-      placeholder26_2_7 = st.empty()
-      tabla_resumen_calidad = placeholder26_2_7.dataframe(data=data_5_r_vista)
-    
-      #-----Fin data frame Resumen Calidad-------
-      
-      
-      nombre_producción=data_2_r.iloc[:,0]
-      fecha_producción=data_2_r.iloc[:,1]
-      rendimiento_producción=data_2_r.iloc[:,4]
-      datos_producción = pd.DataFrame(data={'Nombre':nombre_producción, 'Fecha':fecha_producción,'Rendimiento':rendimiento_producción})
-      lista_nombres = datos_producción["Nombre"].unique().tolist()
-
-      placeholder25_7 = st.empty()
-      nombres= placeholder25_7.multiselect("Seleccionar",lista_nombres)
-
-      datos_producción_pivot = {nombre: datos_producción[datos_producción["Nombre"] == nombre] for nombre in nombres}
-      fig_producción = go.Figure()
-      for nombre, datos_producción in datos_producción_pivot.items():
-        fig_producción = fig_producción.add_trace(go.Scatter(x=datos_producción["Fecha"], y=datos_producción["Rendimiento"], name=nombre))
-
-      placeholder26_7 = st.empty()
-      grafico_producción= placeholder26_7.plotly_chart(fig_producción)
-      
-    # ----- Total ---- #
-
-    data_3_r= data_1_r.groupby(["fecha","proceso"], as_index=False)["edificas"].agg(np.sum)
-
-    placeholder27_7 = st.empty()
-    total_7=placeholder27_7.subheader("Totales")
-
-    if pivot_r==0:
-         
-      placeholder28_7 = st.empty()
-      error_total_producción= placeholder28_7.error('No existe producción para mostrar')
-
+    ph_horas_titulo.subheader("Resumen de Horas")
+    if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
+        datos_horas = generar_resumen_horas(data_r, data_c, data_o)
     else:
-         
-      fig_producción_total = px.bar(data_3_r, x="fecha", y="edificas", text="edificas", color="proceso", barmode="group")
-      fig_producción_total.update_traces(textposition="outside")
-      placeholder29_7 = st.empty()
-      grafico_producción_total= placeholder29_7.plotly_chart(fig_producción_total)
+        # Para operario usamos las versiones ya separadas
+        def generar_horas_operario():
+            prod_normal = data_8_r.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_produccion"}) if len(data_8_r) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_produccion"])
+            prod_extra = data_6_r.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_extra_produccion"}) if len(data_6_r) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_extra_produccion"])
+            cap = data_1_c.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_capacitacion"}) if len(data_1_c) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_capacitacion"])
+            otros = data_9_o.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_otros_registros"}) if len(data_9_o) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_otros_registros"])
+            otros_extra = data_6_o.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_extra_otros_registros"}) if len(data_6_o) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_extra_otros_registros"])
+            reposicion = data_7_o.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "reposicion"}) if len(data_7_o) > 0 else pd.DataFrame(columns=["nombre","fecha","reposicion"])
 
-    if pivot_r==0 or pivot_c==0 or pivot_o==0:
-       
-      placeholder30_7 = st.empty()
-      error_horas_total = placeholder30_7.error('No existen horas para mostrar')
+            combined = pd.concat([prod_normal, prod_extra, cap, otros, otros_extra], axis=0)
+            if len(combined) == 0:
+                return pd.DataFrame()
+            keys = combined[["nombre","fecha"]].drop_duplicates()
+            merged = keys.merge(prod_normal, on=["nombre","fecha"], how="left").merge(prod_extra, on=["nombre","fecha"], how="left").merge(cap, on=["nombre","fecha"], how="left").merge(otros, on=["nombre","fecha"], how="left").merge(otros_extra, on=["nombre","fecha"], how="left").merge(reposicion, on=["nombre","fecha"], how="left").fillna(0)
+            for col in ["horas_produccion","horas_capacitacion","horas_otros_registros"]:
+                if col in merged.columns:
+                    merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(0)
+            merged["Total"] = merged["horas_produccion"] + merged["horas_capacitacion"] + merged["horas_otros_registros"]
+            return merged
 
+        datos_horas = generar_horas_operario()
+
+    mostrar_resumen_horas(datos_horas, ph_horas_data, ph_horas_error)
+
+    ph_prod_titulo.subheader("Resumen de Producción")
+    diario, semanal = generar_resumen_produccion(data_r)
+    mostrar_resumen_produccion(diario, semanal, data_r, ph_prod_diario, ph_prod_semanal, ph_prod_error,
+                               ph_prod_grafico, ph_prod_grafico_multiselect, ph_total_grafico_barras)
+
+    ph_total_titulo.subheader("Totales")
+    if len(data_r) == 0:
+        ph_total_grafico_barras.error("No existe producción para mostrar")
+    mostrar_graficos_horas(datos_horas, ph_total_horas_graf1, ph_total_horas_graf2)
+
+    # Resumen de Calidad
+    if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
+        ph_calidad_titulo.subheader("Resumen Calidad")
+        calidad = generar_resumen_calidad(data_r)
+        if len(calidad) == 0:
+            st.error("No existen reportes para mostrar")  # placeholder genérico
+        else:
+            calidad_vista = calidad.rename(columns={"edificas": "muestra"})
+            ph_calidad_data.dataframe(calidad_vista)
     else:
-         
-      fig_horas_total_1=px.bar(datos_horas,x="fecha", y=["horas_produccion","horas_capacitacion","horas_otros_registros"],barmode="group")
-      placeholder31_7 = st.empty()
-      grafico_horas_total_1= placeholder31_7.plotly_chart(fig_horas_total_1)
-      
-      fig_horas_total_2=px.bar(datos_horas,x="fecha", y=["horas_produccion","horas_capacitacion","horas_otros_registros"])
-
-      placeholder32_7 = st.empty()
-      grafico_horas_total_2 = placeholder32_7.plotly_chart(fig_horas_total_2)
-
-
-
-
-
-
-
-  
-  # ----- Operario Catastral y Profesional Jurídico ---- #
-
-  elif puesto=="Operario Catastral" or puesto=="Entregas" or puesto=="QC" or puesto=="Profesional Jurídico":
-
-    placeholder33_7 = st.empty()
-    proceso_7_o = placeholder33_7.selectbox("Proceso", options=("Todos","Control de Calidad Folios de Matricula Inmobiliaria","Postcampo Control de Calidad FMI","Consultas de Campo","Postcampo Folios de Matricula Inmobiliaria","Folios de Matricula Inmobiliaria","Precampo", "Control de Calidad Precampo","Preparación de Insumos","Entregas Postcampo","Postcampo","Control de Calidad Postcampo","Restitución de Tierras","Revisión de Predios Segregados","Vinculación Precampo","Control de Calidad Vinculación Precampo"), key="proceso_7_s")
-    
-    placeholder34_7 = st.empty()
-    tipo_7_o = placeholder34_7.selectbox("Tipo", options=("Todos","Ordinario","Corrección","Corrección Inspección","Correccion Primera Reinspección","Inspección","Reinspección","Primera Reinspección","Segunda Reinspección","Reproceso Inspección","Reproceso Primera Reinspección"), key="tipo_7_s")
-
-    if proceso_7_o =="Todos" and tipo_7_o=="Todos":
-        
-      data_1_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-      data_8_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and tipo not in ('Producción Horas Extras', 'Inspección Horas Extras','Reproceso Horas Extras')", con)
-      data_6_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and tipo in ('Producción Horas Extras', 'Inspección Horas Extras','Reproceso Horas Extras')", con)
-
-
-      #-----Para Resumen Calidad: importar la base completa sin filtro de usuario para jalar operador cc en la vista resumen
-      data_5_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where operador_cc='{nombre_7}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-      
-      data_1_c = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,cast(horas as float),observaciones,reporte from capacitaciones where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-
-      data_6_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo in ('Reposición de tiempo','Horas Extra','Horas Extra Apoyo Otros Proyectos','Horas Extras')", con)
-      data_9_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo not in ('Reposición de tiempo','Horas Extra','Horas Extra Apoyo Otros Proyectos','Horas Extras')", con)
-      data_7_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo = 'Reposición de tiempo' ", con)
-      data_1_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-
-    elif proceso_7_o =="Todos" and tipo_7_o!="Todos":
-      
-      data_1_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float)from registro where usuario='{usuario}' and tipo='{tipo_7_o}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-      data_8_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and tipo not in ('Producción Horas Extras', 'Inspección Horas Extras','Reproceso Horas Extras')", con)
-      data_6_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and tipo in ('Producción Horas Extras', 'Inspección Horas Extras','Reproceso Horas Extras')", con)
-
-      #-----Para Resumen Calidad: importar la base completa sin filtro de usuario para jalar operador cc en la vista resumen
-      data_5_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where operador_cc='{nombre_7}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-      
-      data_1_c = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,cast(horas as float),observaciones,reporte from capacitaciones where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-
-      data_1_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-      data_9_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo not in ('Reposición de tiempo','Horas Extra','Horas Extra Apoyo Otros Proyectos','Horas Extras')", con)
-      data_7_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo = 'Reposición de tiempo' ", con)
-      data_6_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo in ('Reposición de tiempo','Horas Extra','Horas Extra Apoyo Otros Proyectos','Horas Extras')", con)
-      
-    elif proceso_7_o !="Todos" and tipo_7_o=="Todos":
-      
-      data_1_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float)from registro where usuario='{usuario}' and proceso='{proceso_7_o}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-      data_8_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and tipo not in ('Producción Horas Extras', 'Inspección Horas Extras','Reproceso Horas Extras')", con)
-      data_6_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and tipo in ('Producción Horas Extras', 'Inspección Horas Extras','Reproceso Horas Extras')", con)
-
-      #-----Para Resumen Calidad: importar la base completa sin filtro de usuario para jalar operador cc en la vista resumen
-      data_5_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where operador_cc='{nombre_7}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-      
-      data_1_c = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,cast(horas as float),observaciones,reporte from capacitaciones where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-
-      data_7_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo = 'Reposición de tiempo' ", con)
-      data_9_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo not in ('Reposición de tiempo','Horas Extra','Horas Extra Apoyo Otros Proyectos','Horas Extras')", con)
-      data_6_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo in ('Reposición de tiempo','Horas Extra','Horas Extra Apoyo Otros Proyectos','Horas Extras')", con)
-      data_1_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-
-    elif proceso_7_o !="Todos" and tipo_7_o!="Todos":
-      
-      data_1_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float)from registro where usuario='{usuario}' and proceso='{proceso_7_o}' and tipo='{tipo_7_o}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-      data_8_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and tipo not in ('Producción Horas Extras', 'Inspección Horas Extras','Reproceso Horas Extras')", con)
-      data_6_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and tipo in ('Producción Horas Extras', 'Inspección Horas Extras','Reproceso Horas Extras')", con)
-
-      #-----Para Resumen Calidad: importar la base completa sin filtro de usuario para jalar operador cc en la vista resumen
-      data_5_r=pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito, manzana, sector, cast(edificas as float), cast(unidades_catastrales as float), tipo,cast(lotes as float),cast(aprobados as float),cast(rechazados as float),operador_cc,tipo_de_errores,conteo_de_errores,numero_lote,observaciones,cast(horas as float) from registro where operador_cc='{nombre_7}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-      
-      data_1_c = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,cast(horas as float),observaciones,reporte from capacitaciones where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-
-      data_6_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo in ('Horas Extra','Horas Extra Apoyo Otros Proyectos','Horas Extras')", con)
-      data_1_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}'", con)
-      data_9_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo not in ('Reposición de tiempo','Horas Extra','Horas Extra Apoyo Otros Proyectos','Horas Extras')", con)
-      data_7_o = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,cast(horas as float),observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_7}' and fecha<='{fecha_de__finalizacion_7}' and motivo = 'Reposición de tiempo' ", con)
-    # ----- Reportes ---- #
-
-    placeholder35_7 = st.empty()
-    reportes_7=placeholder35_7.subheader("Reportes")   
-
-    pivot_reportes=len(data_1_r.iloc[:,0])
-
-    if pivot_reportes==0:
-       
-      placeholder36_7 = st.empty()
-      error_reportes= placeholder36_7.error('No existen reportes para mostrar')
-
-    else:
-
-      placeholder37_7 = st.empty()
-      historial_7_reportes=placeholder37_7.dataframe(data=data_1_r)
-
-    #------Creando el dataframe de Resumen calidad 
-    placeholder25_2_7 = st.empty()
-    titulo_resumen_calidad= placeholder25_2_7.subheader("Resumen Calidad")  
-    
-    # Filtramos los datos antes del groupby
-    data_filtrada_1 = data_5_r[(data_5_r["tipo"] == "Inspección")]
-    # Agrupamos los datos filtrados
-    data_5=(data_filtrada_1.groupby(["operador_cc", "semana"], as_index=False)[["edificas","unidades_catastrales", "aprobados", "rechazados"]].agg(np.sum))
-       
-    pivot_calidad=len(data_5.iloc[:,0])
-    
-    if pivot_calidad==0:
-      placeholder55_7 = st.empty()
-      error_reportes= placeholder55_7.error('No existen reportes para mostrar')
-      
-    else:
-      data_5["porcentaje_aprobacion"] = ((data_5["aprobados"] / (data_5["edificas"]+data_5["unidades_catastrales"])) * 100).round(2).astype(str) + "%"         
-   
-      # Renombrar la columna 'edificas' por 'muestra' solo para visualización
-      
-      data_5_r_vista= data_5.rename(columns={"unidades_catastrales": "muestra unidades catastrales","edificas": "muestra edificas"})
-
-
-      # Mostrar el DataFrame renombrado en Streamlit
-      placeholder26_2_7 = st.empty()
-      tabla_resumen_calidad = placeholder26_2_7.dataframe(data=data_5_r_vista)
-      
-    #-------fin del dataframe para resumen calidad-------
-    
-    
-    # ----- Resumen de Horas ---- #
-
-    placeholder39_7 = st.empty()
-    horas_7=placeholder39_7.subheader("Resumen de Horas")  
-
-    data_10_r = data_8_r.groupby(["nombre", "fecha"], as_index=False)[["horas"]].agg(np.sum)
-    data_10_r.rename(columns={"horas":"horas_produccion"}, inplace=True)
-
-    data_12_r = data_6_r.groupby(["nombre", "fecha"], as_index=False)[["horas"]].agg(np.sum)
-    data_12_r.rename(columns={"horas":"horas_extra_produccion"}, inplace=True)
-    
-    data_2_c = data_1_c.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum)
-    data_2_c.rename(columns={"horas":"horas_capacitacion"}, inplace=True)
-    
-    data_11_o = data_9_o.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum)
-    data_11_o.rename(columns={"horas":"horas_otros_registros"}, inplace=True)
-
-    data_13_o = data_6_o.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum)
-    data_13_o.rename(columns={"horas":"horas_extra_otros_registros"}, inplace=True)
-
-    data_14_o = data_7_o.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum)
-    data_14_o.rename(columns={"horas":"reposicion"}, inplace=True)
-  
-    pivot_r=len(data_10_r.iloc[:,0])
-    pivot_re=len(data_12_r.iloc[:,0])
-    pivot_c=len(data_2_c.iloc[:,0])
-    pivot_o=len(data_11_o.iloc[:,0])
-    
-    if pivot_r==0 and pivot_c==0 and pivot_o==0 and pivot_re==0:
-       
-      placeholder40_7 = st.empty()
-      error_horas= placeholder40_7.error('No existen horas para mostrar')
-
-    else:
-      
-      datos_horas= pd.concat([data_10_r,data_12_r,data_2_c,data_11_o, data_13_o], axis=0)
-    
-      datos_horas = pd.DataFrame(data=datos_horas).groupby(["nombre","fecha"],as_index=False).size()
-
-      datos_horas = pd.merge(datos_horas,data_10_r, on=['nombre','fecha'], how="left") 
-      datos_horas = pd.merge(datos_horas,data_12_r, on=['nombre','fecha'], how="left") 
-      datos_horas = pd.merge(datos_horas,data_2_c, on=['nombre','fecha'], how="left") 
-      datos_horas = pd.merge(datos_horas,data_11_o, on=['nombre','fecha'], how="left") 
-      datos_horas = pd.merge(datos_horas,data_13_o, on=['nombre','fecha'], how="left") 
-      datos_horas = pd.merge(datos_horas,data_14_o, on=['nombre','fecha'], how="left")
-      datos_horas= datos_horas.fillna(0)
-      columnas = [
-        "horas_produccion",
-        "horas_capacitacion",
-        "horas_otros_registros"
-      ]
-      for col in columnas:
-        if col not in datos_horas.columns:
-          datos_horas[col] = 0
-      for col in columnas:
-        datos_horas[col] = pd.to_numeric(datos_horas[col], errors="coerce")
-        
-      datos_horas["horas_produccion"] = pd.to_numeric(datos_horas["horas_produccion"], errors="coerce")
-      datos_horas["horas_capacitacion"] = pd.to_numeric(datos_horas["horas_capacitacion"], errors="coerce")
-      datos_horas["horas_otros_registros"] = pd.to_numeric(datos_horas["horas_otros_registros"], errors="coerce")
-         
-      datos_horas["Total"]= datos_horas["horas_produccion"] + datos_horas["horas_capacitacion"] + datos_horas["horas_otros_registros"]
-
-      placeholder41_7 = st.empty()
-      historial_7_horas= placeholder41_7.dataframe(data=datos_horas)
-
-    # ----- Resumen de Producción ---- #
-
-    placeholder43_7 = st.empty()
-    producción_7=placeholder43_7.subheader(" ")  
-
-    data_2_r = data_1_r.groupby(["nombre", "fecha"], as_index=False)[["lotes","edificas","horas"]].agg(np.sum)
-
-    data_4_r = data_1_r.groupby(["nombre", "semana","proceso"], as_index=False)[["edificas","unidades_catastrales","horas"]].agg(np.sum)
-
-    if pivot_r==0:  
-
-      placeholder44_7 = st.empty()
-      error_producción= placeholder44_7.error('No existe producción para mostrar')
-
-    else:
-
-      data_2_r ["rendimiento"] = data_2_r["edificas"]/data_2_r["horas"]
-      data_2_r['rendimiento'] *= 8.5 
-       
-      placeholder45_7 = st.empty()
-      producciónb_7=placeholder45_7.subheader(" ") 
-      #historial_7_producción= placeholder45_7.dataframe(data=data_2_r)
-
-      placeholder46_7 = st.empty()
-      producción_7=placeholder46_7.subheader("Resumen de Producción por Proceso")
-
-      data_4_r ["valor esperado"] = [8 if x == 'Precampo' else 10 if x == 'Control de Calidad Precampo' else 7 if x == 'Postcampo' else 10 if x == 'Control de Calidad Postcampo' else 8 if x == 'Vinculación Precampo' else 10  if x == 'Control de Calidad Vinculación Precampo' else 0 for x in data_4_r['proceso']]   
-      data_4_r ["valor esperado"] = data_4_r ["valor esperado"]*data_4_r["horas"]
-        
-      data_4_r ["diferencia"] = data_4_r["edificas"]+data_4_r["unidades_catastrales"] - data_4_r["valor esperado"]
-
-      data_4_r["ratio bruto"]= data_4_r["edificas"]+data_4_r["unidades_catastrales"]
-      data_4_r["ratio bruto"]= data_4_r["ratio bruto"]/data_4_r["horas"]
-      placeholder45_2_7 = st.empty()
-      historial_7_diferencia= placeholder45_2_7.dataframe(data=data_4_r)
-      
-      placeholder46_2_7 = st.empty()
-      descarga_7_diferencia = placeholder46_2_7.download_button("Decargar CSV",data=data_4_r.to_csv(),mime="text/csv",key="descarga_7_diferencia")
-      
-      nombre_producción=data_2_r.iloc[:,0]
-      fecha_producción=data_2_r.iloc[:,1]
-      rendimiento_producción=data_2_r.iloc[:,4]
-      datos_producción = pd.DataFrame(data={'Nombre':nombre_producción, 'Fecha':fecha_producción,'Rendimiento':rendimiento_producción})
-      lista_nombres = datos_producción["Nombre"].unique().tolist()
-
-      placeholder47_7 = st.empty()
-      nombres= placeholder47_7.multiselect("Seleccionar",lista_nombres)
-
-      datos_producción_pivot = {nombre: datos_producción[datos_producción["Nombre"] == nombre] for nombre in nombres}
-      fig_producción = go.Figure()
-      for nombre, datos_producción in datos_producción_pivot.items():
-        fig_producción = fig_producción.add_trace(go.Scatter(x=datos_producción["Fecha"], y=datos_producción["Rendimiento"], name=nombre))
-
-      placeholder48_7 = st.empty()
-      grafico_producción= placeholder48_7.plotly_chart(fig_producción)
-
-
-    # ----- Total ---- #
-
-    data_3_r= data_1_r.groupby(["fecha","proceso"], as_index=False)["edificas"].agg(np.sum)
-
-    placeholder49_7 = st.empty()
-    total_7=placeholder49_7.subheader("Totales")
-
-    if pivot_r==0:
-         
-      placeholder50_7 = st.empty()
-      error_total_producción= placeholder50_7.error('No existe producción para mostrar')
-
-    else:
-         
-      fig_producción_total = px.bar(data_3_r, x="fecha", y="edificas", text="edificas", color="proceso", barmode="group")
-      fig_producción_total.update_traces(textposition="outside")
-      placeholder51_7 = st.empty()
-      grafico_producción_total= placeholder51_7.plotly_chart(fig_producción_total)
-
-    if pivot_r==0 or pivot_c==0 or pivot_o==0:
-       
-      placeholder52_7 = st.empty()
-      error_horas_total = placeholder52_7.error('No existen horas para mostrar')
-
-    else:
-         
-      fig_horas_total_1=px.bar(datos_horas,x="fecha", y=["horas_produccion","horas_capacitacion","horas_otros_registros"],barmode="group")
-      placeholder53_7 = st.empty()
-      grafico_horas_total_1= placeholder53_7.plotly_chart(fig_horas_total_1)
-      
-      fig_horas_total_2=px.bar(datos_horas,x="fecha", y=["horas_produccion","horas_capacitacion","horas_otros_registros"])
-
-      placeholder54_7 = st.empty()
-      grafico_horas_total_2 = placeholder54_7.plotly_chart(fig_horas_total_2)
-
-  # ----- Proceso ---- #
-  
-  if procesos_7:
-    placeholder1_7.empty()
-    placeholder2_7.empty()
-    placeholder3_7.empty()
-    placeholder4_7.empty()
-    placeholder5_7.empty()   
-    placeholder6_7.empty()
-    placeholder7_7.empty()
-    placeholder8_7.empty()
-    placeholder9_7.empty()
-    
-    if puesto=="Supervisor" or puesto=="Coordinador":  
-      placeholder10_7.empty()
-      placeholder11_7.empty()
-      placeholder12_7.empty()
-      placeholder13_7.empty()
-      placeholder17_7.empty()
-      placeholder21_7.empty()
-      placeholder27_7.empty()
-    
-      if pivot_reportes==0:
-        placeholder14_7.empty()
-      
-      else:
-        placeholder15_7.empty()
-         
-      if pivot_r==0 and pivot_c==0 and pivot_o==0:
-        placeholder18_7.empty()
-        
-      else:
-        placeholder19_7.empty()
-
-      if pivot_r==0 or pivot_c==0 or pivot_o==0:
-        placeholder30_7.empty()
-        
-      else: 
-        placeholder31_7.empty()
-        placeholder32_7.empty()
-      
-      if pivot_r==0:
-        placeholder22_7.empty()
-        placeholder28_7.empty()
-
-      else:
-        placeholder23_7.empty()
-        placeholder23_2_7.empty()
-        placeholder24_2_7.empty()
-        placeholder25_2_7.empty()
-        placeholder26_2_7.empty()
-        placeholder25_7.empty()
-        placeholder26_7.empty()
-        placeholder29_7.empty()
-
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico":
-      placeholder33_7.empty()
-      placeholder34_7.empty()
-      placeholder35_7.empty()
-      placeholder39_7.empty()
-      placeholder43_7.empty()
-      placeholder49_7.empty()
-      placeholder25_2_7.empty()
-
-      if pivot_calidad==0:
-        placeholder55_7.empty()
-
-      else:
-        placeholder26_2_7.empty()
-
-      if pivot_reportes==0:
-        placeholder36_7.empty()
-      
-      else:
-        placeholder37_7.empty()
-         
-      if pivot_r==0 and pivot_c==0 and pivot_o==0:
-        placeholder40_7.empty()
-        
-      else:
-        placeholder41_7.empty()
-
-      if pivot_r==0 or pivot_c==0 or pivot_o==0:
-        placeholder52_7.empty()
-        
-      else: 
-        placeholder53_7.empty()
-        placeholder54_7.empty()
-        
-      if pivot_r==0:
-        placeholder44_7.empty()
-        placeholder50_7.empty()
-
-      else:
-        placeholder45_7.empty()
-        placeholder46_7.empty()
-        placeholder45_2_7.empty()
-        placeholder46_2_7.empty()
-        placeholder47_7.empty()
-        placeholder48_7.empty()
-        placeholder51_7.empty()
-
-    st.session_state.Procesos=False
-    st.session_state.Historial=False
-
-    perfil=pd.read_sql(f"select perfil from usuarios where usuario ='{usuario}'",uri)
-    perfil= perfil.loc[0,'perfil']
-
-    if perfil=="1":        
-                    
-      Procesos.Procesos1(usuario,puesto)
-                
-    elif perfil=="2":        
-                    
-      Procesos.Procesos2(usuario,puesto)   
-
-    elif perfil=="3":  
-
-      Procesos.Procesos3(usuario,puesto)
-
-  # ----- Capacitación ---- #
-    
-  elif capacitacion_7:
-    placeholder1_7.empty()
-    placeholder2_7.empty()
-    placeholder3_7.empty()
-    placeholder4_7.empty()
-    placeholder5_7.empty()   
-    placeholder6_7.empty()
-    placeholder7_7.empty()
-    placeholder8_7.empty()
-    placeholder9_7.empty()
-    
-    if puesto=="Supervisor" or puesto=="Coordinador":  
-      placeholder10_7.empty()
-      placeholder11_7.empty()
-      placeholder12_7.empty()
-      placeholder13_7.empty()
-      placeholder17_7.empty()
-      placeholder21_7.empty()
-      placeholder27_7.empty()
-    
-      if pivot_reportes==0:
-        placeholder14_7.empty()
-      
-      else:
-        placeholder15_7.empty()
-         
-      if pivot_r==0 and pivot_c==0 and pivot_o==0:
-        placeholder18_7.empty()
-        
-      else:
-        placeholder19_7.empty()
-
-      if pivot_r==0 or pivot_c==0 or pivot_o==0:
-        placeholder30_7.empty()
-        
-      else: 
-        placeholder31_7.empty()
-        placeholder32_7.empty()
-      
-      if pivot_r==0:
-        placeholder22_7.empty()
-        placeholder28_7.empty()
-
-      else:
-        placeholder23_7.empty()
-        placeholder23_2_7.empty()
-        placeholder24_2_7.empty()
-        placeholder25_2_7.empty()
-        placeholder26_2_7.empty()
-        placeholder25_7.empty()
-        placeholder26_7.empty()
-        placeholder29_7.empty()
-
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico":
-      placeholder33_7.empty()
-      placeholder34_7.empty()
-      placeholder35_7.empty()
-      placeholder39_7.empty()
-      placeholder43_7.empty()
-      placeholder49_7.empty()
-      placeholder25_2_7.empty()
-
-      if pivot_calidad==0:
-        placeholder55_7.empty()
-
-      else:
-        placeholder26_2_7.empty()
-
-
-      if pivot_reportes==0:
-        placeholder36_7.empty()
-      
-      else:
-        placeholder37_7.empty()
-         
-      if pivot_r==0 and pivot_c==0 and pivot_o==0:
-        placeholder40_7.empty()
-        
-      else:
-        placeholder41_7.empty()
-        
-      if pivot_r==0 or pivot_c==0 or pivot_o==0:
-        placeholder52_7.empty()
-        
-      else: 
-        placeholder53_7.empty()
-        placeholder54_7.empty()
-        
-      if pivot_r==0:
-        placeholder44_7.empty()
-        placeholder50_7.empty()
-
-      else:
-        placeholder45_7.empty()
-        placeholder46_7.empty()
-        placeholder45_2_7.empty()
-        placeholder46_2_7.empty()
-        placeholder47_7.empty()
-        placeholder48_7.empty()
-        placeholder51_7.empty()
-        
-    st.session_state.Historial=False
-    st.session_state.Capacitacion=True
-    Capacitacion.Capacitacion(usuario,puesto)
-
-  # ----- Otros Registros ---- #
-    
-  elif otros_registros_7:
-    placeholder1_7.empty()
-    placeholder2_7.empty()
-    placeholder3_7.empty()
-    placeholder4_7.empty()
-    placeholder5_7.empty()   
-    placeholder6_7.empty()
-    placeholder7_7.empty()
-    placeholder8_7.empty()
-    placeholder9_7.empty()
-    
-    if puesto=="Supervisor" or puesto=="Coordinador":  
-      placeholder10_7.empty()
-      placeholder11_7.empty()
-      placeholder12_7.empty()
-      placeholder13_7.empty()
-      placeholder17_7.empty()
-      placeholder21_7.empty()
-      placeholder27_7.empty()
-    
-      if pivot_reportes==0:
-        placeholder14_7.empty()
-      
-      else:
-        placeholder15_7.empty()
-         
-      if pivot_r==0 and pivot_c==0 and pivot_o==0:
-        placeholder18_7.empty()
-        
-      else:
-        placeholder19_7.empty()
-
-      if pivot_r==0 or pivot_c==0 or pivot_o==0:
-        placeholder30_7.empty()
-        
-      else: 
-        placeholder31_7.empty()
-        placeholder32_7.empty()
-      
-      if pivot_r==0:
-        placeholder22_7.empty()
-        placeholder28_7.empty()
-
-      else:
-        placeholder23_7.empty()
-        placeholder23_2_7.empty()
-        placeholder24_2_7.empty()
-        placeholder25_2_7.empty()
-        placeholder26_2_7.empty()
-        placeholder25_7.empty()
-        placeholder26_7.empty()
-        placeholder29_7.empty()
-
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico":
-      placeholder33_7.empty()
-      placeholder34_7.empty()
-      placeholder35_7.empty()
-      placeholder39_7.empty()
-      placeholder43_7.empty()
-      placeholder49_7.empty()
-      placeholder25_2_7.empty()
-
-      if pivot_calidad==0:
-        placeholder55_7.empty()
-
-      else:
-        placeholder26_2_7.empty()
-
-
-      if pivot_reportes==0:
-        placeholder36_7.empty()
-      
-      else:
-        placeholder37_7.empty()
-         
-      if pivot_r==0 and pivot_c==0 and pivot_o==0:
-        placeholder40_7.empty()
-        
-      else:
-        placeholder41_7.empty()
-    
-      if pivot_r==0 or pivot_c==0 or pivot_o==0:
-        placeholder52_7.empty()
-        
-      else: 
-        placeholder53_7.empty()
-        placeholder54_7.empty()
-        
-      if pivot_r==0:
-        placeholder44_7.empty()
-        placeholder50_7.empty()
-
-      else:
-        placeholder45_7.empty()
-        placeholder46_7.empty()
-        placeholder45_2_7.empty()
-        placeholder46_2_7.empty()
-        placeholder47_7.empty()
-        placeholder48_7.empty()
-        placeholder51_7.empty()
-
-    st.session_state.Historial=False
-    st.session_state.Otros_Registros=True
-    Otros_Registros.Otros_Registros(usuario,puesto)
-
-  # ----- Bonos y Horas Extras ---- #
-    
-  elif bonos_extras_7:
-    placeholder1_7.empty()
-    placeholder2_7.empty()
-    placeholder3_7.empty()
-    placeholder4_7.empty()
-    placeholder5_7.empty()   
-    placeholder6_7.empty()
-    placeholder7_7.empty()
-    placeholder8_7.empty()
-    placeholder9_7.empty()
-    
-    if puesto=="Supervisor" or puesto=="Coordinador":  
-      placeholder10_7.empty()
-      placeholder11_7.empty()
-      placeholder12_7.empty()
-      placeholder13_7.empty()
-      placeholder17_7.empty()
-      placeholder21_7.empty()
-      placeholder27_7.empty()
-    
-      if pivot_reportes==0:
-        placeholder14_7.empty()
-      
-      else:
-        placeholder15_7.empty()
-         
-      if pivot_r==0 and pivot_c==0 and pivot_o==0:
-        placeholder18_7.empty()
-        
-      else:
-        placeholder19_7.empty()
-
-      if pivot_r==0 or pivot_c==0 or pivot_o==0:
-        placeholder30_7.empty()
-        
-      else: 
-        placeholder31_7.empty()
-        placeholder32_7.empty()
-      
-      if pivot_r==0:
-        placeholder22_7.empty()
-        placeholder28_7.empty()
-
-      else:
-        placeholder23_7.empty()
-        placeholder23_2_7.empty()
-        placeholder24_2_7.empty()
-        placeholder25_2_7.empty()
-        placeholder26_2_7.empty()
-        placeholder25_7.empty()
-        placeholder26_7.empty()
-        placeholder29_7.empty()
-
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico":
-      placeholder33_7.empty()
-      placeholder34_7.empty()
-      placeholder35_7.empty()
-      placeholder39_7.empty()
-      placeholder43_7.empty()
-      placeholder49_7.empty()
-      placeholder25_2_7.empty()
-
-      if pivot_calidad==0:
-        placeholder55_7.empty()
-
-      else:
-        placeholder26_2_7.empty()
-
-
-      if pivot_reportes==0:
-        placeholder36_7.empty()
-      
-      else:
-        placeholder37_7.empty()
-         
-      if pivot_r==0 and pivot_c==0 and pivot_o==0:
-        placeholder40_7.empty()
-        
-      else:
-        placeholder41_7.empty()
-
-      if pivot_r==0 or pivot_c==0 or pivot_o==0:
-        placeholder52_7.empty()
-        
-      else: 
-        placeholder53_7.empty()
-        placeholder54_7.empty()
-        
-      if pivot_r==0:
-        placeholder44_7.empty()
-        placeholder50_7.empty()
-
-      else:
-        placeholder45_7.empty()
-        placeholder46_7.empty()
-        placeholder45_2_7.empty()
-        placeholder46_2_7.empty()
-        placeholder47_7.empty()
-        placeholder48_7.empty()
-        placeholder51_7.empty()
-
-    st.session_state.Historial=False
-    st.session_state.Bonos_Extras=True
-    Bonos_Extras.Bonos_Extras(usuario,puesto)
-   
-  # ----- Salir ---- #
-    
-  elif salir_7:
-    placeholder1_7.empty()
-    placeholder2_7.empty()
-    placeholder3_7.empty()
-    placeholder4_7.empty()
-    placeholder5_7.empty()   
-    placeholder6_7.empty()
-    placeholder7_7.empty()
-    placeholder8_7.empty()
-    placeholder9_7.empty()
-    
-    if puesto=="Supervisor" or puesto=="Coordinador":  
-      placeholder10_7.empty()
-      placeholder11_7.empty()
-      placeholder12_7.empty()
-      placeholder13_7.empty()
-      placeholder17_7.empty()
-      placeholder21_7.empty()
-      placeholder27_7.empty()
-    
-      if pivot_reportes==0:
-        placeholder14_7.empty()
-      
-      else:
-        placeholder15_7.empty()
-         
-      if pivot_r==0 and pivot_c==0 and pivot_o==0:
-        placeholder18_7.empty()
-        
-      else:
-        placeholder19_7.empty()
-
-      if pivot_r==0 or pivot_c==0 or pivot_o==0:
-        placeholder30_7.empty()
-        
-      else: 
-        placeholder31_7.empty()
-        placeholder32_7.empty()
-      
-      
-      if pivot_r==0:
-        placeholder22_7.empty()
-        placeholder28_7.empty()
-
-      else:
-        placeholder23_7.empty()
-        placeholder23_2_7.empty()
-        placeholder24_2_7.empty()
-        placeholder25_2_7.empty()
-        placeholder26_2_7.empty()
-        placeholder25_7.empty()
-        placeholder26_7.empty()
-        placeholder29_7.empty()
-
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico":
-      placeholder33_7.empty()
-      placeholder34_7.empty()
-      placeholder35_7.empty()
-      placeholder39_7.empty()
-      placeholder43_7.empty()
-      placeholder49_7.empty()
-      placeholder25_2_7.empty()
-
-      if pivot_calidad==0:
-        placeholder55_7.empty()
-
-      else:
-        placeholder26_2_7.empty()
-
-
-      if pivot_reportes==0:
-        placeholder36_7.empty()
-      
-      else:
-        placeholder37_7.empty()
-         
-      if pivot_r==0 and pivot_c==0 and pivot_o==0:
-        placeholder40_7.empty()
-        
-      else:
-        placeholder41_7.empty()
-
-      if pivot_r==0 or pivot_c==0 or pivot_o==0:
-        placeholder52_7.empty()
-        
-      else: 
-        placeholder53_7.empty()
-        placeholder54_7.empty()
-        
-      if pivot_r==0:
-        placeholder44_7.empty()
-        placeholder50_7.empty()
-
-      else:
-        placeholder45_7.empty()
-        placeholder46_7.empty()
-        placeholder45_2_7.empty()
-        placeholder46_2_7.empty()
-        placeholder47_7.empty()
-        placeholder48_7.empty()
-        placeholder51_7.empty()
-
-    st.session_state.Ingreso = False
-    st.session_state.Historial=False
-    st.session_state.Salir=True
-    Salir.Salir()
+        ph_calidad_titulo_op.subheader("Resumen Calidad")
+        calidad_op = generar_resumen_calidad_operario(data_5_r)
+        if len(calidad_op) == 0:
+            st.error("No existen reportes para mostrar")
+        else:
+            calidad_vista = calidad_op.rename(columns={"unidades_catastrales": "muestra unidades catastrales", "edificas": "muestra edificas"})
+            ph_calidad_data_op.dataframe(calidad_vista)
+
+    # --- Navegación ---
+    if btn_procesos.button("Procesos", key="procesos_hist"):
+        limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
+        st.session_state.Historial = False
+        # Obtener perfil
+        perfil_df = fetch_df("SELECT perfil FROM usuarios WHERE usuario = %s", params=[usuario])
+        perfil = str(perfil_df.loc[0, 'perfil']) if not perfil_df.empty else "1"
+        if perfil == "1":
+            Procesos.Procesos1(usuario, puesto)
+        elif perfil == "2":
+            Procesos.Procesos2(usuario, puesto)
+        else:
+            Procesos.Procesos3(usuario, puesto)
+
+    elif btn_capacitacion.button("Capacitaciones", key="capacitacion_hist"):
+        limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
+        st.session_state.Historial = False
+        st.session_state.Capacitacion = True
+        Capacitacion.Capacitacion(usuario, puesto)
+
+    elif btn_otros.button("Otros Registros", key="otros_hist"):
+        limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
+        st.session_state.Historial = False
+        st.session_state.Otros_Registros = True
+        Otros_Registros.Otros_Registros(usuario, puesto)
+
+    elif btn_bonos.button("Bonos y Horas Extras", key="bonos_hist"):
+        limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
+        st.session_state.Historial = False
+        st.session_state.Bonos_Extras = True
+        Bonos_Extras.Bonos_Extras(usuario, puesto)
+
+    elif btn_salir.button("Salir", key="salir_hist"):
+        limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
+        st.session_state.Ingreso = False
+        st.session_state.Historial = False
+        st.session_state.Salir = True
+        Salir.Salir()
