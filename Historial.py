@@ -25,7 +25,7 @@ def cargar_datos_supervisor(fecha_inicio, fecha_fin, personal, proceso, tipo, no
                cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
                tipo_de_errores, conteo_de_errores, numero_lote, observaciones, cast(horas as float)
         FROM registro
-        WHERE fecha >= %s AND fecha <= %s
+        WHERE fecha::date >= %s AND fecha::date <= %s
         """,
         params=[fecha_inicio, fecha_fin]
     )
@@ -34,7 +34,7 @@ def cargar_datos_supervisor(fecha_inicio, fecha_fin, personal, proceso, tipo, no
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, tema,
                cast(horas as float), observaciones, reporte
         FROM capacitaciones
-        WHERE fecha >= %s AND fecha <= %s
+        WHERE fecha::date >= %s AND fecha::date <= %s
         """,
         params=[fecha_inicio, fecha_fin]
     )
@@ -43,7 +43,7 @@ def cargar_datos_supervisor(fecha_inicio, fecha_fin, personal, proceso, tipo, no
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, motivo,
                cast(horas as float), observaciones, reporte
         FROM otros_registros
-        WHERE fecha >= %s AND fecha <= %s
+        WHERE fecha::date >= %s AND fecha::date <= %s
         """,
         params=[fecha_inicio, fecha_fin]
     )
@@ -93,6 +93,8 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
 
     where_clause = " AND ".join(condiciones)
 
+    params_fecha = params + [fecha_inicio, fecha_fin]
+
     # Consultas principales
     data_1_r = fetch_df(
         f"""
@@ -101,9 +103,9 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
                cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
                tipo_de_errores, conteo_de_errores, numero_lote, observaciones, cast(horas as float)
         FROM registro
-        WHERE {where_clause} AND fecha >= %s AND fecha <= %s
+        WHERE {where_clause} AND fecha::date >= %s AND fecha::date <= %s
         """,
-        params=[fecha_inicio, fecha_fin]
+        params=params_fecha
     )
 
     # Datos para horas normales y extras (sin filtro de tipo adicional aquí, se hace después)
@@ -114,7 +116,7 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
                cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
                tipo_de_errores, conteo_de_errores, numero_lote, observaciones, cast(horas as float)
         FROM registro
-        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+        WHERE usuario = %s AND fecha::date >= %s AND fecha::date <= %s
           AND tipo NOT IN ('Producción Horas Extras', 'Inspección Horas Extras', 'Reproceso Horas Extras')
         """,
         params=[usuario, fecha_inicio, fecha_fin]
@@ -126,7 +128,7 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
                cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
                tipo_de_errores, conteo_de_errores, numero_lote, observaciones, cast(horas as float)
         FROM registro
-        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+        WHERE usuario = %s AND fecha::date >= %s AND fecha::date <= %s
           AND tipo IN ('Producción Horas Extras', 'Inspección Horas Extras', 'Reproceso Horas Extras')
         """,
         params=[usuario, fecha_inicio, fecha_fin]
@@ -140,7 +142,7 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
                cast(lotes as float), cast(aprobados as float), cast(rechazados as float), operador_cc,
                tipo_de_errores, conteo_de_errores, numero_lote, observaciones, cast(horas as float)
         FROM registro
-        WHERE operador_cc = %s AND fecha >= %s AND fecha <= %s
+        WHERE operador_cc = %s AND fecha::date >= %s AND fecha::date <= %s
         """,
         params=[nombre_completo, fecha_inicio, fecha_fin]
     )
@@ -151,7 +153,7 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, tema,
                cast(horas as float), observaciones, reporte
         FROM capacitaciones
-        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+        WHERE usuario = %s AND fecha::date >= %s AND fecha::date <= %s
         """,
         params=[usuario, fecha_inicio, fecha_fin]
     )
@@ -160,7 +162,7 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, motivo,
                cast(horas as float), observaciones, reporte
         FROM otros_registros
-        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+        WHERE usuario = %s AND fecha::date >= %s AND fecha::date <= %s
         """,
         params=[usuario, fecha_inicio, fecha_fin]
     )
@@ -169,7 +171,7 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, motivo,
                cast(horas as float), observaciones, reporte
         FROM otros_registros
-        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+        WHERE usuario = %s AND fecha::date >= %s AND fecha::date <= %s
           AND motivo IN ('Horas Extra', 'Horas Extra Apoyo Otros Proyectos', 'Horas Extras')
         """,
         params=[usuario, fecha_inicio, fecha_fin]
@@ -179,7 +181,7 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, motivo,
                cast(horas as float), observaciones, reporte
         FROM otros_registros
-        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+        WHERE usuario = %s AND fecha::date >= %s AND fecha::date <= %s
           AND motivo NOT IN ('Reposición de tiempo', 'Horas Extra', 'Horas Extra Apoyo Otros Proyectos', 'Horas Extras')
         """,
         params=[usuario, fecha_inicio, fecha_fin]
@@ -189,7 +191,7 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor, fecha, motivo,
                cast(horas as float), observaciones, reporte
         FROM otros_registros
-        WHERE usuario = %s AND fecha >= %s AND fecha <= %s
+        WHERE usuario = %s AND fecha::date >= %s AND fecha::date <= %s
           AND motivo = 'Reposición de tiempo'
         """,
         params=[usuario, fecha_inicio, fecha_fin]
