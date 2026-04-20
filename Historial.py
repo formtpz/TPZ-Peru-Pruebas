@@ -192,12 +192,13 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
 # FUNCIONES DE PROCESAMIENTO DE DATOS
 # -------------------------------------------------------------------
 
-def generar_resumen_horas(data_r, data_c, data_o):
-    data_8_r = data_r[~data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy()
-    data_6_r = data_r[data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy()
-    data_6_o = data_o[data_o["motivo"].isin(["Horas Extra", "Horas Extra Apoyo Otros Proyectos", "Horas Extras"])].copy()
-    data_7_o = data_o[data_o["motivo"] == "Reposición de tiempo"].copy()
-    data_9_o = data_o[~data_o["motivo"].isin(["Reposición de tiempo", "Horas Extra", "Horas Extra Apoyo Otros Proyectos", "Horas Extras"])].copy()
+#RESUMEN DE HORAS
+def generar_resumen_horas(data_r, data_c, data_o): #FILTROS 
+    data_8_r = data_r[~data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy() #Produccion menos ...
+    data_6_r = data_r[data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy() #Produccion igual a ....
+    data_6_o = data_o[data_o["motivo"].isin(["Horas Extra", "Horas Extra Apoyo Otros Proyectos", "Horas Extras"])].copy() #Otros igual a ...
+    data_7_o = data_o[data_o["motivo"] == "Reposición de tiempo"].copy() #Otros igual a ...
+    data_9_o = data_o[~data_o["motivo"].isin(["Reposición de tiempo", "Horas Extra", "Horas Extra Apoyo Otros Proyectos", "Horas Extras"])].copy() #Otros menos ...
 
     def agrupar_o_vacio(df, group_cols, agg_col, rename_dict):
         if len(df) > 0:
@@ -207,6 +208,8 @@ def generar_resumen_horas(data_r, data_c, data_o):
         else:
             return pd.DataFrame(columns=group_cols + list(rename_dict.values()))
 
+    #Columnas de Resumen Horas, cada una llama la función agrupar_o_vacio quien toma los datos de ej: data_8_r y si hay valores, los agrupa por fecha, nombre y horas.
+    #este proceso se repite para todas las demas columnas que llaman la funcion
     prod_normal = agrupar_o_vacio(data_8_r, ["nombre", "fecha"], "horas", {"horas": "horas_produccion"})
     prod_extra = agrupar_o_vacio(data_6_r, ["nombre", "fecha"], "horas", {"horas": "horas_extra_produccion"})
     cap = agrupar_o_vacio(data_c, ["nombre", "fecha"], "horas", {"horas": "horas_capacitacion"})
@@ -218,14 +221,14 @@ def generar_resumen_horas(data_r, data_c, data_o):
     if len(datos_horas) == 0:
         return pd.DataFrame()
 
-    keys = datos_horas[["nombre", "fecha"]].drop_duplicates()
-    merged = keys.merge(prod_normal, on=["nombre", "fecha"], how="left")
+    keys = datos_horas[["nombre", "fecha"]].drop_duplicates() #Se crean PK unicos nombre+fecha ej: BrandonMataOrtega2026-03-01
+    merged = keys.merge(prod_normal, on=["nombre", "fecha"], how="left") #busca desde prod_normal coincidencias para meter en la columna de "BrandonMataOrtega2026-03-01 el valor de horas, si no hay asigna un "NaN" equivalente a "null"
     merged = merged.merge(prod_extra, on=["nombre", "fecha"], how="left")
     merged = merged.merge(cap, on=["nombre", "fecha"], how="left")
     merged = merged.merge(otros, on=["nombre", "fecha"], how="left")
     merged = merged.merge(otros_extra, on=["nombre", "fecha"], how="left")
     merged = merged.merge(reposicion, on=["nombre", "fecha"], how="left")
-    merged = merged.fillna(0)
+    merged = merged.fillna(0)#reemplazamos los "NaN" a 0
 
     cols_numeric = ["horas_produccion", "horas_extra_produccion", "horas_capacitacion",
                     "horas_otros_registros", "horas_extra_otros_registros", "reposicion"]
