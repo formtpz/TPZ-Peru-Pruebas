@@ -1,1559 +1,393 @@
 # ----- Librerías ---- #
-
 import streamlit as st
-import Historial, Capacitacion, Otros_Registros, Correcciones, Bonos_Extras, Salir, Precampo_Juridico, Descarga_Partidas_Juridico, Asignacion_Partidas, CC_Precampo_Juridico, Consulta_Campo,Restitucion_Tierras,Revision_Segregados,Estado_UIT_Hito,Precampo, CC_Precampo, Preparacion_Insumos, Entregas_Postcampo, Postcampo, CC_Postcampo, CC_Vinculacion_Precampo, Vinculacion_Precampo
-
 import time
 
-#-------------------CONTADOR PARA REFRESCAR PAGINA---------------#
+# Importaciones de módulos (se mantienen igual)
+import Historial, Capacitacion, Otros_Registros, Correcciones, Bonos_Extras, Salir
+import Precampo_Juridico, Descarga_Partidas_Juridico, Asignacion_Partidas, CC_Precampo_Juridico
+import Consulta_Campo, Restitucion_Tierras, Revision_Segregados, Estado_UIT_Hito
+import Precampo, CC_Precampo, Preparacion_Insumos, Entregas_Postcampo, Postcampo, CC_Postcampo
+import CC_Vinculacion_Precampo, Vinculacion_Precampo
+
+# ------------------- CONTADOR PARA REFRESCAR PÁGINA ------------------- #
 if "start_time" not in st.session_state:
     st.session_state.start_time = time.time()
 
-if time.time() - st.session_state.start_time >  29*60:
+if time.time() - st.session_state.start_time > 29 * 60:
     st.session_state.clear()
     st.rerun()
 
 def auto_refresh(seconds=30600):
-        st.markdown(
-            f'<meta http-equiv="refresh" content="{seconds}">',
-            unsafe_allow_html=True
-        )
+    st.markdown(
+        f'<meta http-equiv="refresh" content="{seconds}">',
+        unsafe_allow_html=True
+    )
 
 auto_refresh(30600)
-
-#-----------------FINCONTADOR-----------------#
-
-def Procesos1(usuario,puesto):
-
-    st.session_state.Ingreso=True
-
-    if st.session_state.Procesos==False: 
-
-        placeholder1_2= st.sidebar.empty()
-        titulo= placeholder1_2.title("Menú")
-
-        placeholder2_2= st.sidebar.empty()
-        historial_2 = placeholder2_2.button("Historial",key="historial_2")
-
-        placeholder3_2 = st.sidebar.empty()
-        capacitacion_2 = placeholder3_2.button("Capacitaciones",key="capacitacion_2")
-
-        placeholder4_2 = st.sidebar.empty()
-        otros_registros_2 = placeholder4_2.button("Otros Registros",key="otros_registros_2")
-
-        placeholder5_2 = st.sidebar.empty()
-        bonos_extras_2 = placeholder5_2.button("Bonos y Horas Extras",key="bonos_extras_2")
-
-        ph_correcciones = st.sidebar.empty()
-        correcciones = ph_correcciones.button("Solicitud Correcciones",key="correcciones")
-
-        placeholder6_2 = st.sidebar.empty()
-        salir_2 = placeholder6_2.button("Salir",key="salir_2")
-
-        placeholder7_2 = st.empty()
-        procesos_2 = placeholder7_2.title("Procesos")
-
-        placeholder8_2 = st.empty()
-        precampo_juridico_2 = placeholder8_2.button(":orange[Precampo Jurídico]", key="precampo_juridico_2")
-        
-        placeholder8_1_2 = st.empty()
-        descarga_partidas_juridico_2 = placeholder8_1_2.button(":orange[Descarga Partidas Jurídico]", key="descarga_partidas_juridico_2")
-
-        placeholder9_2 = st.empty()
-        cc_precampo_juridico_2 = placeholder9_2.button(":orange[Control de Calidad Precampo Jurídico]",key="cc_precampo_juridico_2")
-
-        placeholder_ap = st.empty()
-        asignacion_partidas = placeholder_ap.button(":orange[Asignación de Partidas]",key="asignacion_partidas")
-        
-        placeholder10_2 = st.empty()
-        precampo_2 = placeholder10_2.button(":green[Precampo]",key="precampo_2")
-
-        placeholder11_2 = st.empty()
-        cc_precampo_2 = placeholder11_2.button(":green[Control de Calidad Precampo]",key="cc_precampo_2")
-
-        placeholder12_2 = st.empty()
-        vinculacion_precampo_2 = placeholder12_2.button(":blue[Vinculación Precampo]",key="vinculacion_precampo_2")
-                      
-        placeholder13_2 = st.empty()
-        preparacion_insumos_2 = placeholder13_2.button(":gray[Preparación de Insumos]",key="preparacion_insumos_2") 
-        
-        placeholder14_2 = st.empty()
-        entregas_2 = placeholder14_2.button(":gray[Entregas Postcampo]",key="entregas_2")
-
-        placeholder15_2 = st.empty()
-        postcampo_2 = placeholder15_2.button(":blue[Postcampo]",key="postcampo_2")
-
-        placeholder16_2 = st.empty()
-        cc_postcampo_2 = placeholder16_2.button(":blue[Control de Calidad Postcampo]",key="cc_postcampo_2")
-
-        placeholder17_2 = st.empty()
-        cc_vinculacion_precampo_2 = placeholder17_2.button(":green[Control de Calidad Vinculación Precampo]",key="cc_vinculacion_precampo_2")
-
-        #placeholder18_2 = st.empty()
-        #restitucion_tierras_2 = placeholder18_2.button("Restitución de Tierras",key="restitucion_tierras_2")
-
-        #placeholder19_2 = st.empty()
-        #revision_segregados_2 = placeholder19_2.button("Revisión de Predios Segregados",key="revision_segregados_2")
-
-        placeholder20_2 = st.empty()
-        estado_uit_hito_2 = placeholder20_2.button("Calidad Interna XTF",key="estado_uit_hito_2")
-
-        # ----- Historial ---- #
-
-        if historial_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Historial=True
-            Historial.Historial(usuario,puesto)
-
-        # ----- Capacitación ---- #
-
-        elif capacitacion_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Capacitacion=True
-            Capacitacion.Capacitacion(usuario,puesto)
-
-        # ----- Otros Registros ---- #
-
-        elif otros_registros_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Otros_Registros=True
-            Otros_Registros.Otros_Registros(usuario,puesto)
-            
-
-        # ----- Bonos y Horas Extras ---- #
-
-        elif bonos_extras_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Bonos_Extras=True
-            Bonos_Extras.Bonos_Extras(usuario,puesto)
-
-
-        # ----- Correcciones ---- #
-
-        elif correcciones:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Correcciones=True
-            Correcciones.Correcciones(usuario,puesto)
-
-        # ----- Salir ---- #
-
-        elif salir_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Ingreso= False
-            st.session_state.Procesos=True
-            st.session_state.Salir=True
-            Salir.Salir()
-            
-             # -----  Precampo_Juridico ---- #
-
-        elif precampo_juridico_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Precampo_Juridico=True
-            Precampo_Juridico.Precampo_Juridico(usuario,puesto) 
-
-        # ----- Descarga_Partidas_Juridico ---- #
-
-        elif descarga_partidas_juridico_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            placeholder20_2.empty()
-
-            st.session_state.Procesos=True
-            st.session_state.Descarga_Partidas_Juridico=True
-            Descarga_Partidas_Juridico.Descarga_Partidas_Juridico(usuario,puesto)                
-                  
-               
-        # ----- Control Calidad Precampo Juridico ---- #
-
-        elif cc_precampo_juridico_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.CC_Precampo_Juridico=True
-            CC_Precampo_Juridico.CC_Precampo_Juridico(usuario,puesto)
-
-      # ----- Asignacion de partidas ---- #
-
-        elif asignacion_partidas:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Asignacion_Partidas=True
-            Asignacion_Partidas.Asignacion_Partidas(usuario,puesto)
-
-        
-        # ----- Precampo ---- #
-
-        elif precampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Precampo=True
-            Precampo.Precampo(usuario,puesto)
-
-        # ----- CC_Precampo ---- #
-
-        elif cc_precampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.CC_Precampo=True
-            CC_Precampo.CC_Precampo(usuario,puesto)
-
-     # -----vinculacion_precampo_---- #
-
-        elif vinculacion_precampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Vinculacion_Precampo=True
-            Vinculacion_Precampo.Vinculacion_Precampo(usuario,puesto)
-            
-        # ----- Preparación de Insumos ---- #
-
-        elif preparacion_insumos_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Preparacion_Insumos=True
-            Preparacion_Insumos.Preparacion_Insumos(usuario,puesto)
-
-          # ----- Revisión de Campo ---- #
-
-        elif entregas_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Entregas_Postcampo=True
-            Entregas_Postcampo.Entregas_Postcampo(usuario,puesto)
-
-        # ----- Postcampo ---- #
-
-        elif postcampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Postcampo=True
-            Postcampo.Postcampo(usuario,puesto)
-
-         # ----- CC Postcampo---- #
-
-        elif cc_postcampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.CC_Postcampo=True
-            CC_Postcampo.CC_Postcampo(usuario,puesto)
-         
-        # ----- CC Validacion Precampo---- #
-
-        elif cc_vinculacion_precampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.CC_Vinculacion_Precampo=True
-            CC_Vinculacion_Precampo.CC_Vinculacion_Precampo(usuario,puesto)
-
-        # ----- Restitución de Tierras ---- #
-
-        #elif restitucion_tierras_2:
-
-            #placeholder1_2.empty()
-            #placeholder2_2.empty()
-            #placeholder3_2.empty()
-            #placeholder4_2.empty()
-            #placeholder5_2.empty()
-            #placeholder6_2.empty()
-            #placeholder7_2.empty()
-            #placeholder8_2.empty()
-            #placeholder9_2.empty()
-            #placeholder10_2.empty()
-            #placeholder11_2.empty()
-            #placeholder12_2.empty()
-            #placeholder13_2.empty()
-            #placeholder14_2.empty()
-            #placeholder15_2.empty()
-            #placeholder16_2.empty()
-            #placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #st.session_state.Procesos=True
-            #st.session_state.Restitucion_Tierras=True
-            #Restitucion_Tierras.Restitucion_Tierras(usuario,puesto)
-
-        # ----- Revisión de Predios Segredados ---- #
-
-        #elif revision_segregados_2:
-
-            #placeholder1_2.empty()
-            #placeholder2_2.empty()
-            #placeholder3_2.empty()
-            #placeholder4_2.empty()
-            #placeholder5_2.empty()
-            #placeholder6_2.empty()
-            #placeholder7_2.empty()
-            #placeholder8_2.empty()
-            #placeholder9_2.empty()
-            #placeholder10_2.empty()
-            #placeholder11_2.empty()
-            #placeholder12_2.empty()
-            #placeholder13_2.empty()
-            #placeholder14_2.empty()
-            #placeholder15_2.empty()
-            #placeholder16_2.empty()
-            #placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #st.session_state.Procesos=True
-            #st.session_state.Revision_Segregados=True
-            #Revision_Segregados.Revision_Segregados(usuario,puesto)
-                   
-        # ----- Estado UIT Hito ---- #
-
-        elif estado_uit_hito_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder_ap.empty()
-            placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            placeholder16_2.empty()
-            placeholder17_2.empty()
-            #placeholder18_2.empty()
-            #placeholder19_2.empty()
-            placeholder20_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Estado_UIT_Hito=True
-            Estado_UIT_Hito.Estado_UIT_Hito(usuario,puesto)
-
-    elif st.session_state.Procesos==True:
-
-        if st.session_state.Historial==True:
-            Historial.Historial(usuario,puesto)
-
-        elif st.session_state.Capacitacion==True:
-            Capacitacion.Capacitacion(usuario,puesto)
-
-        elif st.session_state.Otros_Registros==True:
-            Otros_Registros.Otros_Registros(usuario,puesto)
-
-        elif st.session_state.Bonos_Extras==True:
-            Bonos_Extras.Bonos_Extras(usuario,puesto)
-
-        elif st.session_state.Correcciones==True:
-            Correcciones.Correcciones(usuario,puesto)
-
-        elif st.session_state.Precampo_Juridico==True:
-            Precampo_Juridico.Precampo_Juridico(usuario,puesto)
-        
-        elif st.session_state.Descarga_Partidas_Juridico==True:
-            Descarga_Partidas_Juridico.Descarga_Partidas_Juridico(usuario,puesto)
-        
-        elif st.session_state.CC_Precampo_Juridico==True:
-            CC_Precampo_Juridico.CC_Precampo_Juridico(usuario,puesto)
-
-        elif st.session_state.Asignacion_Partidas==True:
-            Asignacion_Partidas.Asignacion_Partidas(usuario,puesto)
-
-        elif st.session_state.Precampo==True:
-            Precampo.Precampo(usuario,puesto)
-
-        elif st.session_state.CC_Precampo==True:
-            CC_Precampo.CC_Precampo(usuario,puesto)
-
-        elif st.session_state.Vinculacion_Precampo==True:
-            Vinculacion_Precampo.Vinculacion_Precampo(usuario,puesto)
-
-        elif st.session_state.Preparacion_Insumos==True:
-            Preparacion_Insumos.Preparacion_Insumos(usuario,puesto)
-            
-        elif st.session_state.Entregas_Postcampo==True:
-            Entregas_Postcampo.Entregas_Postcampo(usuario,puesto)
-
-        elif st.session_state.Postcampo==True:
-            Postcampo.Postcampo(usuario,puesto)
-
-        elif st.session_state.CC_Postcampo==True:
-            CC_Postcampo.CC_Postcampo(usuario,puesto)
-
-        elif st.session_state.CC_Vinculacion_Precampo==True:
-            CC_Vinculacion_Precampo.CC_Vinculacion_Precampo(usuario,puesto)
-
-        #elif st.session_state.Restitucion_Tierras==True:
-            #Restitucion_Tierras.Restitucion_Tierras(usuario,puesto)
-
-        #elif st.session_state.Revision_Segregados==True:
-            #Revision_Segregados.Revision_Segregados(usuario,puesto)
-            
-        elif st.session_state.Estado_UIT_Hito==True:
-            Estado_UIT_Hito.Estado_UIT_Hito(usuario,puesto)
-            
-# ----- Procesos 2 (Gabinete) ---- #
-
-def Procesos2(usuario,puesto):
-
-    st.session_state.Ingreso=True
-
-    if st.session_state.Procesos==False:
-
-        placeholder1_2= st.sidebar.empty()
-        titulo= placeholder1_2.title("Menú")
-
-        placeholder2_2= st.sidebar.empty()
-        historial_2 = placeholder2_2.button("Historial",key="historial_2")
-
-        placeholder3_2 = st.sidebar.empty()
-        capacitacion_2 = placeholder3_2.button("Capacitaciones",key="capacitacion_2")
-
-        placeholder4_2 = st.sidebar.empty()
-        otros_registros_2 = placeholder4_2.button("Otros Registros",key="otros_registros_2")
-
-        placeholder5_2 = st.sidebar.empty()
-        bonos_extras_2 = placeholder5_2.button("Bonos y Horas Extras",key="bonos_extras_2")
-
-        ph_correcciones = st.sidebar.empty()
-        correcciones = ph_correcciones.button("Solicitud Correcciones",key="correcciones")
-
-        placeholder6_2 = st.sidebar.empty()
-        salir_2 = placeholder6_2.button("Salir",key="salir_2")
-
-        placeholder7_2 = st.empty()
-        registro_2 = placeholder7_2.title("Procesos")
-
-        placeholder8_2 = st.empty()
-        precampo_2 = placeholder8_2.button("Precampo",key="precampo_2")
-
-        placeholder9_2 = st.empty()
-        cc_precampo_2 = placeholder9_2.button("Control de Calidad Precampo",key="cc_precampo_2")
-
-        #placeholder10_2 = st.empty()
-        #preparacion_insumos_2 = placeholder10_2.button("Preparación de Insumos",key="preparacion_insumos_2")
-
-        placeholder11_2 = st.empty()
-        entregas_2 = placeholder11_2.button("Entregas Postcampo",key="entregas_2")
-
-        placeholder12_2 = st.empty()
-        postcampo_2 = placeholder12_2.button("Postcampo",key="postcampo_2")
-
-        placeholder13_2 = st.empty()
-        vinculacion_precampo_2 = placeholder13_2.button("Vinculacion Precampo",key="vinculacion_precampo_2")
-
-        placeholder14_2 = st.empty()
-        cc_postcampo_2 = placeholder14_2.button("Control de Calidad Postcampo",key="cc_postcampo_2")
-
-        placeholder15_2 = st.empty()
-        cc_vinculacion_precampo_2 = placeholder15_2.button("Control de Calidad Vinculacion Precampo",key="cc_vinculacion_precampo_2")
-       
-        # ----- Historial ---- #
-
-        if historial_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Historial=True
-            Historial.Historial(usuario,puesto)
-
-        # ----- Capacitación ---- #
-
-        elif capacitacion_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Capacitacion=True
-            Capacitacion.Capacitacion(usuario,puesto)
-
-        # ----- Otros Registros ---- #
-
-        elif otros_registros_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Otros_Registros=True
-            Otros_Registros.Otros_Registros(usuario,puesto)
-
-        # ----- Bonos y Horas Extras ---- #
-
-        elif bonos_extras_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Bonos_Extras=True
-            Bonos_Extras.Bonos_Extras(usuario,puesto)
-
-
-        elif correcciones:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Correcciones=True
-            Correcciones.Correcciones(usuario,puesto)
-
-        # ----- Salir ---- #
-
-        elif salir_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Ingreso = False
-            st.session_state.Procesos=True
-            st.session_state.Salir=True
-            Salir.Salir()
-
-        # ----- Precampo ---- #
-
-        elif precampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Precampo=True
-            Precampo.Precampo(usuario,puesto)
-
-        # ----- CC Precampo ---- #
-
-        elif cc_precampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.CC_Precampo=True
-            CC_Precampo.CC_Precampo(usuario,puesto)
-
-        # ----- Preparación de Insumos ---- #
-
-        #elif preparacion_insumos_2:
-
-            #placeholder1_2.empty()
-            #placeholder2_2.empty()
-            #placeholder3_2.empty()
-            #placeholder4_2.empty()
-            #placeholder5_2.empty()
-            #placeholder6_2.empty()
-            #placeholder7_2.empty()
-            #placeholder8_2.empty()
-            #placeholder9_2.empty()
-            #placeholder10_2.empty()
-            #placeholder11_2.empty()
-            #placeholder12_2.empty()
-            #placeholder13_2.empty()
-            #st.session_state.Procesos=True
-            #st.session_state.Preparacion_Insumos=True
-            #Preparacion_Insumos.Preparacion_Insumos(usuario,puesto)
-
-         # ----- Entregas ---- #
-
-        elif entregas_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Entregas_Postcampo=True
-            Entregas_Postcampo.Entregas_Postcampo(usuario,puesto)
-
-        # ----- Postcampo ---- #
-
-        elif postcampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Postcampo=True
-            Postcampo.Postcampo(usuario,puesto)
-
-        # ----- Validación Precampo ---- #
-
-        elif vinculacion_precampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Vinculacion_Precampo=True
-            Vinculacion_Precampo.Vinculacion_Precampo(usuario,puesto)
-            
-        # ----- CC_Postcampo ---- #
-
-        elif cc_postcampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.CC_Postcampo=True
-            CC_Postcampo.CC_Postcampo(usuario,puesto)
-
-    # ----- CC_Postcampo ---- #
-
-        elif cc_vinculacion_precampo_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder9_2.empty()
-            #placeholder10_2.empty()
-            placeholder11_2.empty()
-            placeholder12_2.empty()
-            placeholder13_2.empty()
-            placeholder14_2.empty()
-            placeholder15_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.CC_Vinculacion_Precampo=True
-            CC_Vinculacion_Precampo.CC_Vinculacion_Precampo(usuario,puesto)
-            
-    elif st.session_state.Procesos==True:
-
-        if st.session_state.Historial==True:
-            Historial.Historial(usuario,puesto)
-
-        elif st.session_state.Capacitacion==True:
-            Capacitacion.Capacitacion(usuario,puesto)
-
-        elif st.session_state.Otros_Registros==True:
-            Otros_Registros.Otros_Registros(usuario,puesto)
-
-        elif st.session_state.Bonos_Extras==True:
-            Bonos_Extras.Bonos_Extras(usuario,puesto)
-
-        elif st.session_state.Correcciones==True:
-            Correcciones.Correcciones(usuario,puesto)
-
-        elif st.session_state.Precampo==True:
-            Precampo.Precampo(usuario,puesto)
-
-        elif st.session_state.CC_Precampo==True:
-            CC_Precampo.CC_Precampo(usuario,puesto)
-
-        elif st.session_state.Preparacion_Insumos==True:
-            Preparacion_Insumos.Preparacion_Insumos(usuario,puesto)
-        
-        elif st.session_state.Entregas_Postcampo==True:
-            Entregas_Postcampo.Entregas_Postcampo(usuario,puesto)
-
-        elif st.session_state.Postcampo==True:
-            Postcampo.Postcampo(usuario,puesto)
-
-        elif st.session_state.Vinculacion_Precampo==True:
-            Vinculacion_Precampo.Vinculacion_Precampo(usuario,puesto)
-
-        elif st.session_state.CC_Postcampo==True:
-            CC_Postcampo.CC_Postcampo(usuario,puesto)
-
-        elif st.session_state.CC_Vinculacion_Precampo==True:
-            CC_Vinculacion_Precampo.CC_Vinculacion_Precampo(usuario,puesto)
-
-# ----- Procesos 3 (Jurídicos) ---- #
-
-def Procesos3(usuario,puesto):
-
-    st.session_state.Ingreso=True
-
-    if st.session_state.Procesos==False:
-
-        placeholder1_2= st.sidebar.empty()
-        titulo= placeholder1_2.title("Menú")
-
-        placeholder2_2= st.sidebar.empty()
-        historial_2 = placeholder2_2.button("Historial",key="historial_2")
-
-        placeholder3_2 = st.sidebar.empty()
-        capacitacion_2 = placeholder3_2.button("Capacitaciones",key="capacitacion_2")
-
-        placeholder4_2 = st.sidebar.empty()
-        otros_registros_2 = placeholder4_2.button("Otros Registros",key="otros_registros_2")
-
-        placeholder5_2 = st.sidebar.empty()
-        bonos_extras_2 = placeholder5_2.button("Bonos y Horas Extras",key="bonos_extras_2")
-
-        ph_correcciones = st.sidebar.empty()
-        correcciones = ph_correcciones.button("Solicitud Correcciones",key="correcciones")
-
-        placeholder6_2 = st.sidebar.empty()
-        salir_2 = placeholder6_2.button("Salir",key="salir_2")
-
-        placeholder7_2 = st.empty()
-        registro_2 = placeholder7_2.title("Procesos")
-
-        placeholder8_2 = st.empty()
-        precampo_juridico_2 = placeholder8_2.button("Precampo Jurídico",key="precampo_juridico_2")
-
-        placeholder8_1_2 = st.empty()
-        descarga_partidas_juridico_2 = placeholder8_1_2.button(":orange[Descarga Partidas Jurídico]", key="descarga_partidas_juridico_2")
-      
-        placeholder9_2 = st.empty()
-        cc_precampo_juridico_2 = placeholder9_2.button("Control de Calidad Precampo Jurídico",key="cc_precampo_juridico_2")
-
-        placeholder10_2 = st.empty()
-        asignacion_partidas = placeholder10_2.button("Asignación de Partidas",key="asignacion_partidas")
-
-        #placeholder11_2 = st.empty()
-        #revision_segregados_2 = placeholder11_2.button("Revisión de Predios Segregados",key="revision_segregados_2")
-              
-       # ----- Historial ---- #
-
-        if historial_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder10_2.empty()
-
-            st.session_state.Procesos=True
-            st.session_state.Historial=True
-            Historial.Historial(usuario,puesto)
-
-        # ----- Capacitación ---- #
-
-        elif capacitacion_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder10_2.empty()
-
-            st.session_state.Procesos=True
-            st.session_state.Capacitacion=True
-            Capacitacion.Capacitacion(usuario,puesto)
-
-        # ----- Otros Registros ---- #
-
-        elif otros_registros_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder10_2.empty()
-
-            st.session_state.Procesos=True
-            st.session_state.Otros_Registros=True
-            Otros_Registros.Otros_Registros(usuario,puesto)
-
-        # ----- Bonos y Horas Extras ---- #
-
-        elif bonos_extras_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder10_2.empty()
-
-            st.session_state.Procesos=True
-            st.session_state.Bonos_Extras=True
-            Bonos_Extras.Bonos_Extras(usuario,puesto)
-
-        # ----- Correcciones Solicitud ---- #
-
-        elif correcciones:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder10_2.empty()
-            st.session_state.Procesos=True
-            st.session_state.Correcciones=True
-            Correcciones.Correcciones(usuario,puesto)
-
-        # ----- Salir ---- #
-
-        elif salir_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder10_2.empty()
-
-            st.session_state.Ingreso = False
-            st.session_state.Procesos = True
-            st.session_state.Salir=True
-            Salir.Salir()
-
-        # ----- Precampo_Juridico ---- #
-
-        elif precampo_juridico_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder10_2.empty()
-
-            st.session_state.Procesos=True
-            st.session_state.Precampo_Juridico=True
-            Precampo_Juridico.Precampo_Juridico(usuario,puesto)
-
-                # ----- Descarga_Partidas_Juridico ---- #
-
-        elif descarga_partidas_juridico_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder10_2.empty()
-
-            st.session_state.Procesos=True
-            st.session_state.Descarga_Partidas_Juridico=True
-            Descarga_Partidas_Juridico.Descarga_Partidas_Juridico(usuario,puesto)
-
-      
-        # ----- Control de Calidad Precampo Jurídico ---- #
-
-        elif cc_precampo_juridico_2:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder10_2.empty()
-
-            st.session_state.Procesos=True
-            st.session_state.CC_Precampo_Juridico=True
-            CC_Precampo_Juridico.CC_Precampo_Juridico(usuario,puesto)
-
-            # ----- Asignacion_Partidas ---- #
-
-        elif asignacion_partidas:
-
-            placeholder1_2.empty()
-            placeholder2_2.empty()
-            placeholder3_2.empty()
-            placeholder4_2.empty()
-            placeholder5_2.empty()
-            ph_correcciones.empty()
-            placeholder6_2.empty()
-            placeholder7_2.empty()
-            placeholder8_2.empty()
-            placeholder8_1_2.empty()
-            placeholder9_2.empty()
-            placeholder10_2.empty()
-
-            st.session_state.Procesos=True
-            st.session_state.Asignacion_Partidas=True
-            Asignacion_Partidas.Asignacion_Partidas(usuario,puesto)
-        
-        # ----- Restitución de Tierras ---- #
-
-        #elif restitucion_tierras_2:
-
-            #placeholder1_2.empty()
-            #placeholder2_2.empty()
-            #placeholder3_2.empty()
-            #placeholder4_2.empty()
-            #placeholder5_2.empty()
-            #placeholder6_2.empty()
-            #placeholder7_2.empty()
-            #placeholder8_2.empty()
-            #placeholder9_2.empty()
-            #placeholder10_2.empty()
-            #placeholder11_2.empty()
-            #st.session_state.Procesos=True
-            #st.session_state.Restitucion_Tierras=True
-            #Restitucion_Tierras.Restitucion_Tierras(usuario,puesto)
-
-        # ----- Revisión de Predios Segredados ---- #
-
-        #elif revision_segregados_2:
-
-            #placeholder1_2.empty()
-            #placeholder2_2.empty()
-            #placeholder3_2.empty()
-            #placeholder4_2.empty()
-            #placeholder5_2.empty()
-            #placeholder6_2.empty()
-            #placeholder7_2.empty()
-            #placeholder8_2.empty()
-            #placeholder9_2.empty()
-            #placeholder10_2.empty()
-            #placeholder11_2.empty()
-            #st.session_state.Procesos=True
-            #st.session_state.Revision_Segregados=True
-            #Revision_Segregados.Revision_Segregados(usuario,puesto)
-    
-    elif st.session_state.Procesos==True:
-
-        if st.session_state.Historial==True:
-            Historial.Historial(usuario,puesto)       
-
-        elif st.session_state.Capacitacion==True:
-            Capacitacion.Capacitacion(usuario,puesto)
-
-        elif st.session_state.Otros_Registros==True:
-            Otros_Registros.Otros_Registros(usuario,puesto)
-
-        elif st.session_state.Bonos_Extras==True:
-            Bonos_Extras.Bonos_Extras(usuario,puesto)
-
-        elif st.session_state.Correcciones==True:
-            Correcciones.Correcciones(usuario,puesto)
-
-        elif st.session_state.Precampo_Juridico==True:
-            Precampo_Juridico.Precampo_Juridico(usuario,puesto)
-
-        elif st.session_state.Descarga_Partidas_Juridico==True:
-            Descarga_Partidas_Juridico.Descarga_Partidas_Juridico(usuario,puesto)
-        
-        elif st.session_state.CC_Precampo_Juridico==True:
-            CC_Precampo_Juridico.CC_Precampo_Juridico(usuario,puesto)
-
-        elif st.session_state.Asignacion_Partidas==True:
-            Asignacion_Partidas.Asignacion_Partidas(usuario,puesto)
-
-        #elif st.session_state.Revision_Segregados==True:
-            #Revision_Segregados.Revision_Segregados(usuario,puesto)
+# --------------------------------------------------------------------- #
+
+def limpiar_sidebar_y_contenido(placeholder_list):
+    """Vacía todos los placeholders proporcionados."""
+    for ph in placeholder_list:
+        if ph is not None:
+            ph.empty()
+
+def navegar_a(modulo_func, usuario, puesto, flag_name):
+    """Establece flags de estado y llama al módulo correspondiente."""
+    st.session_state.Procesos = True
+    # Activar solo la bandera del módulo destino
+    for key in ["Historial", "Capacitacion", "Otros_Registros", "Bonos_Extras",
+                "Correcciones", "Precampo_Juridico", "Descarga_Partidas_Juridico",
+                "CC_Precampo_Juridico", "Asignacion_Partidas", "Precampo", "CC_Precampo",
+                "Vinculacion_Precampo", "Preparacion_Insumos", "Entregas_Postcampo",
+                "Postcampo", "CC_Postcampo", "CC_Vinculacion_Precampo",
+                "Restitucion_Tierras", "Revision_Segregados", "Estado_UIT_Hito"]:
+        st.session_state[key] = (key == flag_name)
+    modulo_func(usuario, puesto)
+
+def menu_principal_por_perfil(usuario, puesto, perfil):
+    """
+    Muestra el menú de procesos según el perfil y maneja la navegación.
+    Retorna True si se debe salir de la función (para evitar doble render).
+    """
+    # Inicializar estado si no existe
+    if "Procesos" not in st.session_state:
+        st.session_state.Procesos = False
+
+    # Si ya estamos dentro de un submódulo, la función padre ya llamó al submódulo.
+    if st.session_state.Procesos:
+        return True
+
+    # --- Crear placeholders (se guardan en lista para limpiar después) ---
+    placeholders = []
+
+    # Sidebar
+    ph_sidebar = []
+    ph_titulo = st.sidebar.empty()
+    ph_titulo.title("Menú")
+    ph_sidebar.append(ph_titulo)
+
+    # Botones comunes del sidebar
+    btn_historial = st.sidebar.empty()
+    ph_sidebar.append(btn_historial)
+    btn_capacitacion = st.sidebar.empty()
+    ph_sidebar.append(btn_capacitacion)
+    btn_otros = st.sidebar.empty()
+    ph_sidebar.append(btn_otros)
+    btn_bonos = st.sidebar.empty()
+    ph_sidebar.append(btn_bonos)
+    btn_correcciones = st.sidebar.empty()
+    ph_sidebar.append(btn_correcciones)
+    btn_salir = st.sidebar.empty()
+    ph_sidebar.append(btn_salir)
+
+    # Contenido principal
+    ph_main = []
+    titulo_procesos = st.empty()
+    ph_main.append(titulo_procesos)
+
+    # Lista de placeholders de botones de procesos (se llenará según perfil)
+    botones_procesos = []
+
+    # --- Mostrar botones según perfil ---
+    titulo_procesos.title("Procesos")
+
+    if perfil == "1":  # Perfil completo
+        botones_procesos.append(st.empty())  # Precampo Jurídico
+        botones_procesos.append(st.empty())  # Descarga Partidas Jurídico
+        botones_procesos.append(st.empty())  # CC Precampo Jurídico
+        botones_procesos.append(st.empty())  # Asignación de Partidas
+        botones_procesos.append(st.empty())  # Precampo
+        botones_procesos.append(st.empty())  # CC Precampo
+        botones_procesos.append(st.empty())  # Vinculación Precampo
+        botones_procesos.append(st.empty())  # Preparación de Insumos
+        botones_procesos.append(st.empty())  # Entregas Postcampo
+        botones_procesos.append(st.empty())  # Postcampo
+        botones_procesos.append(st.empty())  # CC Postcampo
+        botones_procesos.append(st.empty())  # CC Vinculación Precampo
+        botones_procesos.append(st.empty())  # Calidad Interna XTF
+
+        idx = 0
+        btn_precampo_jur = botones_procesos[idx]; idx+=1
+        btn_descarga_partidas = botones_procesos[idx]; idx+=1
+        btn_cc_precampo_jur = botones_procesos[idx]; idx+=1
+        btn_asig_partidas = botones_procesos[idx]; idx+=1
+        btn_precampo = botones_procesos[idx]; idx+=1
+        btn_cc_precampo = botones_procesos[idx]; idx+=1
+        btn_vinculacion = botones_procesos[idx]; idx+=1
+        btn_prep_insumos = botones_procesos[idx]; idx+=1
+        btn_entregas = botones_procesos[idx]; idx+=1
+        btn_postcampo = botones_procesos[idx]; idx+=1
+        btn_cc_postcampo = botones_procesos[idx]; idx+=1
+        btn_cc_vinculacion = botones_procesos[idx]; idx+=1
+        btn_estado_uit = botones_procesos[idx]; idx+=1
+
+        # Asignar botones con sus textos y keys
+        if btn_precampo_jur.button(":orange[Precampo Jurídico]", key="precampo_juridico_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Precampo_Juridico.Precampo_Juridico, usuario, puesto, "Precampo_Juridico")
+            return True
+        if btn_descarga_partidas.button(":orange[Descarga Partidas Jurídico]", key="descarga_partidas_juridico_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Descarga_Partidas_Juridico.Descarga_Partidas_Juridico, usuario, puesto, "Descarga_Partidas_Juridico")
+            return True
+        if btn_cc_precampo_jur.button(":orange[Control de Calidad Precampo Jurídico]", key="cc_precampo_juridico_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(CC_Precampo_Juridico.CC_Precampo_Juridico, usuario, puesto, "CC_Precampo_Juridico")
+            return True
+        if btn_asig_partidas.button(":orange[Asignación de Partidas]", key="asignacion_partidas"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Asignacion_Partidas.Asignacion_Partidas, usuario, puesto, "Asignacion_Partidas")
+            return True
+        if btn_precampo.button(":green[Precampo]", key="precampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Precampo.Precampo, usuario, puesto, "Precampo")
+            return True
+        if btn_cc_precampo.button(":green[Control de Calidad Precampo]", key="cc_precampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(CC_Precampo.CC_Precampo, usuario, puesto, "CC_Precampo")
+            return True
+        if btn_vinculacion.button(":blue[Vinculación Precampo]", key="vinculacion_precampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Vinculacion_Precampo.Vinculacion_Precampo, usuario, puesto, "Vinculacion_Precampo")
+            return True
+        if btn_prep_insumos.button(":gray[Preparación de Insumos]", key="preparacion_insumos_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Preparacion_Insumos.Preparacion_Insumos, usuario, puesto, "Preparacion_Insumos")
+            return True
+        if btn_entregas.button(":gray[Entregas Postcampo]", key="entregas_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Entregas_Postcampo.Entregas_Postcampo, usuario, puesto, "Entregas_Postcampo")
+            return True
+        if btn_postcampo.button(":blue[Postcampo]", key="postcampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Postcampo.Postcampo, usuario, puesto, "Postcampo")
+            return True
+        if btn_cc_postcampo.button(":blue[Control de Calidad Postcampo]", key="cc_postcampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(CC_Postcampo.CC_Postcampo, usuario, puesto, "CC_Postcampo")
+            return True
+        if btn_cc_vinculacion.button(":green[Control de Calidad Vinculación Precampo]", key="cc_vinculacion_precampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(CC_Vinculacion_Precampo.CC_Vinculacion_Precampo, usuario, puesto, "CC_Vinculacion_Precampo")
+            return True
+        if btn_estado_uit.button("Calidad Interna XTF", key="estado_uit_hito_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Estado_UIT_Hito.Estado_UIT_Hito, usuario, puesto, "Estado_UIT_Hito")
+            return True
+
+    elif perfil == "2":  # Gabinete
+        botones_procesos.append(st.empty())  # Precampo
+        botones_procesos.append(st.empty())  # CC Precampo
+        botones_procesos.append(st.empty())  # Entregas Postcampo
+        botones_procesos.append(st.empty())  # Postcampo
+        botones_procesos.append(st.empty())  # Vinculación Precampo
+        botones_procesos.append(st.empty())  # CC Postcampo
+        botones_procesos.append(st.empty())  # CC Vinculación Precampo
+
+        idx = 0
+        btn_precampo = botones_procesos[idx]; idx+=1
+        btn_cc_precampo = botones_procesos[idx]; idx+=1
+        btn_entregas = botones_procesos[idx]; idx+=1
+        btn_postcampo = botones_procesos[idx]; idx+=1
+        btn_vinculacion = botones_procesos[idx]; idx+=1
+        btn_cc_postcampo = botones_procesos[idx]; idx+=1
+        btn_cc_vinculacion = botones_procesos[idx]; idx+=1
+
+        if btn_precampo.button("Precampo", key="precampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Precampo.Precampo, usuario, puesto, "Precampo")
+            return True
+        if btn_cc_precampo.button("Control de Calidad Precampo", key="cc_precampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(CC_Precampo.CC_Precampo, usuario, puesto, "CC_Precampo")
+            return True
+        if btn_entregas.button("Entregas Postcampo", key="entregas_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Entregas_Postcampo.Entregas_Postcampo, usuario, puesto, "Entregas_Postcampo")
+            return True
+        if btn_postcampo.button("Postcampo", key="postcampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Postcampo.Postcampo, usuario, puesto, "Postcampo")
+            return True
+        if btn_vinculacion.button("Vinculacion Precampo", key="vinculacion_precampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Vinculacion_Precampo.Vinculacion_Precampo, usuario, puesto, "Vinculacion_Precampo")
+            return True
+        if btn_cc_postcampo.button("Control de Calidad Postcampo", key="cc_postcampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(CC_Postcampo.CC_Postcampo, usuario, puesto, "CC_Postcampo")
+            return True
+        if btn_cc_vinculacion.button("Control de Calidad Vinculacion Precampo", key="cc_vinculacion_precampo_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(CC_Vinculacion_Precampo.CC_Vinculacion_Precampo, usuario, puesto, "CC_Vinculacion_Precampo")
+            return True
+
+    elif perfil == "3":  # Jurídicos
+        botones_procesos.append(st.empty())  # Precampo Jurídico
+        botones_procesos.append(st.empty())  # Descarga Partidas Jurídico
+        botones_procesos.append(st.empty())  # CC Precampo Jurídico
+        botones_procesos.append(st.empty())  # Asignación de Partidas
+
+        idx = 0
+        btn_precampo_jur = botones_procesos[idx]; idx+=1
+        btn_descarga_partidas = botones_procesos[idx]; idx+=1
+        btn_cc_precampo_jur = botones_procesos[idx]; idx+=1
+        btn_asig_partidas = botones_procesos[idx]; idx+=1
+
+        if btn_precampo_jur.button("Precampo Jurídico", key="precampo_juridico_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Precampo_Juridico.Precampo_Juridico, usuario, puesto, "Precampo_Juridico")
+            return True
+        if btn_descarga_partidas.button(":orange[Descarga Partidas Jurídico]", key="descarga_partidas_juridico_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Descarga_Partidas_Juridico.Descarga_Partidas_Juridico, usuario, puesto, "Descarga_Partidas_Juridico")
+            return True
+        if btn_cc_precampo_jur.button("Control de Calidad Precampo Jurídico", key="cc_precampo_juridico_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(CC_Precampo_Juridico.CC_Precampo_Juridico, usuario, puesto, "CC_Precampo_Juridico")
+            return True
+        if btn_asig_partidas.button("Asignación de Partidas", key="asignacion_partidas"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Asignacion_Partidas.Asignacion_Partidas, usuario, puesto, "Asignacion_Partidas")
+            return True
+
+    # --- Botones comunes del sidebar ---
+    if btn_historial.button("Historial", key="historial_2"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(Historial.Historial, usuario, puesto, "Historial")
+        return True
+    if btn_capacitacion.button("Capacitaciones", key="capacitacion_2"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(Capacitacion.Capacitacion, usuario, puesto, "Capacitacion")
+        return True
+    if btn_otros.button("Otros Registros", key="otros_registros_2"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(Otros_Registros.Otros_Registros, usuario, puesto, "Otros_Registros")
+        return True
+    if btn_bonos.button("Bonos y Horas Extras", key="bonos_extras_2"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(Bonos_Extras.Bonos_Extras, usuario, puesto, "Bonos_Extras")
+        return True
+    if btn_correcciones.button("Solicitud Correcciones", key="correcciones"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(Correcciones.Correcciones, usuario, puesto, "Correcciones")
+        return True
+    if btn_salir.button("Salir", key="salir_2"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        st.session_state.Ingreso = False
+        st.session_state.Procesos = True
+        st.session_state.Salir = True
+        Salir.Salir()
+        return True
+
+    return False
+
+# ------------------- FUNCIONES PÚBLICAS (mantienen compatibilidad) ------------------- #
+
+def Procesos1(usuario, puesto):
+    st.session_state.Ingreso = True
+    # Si ya estamos en un submódulo, delegar
+    if st.session_state.get("Procesos"):
+        if st.session_state.get("Historial"):
+            Historial.Historial(usuario, puesto)
+        elif st.session_state.get("Capacitacion"):
+            Capacitacion.Capacitacion(usuario, puesto)
+        elif st.session_state.get("Otros_Registros"):
+            Otros_Registros.Otros_Registros(usuario, puesto)
+        elif st.session_state.get("Bonos_Extras"):
+            Bonos_Extras.Bonos_Extras(usuario, puesto)
+        elif st.session_state.get("Correcciones"):
+            Correcciones.Correcciones(usuario, puesto)
+        elif st.session_state.get("Precampo_Juridico"):
+            Precampo_Juridico.Precampo_Juridico(usuario, puesto)
+        elif st.session_state.get("Descarga_Partidas_Juridico"):
+            Descarga_Partidas_Juridico.Descarga_Partidas_Juridico(usuario, puesto)
+        elif st.session_state.get("CC_Precampo_Juridico"):
+            CC_Precampo_Juridico.CC_Precampo_Juridico(usuario, puesto)
+        elif st.session_state.get("Asignacion_Partidas"):
+            Asignacion_Partidas.Asignacion_Partidas(usuario, puesto)
+        elif st.session_state.get("Precampo"):
+            Precampo.Precampo(usuario, puesto)
+        elif st.session_state.get("CC_Precampo"):
+            CC_Precampo.CC_Precampo(usuario, puesto)
+        elif st.session_state.get("Vinculacion_Precampo"):
+            Vinculacion_Precampo.Vinculacion_Precampo(usuario, puesto)
+        elif st.session_state.get("Preparacion_Insumos"):
+            Preparacion_Insumos.Preparacion_Insumos(usuario, puesto)
+        elif st.session_state.get("Entregas_Postcampo"):
+            Entregas_Postcampo.Entregas_Postcampo(usuario, puesto)
+        elif st.session_state.get("Postcampo"):
+            Postcampo.Postcampo(usuario, puesto)
+        elif st.session_state.get("CC_Postcampo"):
+            CC_Postcampo.CC_Postcampo(usuario, puesto)
+        elif st.session_state.get("CC_Vinculacion_Precampo"):
+            CC_Vinculacion_Precampo.CC_Vinculacion_Precampo(usuario, puesto)
+        elif st.session_state.get("Estado_UIT_Hito"):
+            Estado_UIT_Hito.Estado_UIT_Hito(usuario, puesto)
+        # Si no hay bandera activa, se muestra el menú
+        else:
+            st.session_state.Procesos = False
+            menu_principal_por_perfil(usuario, puesto, "1")
+    else:
+        menu_principal_por_perfil(usuario, puesto, "1")
+
+def Procesos2(usuario, puesto):
+    st.session_state.Ingreso = True
+    if st.session_state.get("Procesos"):
+        if st.session_state.get("Historial"):
+            Historial.Historial(usuario, puesto)
+        elif st.session_state.get("Capacitacion"):
+            Capacitacion.Capacitacion(usuario, puesto)
+        elif st.session_state.get("Otros_Registros"):
+            Otros_Registros.Otros_Registros(usuario, puesto)
+        elif st.session_state.get("Bonos_Extras"):
+            Bonos_Extras.Bonos_Extras(usuario, puesto)
+        elif st.session_state.get("Correcciones"):
+            Correcciones.Correcciones(usuario, puesto)
+        elif st.session_state.get("Precampo"):
+            Precampo.Precampo(usuario, puesto)
+        elif st.session_state.get("CC_Precampo"):
+            CC_Precampo.CC_Precampo(usuario, puesto)
+        elif st.session_state.get("Vinculacion_Precampo"):
+            Vinculacion_Precampo.Vinculacion_Precampo(usuario, puesto)
+        elif st.session_state.get("Entregas_Postcampo"):
+            Entregas_Postcampo.Entregas_Postcampo(usuario, puesto)
+        elif st.session_state.get("Postcampo"):
+            Postcampo.Postcampo(usuario, puesto)
+        elif st.session_state.get("CC_Postcampo"):
+            CC_Postcampo.CC_Postcampo(usuario, puesto)
+        elif st.session_state.get("CC_Vinculacion_Precampo"):
+            CC_Vinculacion_Precampo.CC_Vinculacion_Precampo(usuario, puesto)
+        else:
+            st.session_state.Procesos = False
+            menu_principal_por_perfil(usuario, puesto, "2")
+    else:
+        menu_principal_por_perfil(usuario, puesto, "2")
+
+def Procesos3(usuario, puesto):
+    st.session_state.Ingreso = True
+    if st.session_state.get("Procesos"):
+        if st.session_state.get("Historial"):
+            Historial.Historial(usuario, puesto)
+        elif st.session_state.get("Capacitacion"):
+            Capacitacion.Capacitacion(usuario, puesto)
+        elif st.session_state.get("Otros_Registros"):
+            Otros_Registros.Otros_Registros(usuario, puesto)
+        elif st.session_state.get("Bonos_Extras"):
+            Bonos_Extras.Bonos_Extras(usuario, puesto)
+        elif st.session_state.get("Correcciones"):
+            Correcciones.Correcciones(usuario, puesto)
+        elif st.session_state.get("Precampo_Juridico"):
+            Precampo_Juridico.Precampo_Juridico(usuario, puesto)
+        elif st.session_state.get("Descarga_Partidas_Juridico"):
+            Descarga_Partidas_Juridico.Descarga_Partidas_Juridico(usuario, puesto)
+        elif st.session_state.get("CC_Precampo_Juridico"):
+            CC_Precampo_Juridico.CC_Precampo_Juridico(usuario, puesto)
+        elif st.session_state.get("Asignacion_Partidas"):
+            Asignacion_Partidas.Asignacion_Partidas(usuario, puesto)
+        else:
+            st.session_state.Procesos = False
+            menu_principal_por_perfil(usuario, puesto, "3")
+    else:
+        menu_principal_por_perfil(usuario, puesto, "3")
