@@ -258,10 +258,8 @@ def generar_resumen_produccion(data_r):
     }
     semanal["valor esperado"] = semanal["proceso"].map(valor_esperado_map).fillna(0) * semanal["horas"]
     semanal["diferencia"] = semanal["edificas"] + semanal["unidades_catastrales"] - semanal["valor esperado"]
-    semanal["ratio bruto"] = (semanal["edificas"] + semanal["unidades_catastrales"]) / semanal["horas"]
-
+    # NOTA: ya NO se agrega 'ratio bruto' aquí
     return diario, semanal
-
 
 def generar_resumen_calidad(data_r):
     if len(data_r) == 0:
@@ -464,19 +462,23 @@ def Historial(usuario, puesto):
 
     mostrar_resumen_horas(datos_horas, ph_horas_data, ph_horas_error)
 
+
     # --- Resumen de Producción modificado para operario ---
     ph_prod_titulo.subheader("Resumen de Producción")
     diario, semanal = generar_resumen_produccion(data_r)
+    
     if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
-        # Para supervisores: mostrar ambas tablas (diario y semanal) como antes
+        # Para supervisores: mostrar ambas tablas (sin ratio bruto)
         mostrar_resumen_produccion(diario, semanal, data_r, ph_prod_diario, ph_prod_semanal_titulo,
                                    ph_prod_semanal, ph_prod_error)
     else:
-        # Para operario y profesional jurídico: solo mostrar la tabla semanal con el título específico
+        # Para operario y profesional jurídico: agregar ratio bruto (como en la versión vieja)
         if len(data_r) == 0:
             ph_prod_error.error("No existe producción para mostrar")
         else:
-            # No mostramos la tabla diaria (ph_prod_diario queda vacío)
+            # Calcular ratio bruto (exactamente como en el viejo)
+            semanal["ratio bruto"] = (semanal["edificas"] + semanal["unidades_catastrales"]) / semanal["horas"]
+            # No mostramos la tabla diaria
             ph_prod_semanal_titulo.subheader("Resumen de Producción por Proceso")
             ph_prod_semanal.dataframe(semanal)
 
