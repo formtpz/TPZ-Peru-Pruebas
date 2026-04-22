@@ -2,392 +2,288 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-
 import pytz
 
-import Procesos,Historial,Capacitacion,Bonos_Extras,Salir
-from Autenticacion import obtener_usuario_activo
-from db_core import execute, fetch_one
-
-def Otros_Registros(usuario,puesto):
-
-  # ----- Conexión, Botones y Memoria ---- #
-  uri=st.secrets.db_credentials.URI
+import Procesos, Historial, Capacitacion, Bonos_Extras, Salir
+from db_core import fetch_df, fetch_one, execute
 
 
+def limpiar_placeholders(lista_placeholders):
+    """Vacía todos los placeholders proporcionados."""
+    for ph in lista_placeholders:
+        if ph is not None:
+            ph.empty()
 
-  placeholder1_13= st.sidebar.empty()
-  titulo= placeholder1_13.title("Menú")
 
-  placeholder2_13 = st.sidebar.empty()
-  procesos_13 = placeholder2_13.button("Procesos",key="procesos_13")
+def navegar_a_procesos(usuario, puesto):
+    """Determina el perfil y redirige a la función correspondiente de Procesos."""
+    usuario_activo = fetch_one(
+        "SELECT perfil FROM usuarios WHERE usuario = %s",
+        params=[usuario]
+    )
+    perfil = str(usuario_activo["perfil"]) if usuario_activo else "1"
 
-  placeholder3_13 = st.sidebar.empty()
-  historial_13 = placeholder3_13.button("Historial",key="historial_13")
+    if perfil == "1":
+        Procesos.Procesos1(usuario, puesto)
+    elif perfil == "2":
+        Procesos.Procesos2(usuario, puesto)
+    else:
+        Procesos.Procesos3(usuario, puesto)
 
-  placeholder4_13 = st.sidebar.empty()
-  capacitacion_13 = placeholder4_13.button("Capacitaciones",key="capacitacion_13")
 
-  placeholder5_13 = st.sidebar.empty()
-  bonos_extras_13 = placeholder5_13.button("Bonos y Horas Extra",key="bonos-extras_13")
+def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usuario):
+    """
+    Carga el historial de 'otros_registros' según el filtro seleccionado.
+    Retorna un DataFrame con los resultados.
+    """
+    base_query = """
+        SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor,
+               fecha, motivo, horas, observaciones, reporte
+        FROM otros_registros
+        WHERE fecha::date >= %s AND fecha::date <= %s
+    """
+    params = [fecha_inicio, fecha_fin]
 
-  placeholder6_13 = st.sidebar.empty()
-  salir_13 = placeholder6_13.button("Salir",key="salir_13")
+    if filtro == "Todos":
+        query = base_query
+    elif filtro == "Operarios":
+        query = base_query + " AND puesto = 'Operario Catastral'"
+    elif filtro == "Profesional Jurídico":
+        query = base_query + " AND puesto = 'Profesional Jurídico'"
+    elif filtro == "Propio":
+        query = base_query + " AND usuario = %s"
+        params.append(usuario)
+    elif filtro == "Personal Asignado":
+        query = base_query + " AND supervisor = %s"
+        params.append(nombre_usuario)
+    elif filtro == "Reportados":
+        query = base_query + " AND reporte = %s"
+        params.append(nombre_usuario)
+    else:
+        return pd.DataFrame()
 
-  placeholder7_13 = st.empty()
-  otros_registros_13 = placeholder7_13.title("Otros Registros")
+    return fetch_df(query, params=params)
 
-  if puesto== "Coordinador":
 
-    nombre_13= pd.read_sql(f"select nombre from usuarios where usuario='{usuario}'",uri)
-    nombre_13 = nombre_13.loc[0,'nombre']
+def Otros_Registros(usuario, puesto):
+    # Obtener nombre completo del usuario
+    nombre_df = fetch_df("SELECT nombre FROM usuarios WHERE usuario = %s", params=[usuario])
+    nombre_13 = nombre_df.loc[0, 'nombre'] if not nombre_df.empty else ""
 
-    placeholder8_13 = st.empty()
-    otros_registros_registro_13 = placeholder8_13.subheader("Registro")
+    # Fecha por defecto
+    default_date = datetime.now(pytz.timezone('America/Guatemala'))
 
-    data_personal_13 = pd.read_sql(f"select nombre from usuarios where estado='Activo'", con)
-    placeholder9_13 = st.empty()
-    personal_13= placeholder9_13.multiselect("Personal",data_personal_13,key="personal_13")
+    # --- Sidebar ---
+    ph_sidebar = []
+    ph_titulo = st.sidebar.empty()
+    ph_titulo.title("Menú")
+    ph_sidebar.append(ph_titulo)
 
-    default_date_13=datetime.now(pytz.timezone('America/Guatemala'))
+    btn_procesos = st.sidebar.empty()
+    ph_sidebar.append(btn_procesos)
+    btn_historial = st.sidebar.empty()
+    ph_sidebar.append(btn_historial)
+    btn_capacitacion = st.sidebar.empty()
+    ph_sidebar.append(btn_capacitacion)
+    btn_bonos = st.sidebar.empty()
+    ph_sidebar.append(btn_bonos)
+    btn_salir = st.sidebar.empty()
+    ph_sidebar.append(btn_salir)
 
-    placeholder10_13= st.empty()
-    fecha_13= placeholder10_13.date_input("Fecha",value=default_date_13,key="fecha_13")
-    
-    placeholder11_13= st.empty()
-    motivo_13= placeholder11_13.selectbox("Motivo", options=("Reposición de tiempo","Cita CCSS","Entregas","Incapacidad","Control de Calidad Masivos","Fallos en Aplicativo o Conexión","Horas Extras","Licencia por Fallecimiento de Familiar","Licencia por Maternidad, Paternidad o Lactancia", "Reunión", "Supervisión","Vacaciones","Horas Extra Apoyo Otros Proyectos", "Horas Ordinarias Apoyo a Otros Proyectos","Otros"),key="motivo_13")
-        
-    placeholder12_13= st.empty()
-    horas_13= placeholder12_13.number_input("Cantidad de Horas Individuales",min_value=0.0,key="horas_13")
+    # --- Contenido principal ---
+    ph_main = []
+    titulo = st.empty()
+    ph_main.append(titulo)
+    titulo.title("Otros Registros")
 
-    placeholder13_13 = st.empty()
-    observaciones_13 = placeholder13_13.text_input("Observaciones",max_chars=60,key="observaciones_13")
+    # Placeholders que se usarán condicionalmente
+    placeholders_contenido = []
 
-    placeholder14_13 = st.empty()
-    reporte_13 = placeholder14_13.button("Generar Reporte",key="reporte_13")
+    # Variables que se usarán en la navegación
+    personal_13 = []
+    fecha_13 = default_date
+    motivo_13 = ""
+    horas_13 = 0.0
+    observaciones_13 = ""
+    data_historial = pd.DataFrame()
 
-    placeholder15_13= st.empty()
-    separador_13 = placeholder15_13.markdown("_____")
+    # ---------------------------
+    # PERFIL COORDINADOR / SUPERVISOR
+    # ---------------------------
+    if puesto in ["Coordinador", "Supervisor"]:
+        # Registro
+        ph_sub_registro = st.empty()
+        placeholders_contenido.append(ph_sub_registro)
+        ph_sub_registro.subheader("Registro")
 
-    placeholder16_13 = st.empty()
-    otros_registros_historial_13 = placeholder16_13.subheader("Historial")
+        # Obtener lista de personal
+        if puesto == "Coordinador":
+            data_personal = fetch_df("SELECT nombre FROM usuarios WHERE estado = 'Activo'")
+        else:  # Supervisor
+            data_personal = fetch_df(
+                "SELECT nombre FROM usuarios WHERE estado = 'Activo' AND (supervisor = %s OR usuario = %s)",
+                params=[nombre_13, usuario]
+            )
+        nombres_personal = data_personal["nombre"].tolist() if not data_personal.empty else []
 
-    placeholder17_13 = st.empty()
-    fecha_de__inicio_13 = placeholder17_13.date_input("Fecha de Inicio",value=default_date_13,key="fecha_de_inicio_13")
+        ph_personal = st.empty()
+        placeholders_contenido.append(ph_personal)
+        personal_13 = ph_personal.multiselect("Personal", nombres_personal, key="personal_13")
 
-    placeholder18_13 = st.empty()
-    fecha_de__finalizacion_13 = placeholder18_13.date_input("Fecha de Finalización",value=default_date_13,key="fecha_de_finalizacion_13")
-      
-    placeholder19_13 = st.empty()
-    filtro_13 = placeholder19_13.selectbox("Filtro", options=("Todos","Operarios","Profesional Jurídico","Propio","Personal Asignado","Reportados"), key="filtro_13")
+        ph_fecha = st.empty()
+        placeholders_contenido.append(ph_fecha)
+        fecha_13 = ph_fecha.date_input("Fecha", value=default_date, key="fecha_13")
 
-    if filtro_13=="Todos":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
+        ph_motivo = st.empty()
+        placeholders_contenido.append(ph_motivo)
+        motivo_13 = ph_motivo.selectbox(
+            "Motivo",
+            options=(
+                "Reposición de tiempo", "Cita CCSS", "Entregas", "Incapacidad",
+                "Control de Calidad Masivos", "Fallos en Aplicativo o Conexión", "Horas Extras",
+                "Licencia por Fallecimiento de Familiar", "Licencia por Maternidad, Paternidad o Lactancia",
+                "Reunión", "Supervisión", "Vacaciones", "Horas Extra Apoyo Otros Proyectos",
+                "Horas Ordinarias Apoyo a Otros Proyectos", "Otros"
+            ),
+            key="motivo_13"
+        )
 
-    elif filtro_13=="Operarios":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where puesto='Operario Catastral' and fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
-    
-    elif filtro_13=="Profesional Jurídico":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where puesto='Profesional Jurídico' and fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
-  
-    elif filtro_13=="Propio" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
+        ph_horas = st.empty()
+        placeholders_contenido.append(ph_horas)
+        horas_13 = ph_horas.number_input("Cantidad de Horas Individuales", min_value=0.0, step=0.25, key="horas_13")
 
-    elif filtro_13=="Personal Asignado" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where supervisor='{nombre_13}' and fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
+        ph_observaciones = st.empty()
+        placeholders_contenido.append(ph_observaciones)
+        observaciones_13 = ph_observaciones.text_input("Observaciones", max_chars=60, key="observaciones_13")
 
-    elif filtro_13=="Reportados" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where reporte='{nombre_13}' and fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
+        ph_reporte = st.empty()
+        placeholders_contenido.append(ph_reporte)
+        reporte_btn = ph_reporte.button("Generar Reporte", key="reporte_13")
 
-  elif puesto=="Supervisor":   
-    
-    nombre_13= pd.read_sql(f"select nombre from usuarios where usuario ='{usuario}'",uri)
-    nombre_13 = nombre_13.loc[0,'nombre']   
+        ph_separador = st.empty()
+        placeholders_contenido.append(ph_separador)
+        ph_separador.markdown("_____")
 
-    placeholder8_13 = st.empty()
-    otros_registros_registro_13 = placeholder8_13.subheader("Registro")
+        # Historial
+        ph_sub_historial = st.empty()
+        placeholders_contenido.append(ph_sub_historial)
+        ph_sub_historial.subheader("Historial")
 
-    data_personal_13 = pd.read_sql(f"select nombre from usuarios where estado='Activo' and supervisor='{nombre_13}' or usuario='{usuario}'", con)
-    placeholder9_13 = st.empty()
-    personal_13= placeholder9_13.multiselect("Personal",data_personal_13,key="personal_13")
+        ph_fecha_inicio = st.empty()
+        placeholders_contenido.append(ph_fecha_inicio)
+        fecha_inicio_val = ph_fecha_inicio.date_input("Fecha de Inicio", value=default_date, key="fecha_inicio_13")
 
-    default_date_13=datetime.now(pytz.timezone('America/Guatemala'))
+        ph_fecha_fin = st.empty()
+        placeholders_contenido.append(ph_fecha_fin)
+        fecha_fin_val = ph_fecha_fin.date_input("Fecha de Finalización", value=default_date, key="fecha_fin_13")
 
-    placeholder10_13= st.empty()
-    fecha_13= placeholder10_13.date_input("Fecha",value=default_date_13,key="fecha_13")
+        ph_filtro = st.empty()
+        placeholders_contenido.append(ph_filtro)
+        filtro_val = ph_filtro.selectbox(
+            "Filtro",
+            options=("Todos", "Operarios", "Profesional Jurídico", "Propio", "Personal Asignado", "Reportados"),
+            key="filtro_13"
+        )
 
-    placeholder11_13= st.empty()
-    motivo_13= placeholder11_13.selectbox("Motivo", options=("Reposición de tiempo","Cita CCSS","Entregas","Incapacidad","Control de Calidad Masivos","Fallos en Aplicativo o Conexión","Horas Extras","Licencia por Fallecimiento de Familiar","Licencia por Maternidad, Paternidad o Lactancia", "Reunión", "Supervisión","Vacaciones","Horas Extra Apoyo Otros Proyectos", "Horas Ordinarias Apoyo a Otros Proyectos","Otros"),key="motivo_13")
-        
-    placeholder12_13= st.empty()
-    horas_13= placeholder12_13.number_input("Cantidad de Horas Individuales",min_value=0.0,key="horas_13")
+        # Cargar historial según filtros
+        data_historial = cargar_historial_otros(
+            filtro_val, fecha_inicio_val, fecha_fin_val, usuario, nombre_13
+        )
 
-    placeholder13_13 = st.empty()
-    observaciones_13 = placeholder13_13.text_input("Observaciones",max_chars=60,key="observaciones_13")
+        # Acción de reporte
+        if reporte_btn:
+            if not personal_13:
+                st.error("Favor ingresar el nombre de alguna persona")
+            else:
+                for nombre in personal_13:
+                    marca = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
+                    persona = fetch_one(
+                        "SELECT usuario, puesto, supervisor FROM usuarios WHERE nombre = %s LIMIT 1",
+                        params=[nombre]
+                    )
+                    if not persona:
+                        continue
 
-    placeholder14_13 = st.empty()
-    reporte_13 = placeholder14_13.button("Generar Reporte",key="reporte_13")
+                    execute(
+                        """
+                        INSERT INTO otros_registros (
+                            marca, usuario, nombre, puesto, supervisor,
+                            fecha, motivo, horas, observaciones, reporte, horas_bi
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        params=[
+                            marca, persona["usuario"], nombre, persona["puesto"], persona["supervisor"],
+                            fecha_13, motivo_13, horas_13, observaciones_13, nombre_13, float(horas_13)
+                        ]
+                    )
+                st.success("Registro enviado correctamente")
+                st.rerun()
 
-    placeholder15_13= st.empty()
-    separador_13 = placeholder15_13.markdown("_____")
+    # ---------------------------
+    # PERFIL OPERARIO / PROFESIONAL JURÍDICO / QC
+    # ---------------------------
+    else:
+        ph_sub_historial = st.empty()
+        placeholders_contenido.append(ph_sub_historial)
+        ph_sub_historial.subheader("Historial")
 
-    placeholder16_13 = st.empty()
-    otros_registros_historial_13 = placeholder16_13.subheader("Historial")
+        ph_fecha_inicio = st.empty()
+        placeholders_contenido.append(ph_fecha_inicio)
+        fecha_inicio_val = ph_fecha_inicio.date_input("Fecha de Inicio", value=default_date, key="fecha_inicio_13")
 
-    placeholder17_13 = st.empty()
-    fecha_de__inicio_13 = placeholder17_13.date_input("Fecha de Inicio",value=default_date_13,key="fecha_de_inicio_13")
+        ph_fecha_fin = st.empty()
+        placeholders_contenido.append(ph_fecha_fin)
+        fecha_fin_val = ph_fecha_fin.date_input("Fecha de Finalización", value=default_date, key="fecha_fin_13")
 
-    placeholder18_13 = st.empty()
-    fecha_de__finalizacion_13 = placeholder18_13.date_input("Fecha de Finalización",value=default_date_13,key="fecha_de_finalizacion_13")
-      
-    placeholder19_13 = st.empty()
-    filtro_13 = placeholder19_13.selectbox("Filtro", options=("Todos","Operarios","Profesional Jurídico","Propio","Personal Asignado","Reportados"), key="filtro_13")
-
-    if filtro_13=="Todos":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
-
-    elif filtro_13=="Operarios":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where puesto='Operario Catastral' and fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
-    
-    elif filtro_13=="Profesional Jurídico":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where puesto='Profesional Jurídico' and fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
-      
-    elif filtro_13=="Propio" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
-
-    elif filtro_13=="Personal Asignado" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where supervisor='{nombre_13}' and fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
-
-    elif filtro_13=="Reportados" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where reporte='{nombre_13}' and fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
-
-  elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico"or puesto=="QC":
- 
-    placeholder20_13 = st.empty()
-    otros_registros_historial_13 = placeholder20_13.subheader("Historial")
-
-    default_date_13 = datetime.now(pytz.timezone('America/Guatemala'))
-
-    placeholder21_13 = st.empty()
-    fecha_de__inicio_13 = placeholder21_13.date_input("Fecha de Inicio",value=default_date_13,key="fecha_de_inicio_13")
-
-    placeholder22_13 = st.empty()
-    fecha_de__finalizacion_13 = placeholder22_13.date_input("Fecha de Finalización",value=default_date_13,key="fecha_de_finalizacion_13")
-      
-    data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte from otros_registros where usuario='{usuario}' and fecha>='{fecha_de__inicio_13}' and fecha<='{fecha_de__finalizacion_13}'", con)
-
-  placeholder23_13 = st.empty()
-  histo_13= placeholder23_13.dataframe(data=data)
-
-  # ----- Registro ---- #
-    
-  if procesos_13:
-    placeholder1_13.empty()
-    placeholder2_13.empty()
-    placeholder3_13.empty()
-    placeholder4_13.empty()
-    placeholder5_13.empty()   
-    placeholder6_13.empty()
-    placeholder7_13.empty()
-    if puesto=="Supervisor" or puesto=="Coordinador":
-      placeholder8_13.empty()
-      placeholder9_13.empty()
-      placeholder10_13.empty()
-      placeholder11_13.empty()
-      placeholder12_13.empty()
-      placeholder13_13.empty()
-      placeholder14_13.empty()
-      placeholder15_13.empty()
-      placeholder16_13.empty()
-      placeholder17_13.empty()  
-      placeholder18_13.empty()
-      placeholder19_13.empty()
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico" or puesto=="QC":
-      placeholder20_13.empty()
-      placeholder21_13.empty()
-      placeholder22_13.empty()
-    placeholder23_13.empty()
-    st.session_state.Procesos=False
-    st.session_state.Otros_Registros=False
-
-    usuario_activo = obtener_usuario_activo(usuario)
-    perfil = str(usuario_activo["perfil"]) if usuario_activo else ""
-
-    if perfil=="1":        
-                    
-      Procesos.Procesos1(usuario,puesto)
-                
-    elif perfil=="2":        
-                    
-      Procesos.Procesos2(usuario,puesto)   
-
-    elif perfil=="3":  
-
-      Procesos.Procesos3(usuario,puesto)       
-
-  # ----- Historial ---- #
-    
-  elif historial_13:
-    placeholder1_13.empty()
-    placeholder2_13.empty()
-    placeholder3_13.empty()
-    placeholder4_13.empty()
-    placeholder5_13.empty()   
-    placeholder6_13.empty()
-    placeholder7_13.empty()
-    if puesto=="Supervisor" or puesto=="Coordinador":
-      placeholder8_13.empty()
-      placeholder9_13.empty()
-      placeholder10_13.empty()
-      placeholder11_13.empty()
-      placeholder12_13.empty()
-      placeholder13_13.empty()
-      placeholder14_13.empty()
-      placeholder15_13.empty()
-      placeholder16_13.empty()
-      placeholder17_13.empty()  
-      placeholder18_13.empty()
-      placeholder19_13.empty()
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico" or puesto=="QC":
-      placeholder20_13.empty()
-      placeholder21_13.empty()
-      placeholder22_13.empty()
-    placeholder23_13.empty()
-    st.session_state.Otros_Registros=False
-    st.session_state.Historial=True
-    Historial.Historial(usuario,puesto)
-
-  # ----- Capacitación ---- #
-    
-  elif capacitacion_13:
-    placeholder1_13.empty()
-    placeholder2_13.empty()
-    placeholder3_13.empty()
-    placeholder4_13.empty()
-    placeholder5_13.empty()   
-    placeholder6_13.empty()
-    placeholder7_13.empty()
-    if puesto=="Supervisor" or puesto=="Coordinador":
-      placeholder8_13.empty()
-      placeholder9_13.empty()
-      placeholder10_13.empty()
-      placeholder11_13.empty()
-      placeholder12_13.empty()
-      placeholder13_13.empty()
-      placeholder14_13.empty()
-      placeholder15_13.empty()
-      placeholder16_13.empty()
-      placeholder17_13.empty()  
-      placeholder18_13.empty()
-      placeholder19_13.empty()
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico" or puesto=="QC":
-      placeholder20_13.empty()
-      placeholder21_13.empty()
-      placeholder22_13.empty()
-    placeholder23_13.empty()
-    st.session_state.Otros_Registros=False
-    st.session_state.Capacitacion=True
-    Capacitacion.Capacitacion(usuario,puesto)
-
-  # ----- Bonos y Horas Extras ---- #
-
-  elif bonos_extras_13:
-    placeholder1_13.empty()
-    placeholder2_13.empty()
-    placeholder3_13.empty()
-    placeholder4_13.empty()
-    placeholder5_13.empty()   
-    placeholder6_13.empty()
-    placeholder7_13.empty()
-    if puesto=="Supervisor" or puesto=="Coordinador":
-      placeholder8_13.empty()
-      placeholder9_13.empty()
-      placeholder10_13.empty()
-      placeholder11_13.empty()
-      placeholder12_13.empty()
-      placeholder13_13.empty()
-      placeholder14_13.empty()
-      placeholder15_13.empty()
-      placeholder16_13.empty()
-      placeholder17_13.empty()  
-      placeholder18_13.empty()
-      placeholder19_13.empty()
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico" or puesto=="QC":
-      placeholder20_13.empty()
-      placeholder21_13.empty()
-      placeholder22_13.empty()
-    placeholder23_13.empty()
-    st.session_state.Otros_Registros=False
-    st.session_state.Bonos_Extras=True
-    Bonos_Extras.Bonos_Extras(usuario,puesto)
-    
-  # ----- Salir ---- #
-    
-  elif salir_13:
-    placeholder1_13.empty()
-    placeholder2_13.empty()
-    placeholder3_13.empty()
-    placeholder4_13.empty()
-    placeholder5_13.empty()   
-    placeholder6_13.empty()
-    placeholder7_13.empty()
-    if puesto=="Supervisor" or puesto=="Coordinador":
-      placeholder8_13.empty()
-      placeholder9_13.empty()
-      placeholder10_13.empty()
-      placeholder11_13.empty()
-      placeholder12_13.empty()
-      placeholder13_13.empty()
-      placeholder14_13.empty()
-      placeholder15_13.empty()
-      placeholder16_13.empty()
-      placeholder17_13.empty()  
-      placeholder18_13.empty()
-      placeholder19_13.empty()
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico" or puesto=="QC":
-      placeholder20_13.empty()
-      placeholder21_13.empty()
-      placeholder22_13.empty()
-    placeholder23_13.empty()
-    st.session_state.Ingreso = False
-    st.session_state.Otros_Registros=False
-    st.session_state.Salir=True
-    Salir.Salir()
-
-  # ----- Reporte ---- #
-
-  if puesto=="Supervisor" or puesto=="Coordinador":
-
-    if reporte_13:
-
-      if personal_13 =='':
-        
-        st.error('Favor ingresar el nombre de alguna persona')
-
-      else:
-        for nombre in personal_13:
-          marca_13= datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
-          persona = fetch_one(
+        data_historial = fetch_df(
             """
-            SELECT usuario, puesto, supervisor
-            FROM usuarios
-            WHERE nombre = %s
-            LIMIT 1
+            SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor,
+                   fecha, motivo, horas, observaciones, reporte
+            FROM otros_registros
+            WHERE usuario = %s AND fecha::date >= %s AND fecha::date <= %s
+            ORDER BY fecha DESC
             """,
-            params=[nombre],
-          )
-          if not persona:
-            continue
+            params=[usuario, fecha_inicio_val, fecha_fin_val]
+        )
 
-          horas_bi = float(horas_13)
-          execute(
-            """
-            INSERT INTO otros_registros (marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte,horas_bi)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """,
-            params=[
-              marca_13, persona["usuario"], nombre, persona["puesto"], persona["supervisor"],
-              fecha_13, motivo_13, horas_13, observaciones_13, nombre_13, horas_bi
-            ],
-          )
-        st.success('Registro enviado correctamente')
+    # Mostrar DataFrame de historial
+    ph_dataframe = st.empty()
+    placeholders_contenido.append(ph_dataframe)
+    if data_historial.empty:
+        ph_dataframe.info("No hay registros para el período seleccionado.")
+    else:
+        ph_dataframe.dataframe(data_historial, use_container_width=True)
+
+    # ---------------------------
+    # Navegación
+    # ---------------------------
+    if btn_procesos.button("Procesos", key="procesos_13"):
+        limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
+        st.session_state.Otros_Registros = False
+        navegar_a_procesos(usuario, puesto)
+
+    elif btn_historial.button("Historial", key="historial_13"):
+        limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
+        st.session_state.Otros_Registros = False
+        st.session_state.Historial = True
+        Historial.Historial(usuario, puesto)
+
+    elif btn_capacitacion.button("Capacitaciones", key="capacitacion_13"):
+        limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
+        st.session_state.Otros_Registros = False
+        st.session_state.Capacitacion = True
+        Capacitacion.Capacitacion(usuario, puesto)
+
+    elif btn_bonos.button("Bonos y Horas Extra", key="bonos_13"):
+        limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
+        st.session_state.Otros_Registros = False
+        st.session_state.Bonos_Extras = True
+        Bonos_Extras.Bonos_Extras(usuario, puesto)
+
+    elif btn_salir.button("Salir", key="salir_13"):
+        limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
+        st.session_state.Ingreso = False
+        st.session_state.Otros_Registros = False
+        st.session_state.Salir = True
+        Salir.Salir()
