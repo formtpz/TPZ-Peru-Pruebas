@@ -66,7 +66,7 @@ def Bonos_Extras(usuario, puesto):
     ph_main.append(titulo)
     titulo.title("Registros de Bonos y Horas Extra")
 
-    # Lista para almacenar todos los placeholders de contenido
+    # Lista para almacenar todos los placeholders de contenido dinámico
     placeholders_contenido = []
 
     # -------------------------------------------------------------------
@@ -77,13 +77,30 @@ def Bonos_Extras(usuario, puesto):
         placeholders_contenido.append(ph_sub)
         ph_sub.subheader("Archivos")
 
-        bloques_nuevos = st.file_uploader("Cargar Archivo de Bloques", ['csv', 'xlsx'], key="bloques")
-        bonos_nuevos = st.file_uploader("Cargar Archivo de Bonos", ['csv', 'xlsx'], key="bonos")
-        extras_nuevas = st.file_uploader("Cargar Archivo de Extras", ['csv', 'xlsx'], key="extras")
-        unidades_nuevas = st.file_uploader("Cargar Archivo de Unidades Jurídicas", ['csv', 'xlsx'], key="unidades")
-        bonos_juridico = st.file_uploader("Cargar Archivo de Bonos Jurídicos", ['csv', 'xlsx'], key="bonos_juridico")
+        # Placeholders para cada file_uploader y botón
+        ph_bloques = st.empty()
+        placeholders_contenido.append(ph_bloques)
+        bloques_nuevos = ph_bloques.file_uploader("Cargar Archivo de Bloques", ['csv', 'xlsx'], key="bloques")
 
-        btn_cargar = st.button("Cargar Archivos", key="cargar_archivos")
+        ph_bonos = st.empty()
+        placeholders_contenido.append(ph_bonos)
+        bonos_nuevos = ph_bonos.file_uploader("Cargar Archivo de Bonos", ['csv', 'xlsx'], key="bonos")
+
+        ph_extras = st.empty()
+        placeholders_contenido.append(ph_extras)
+        extras_nuevas = ph_extras.file_uploader("Cargar Archivo de Extras", ['csv', 'xlsx'], key="extras")
+
+        ph_unidades = st.empty()
+        placeholders_contenido.append(ph_unidades)
+        unidades_nuevas = ph_unidades.file_uploader("Cargar Archivo de Unidades Jurídicas", ['csv', 'xlsx'], key="unidades")
+
+        ph_bonos_jur = st.empty()
+        placeholders_contenido.append(ph_bonos_jur)
+        bonos_juridico = ph_bonos_jur.file_uploader("Cargar Archivo de Bonos Jurídicos", ['csv', 'xlsx'], key="bonos_juridico")
+
+        ph_btn_cargar = st.empty()
+        placeholders_contenido.append(ph_btn_cargar)
+        btn_cargar = ph_btn_cargar.button("Cargar Archivos", key="cargar_archivos")
 
         if btn_cargar:
             uri = st.secrets.db_credentials.URI
