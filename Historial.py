@@ -240,7 +240,7 @@ def generar_resumen_horas(data_r, data_c, data_o): #FILTROS
     return merged
 
 
-def generar_resumen_produccion(data_r):
+def generar_resumen_produccion(data_r, modo_supervisor=False):
     if len(data_r) == 0:
         return pd.DataFrame(), pd.DataFrame()
 
@@ -248,17 +248,31 @@ def generar_resumen_produccion(data_r):
     diario["rendimiento"] = (diario["edificas"] / diario["horas"]) * 8.5
 
     semanal = data_r.groupby(["nombre", "semana", "proceso"], as_index=False)[["edificas", "unidades_catastrales", "horas"]].agg(np.sum)
-    valor_esperado_map = {
-        'Precampo': 8,
-        'Control de Calidad Precampo': 10,
-        'Postcampo': 7,
-        'Control de Calidad Postcampo': 10,
-        'Vinculación Precampo': 8,
-        'Control de Calidad Vinculación Precampo': 10
-    }
-    semanal["valor esperado"] = semanal["proceso"].map(valor_esperado_map).fillna(0) * semanal["horas"]
-    semanal["diferencia"] = semanal["edificas"] + semanal["unidades_catastrales"] - semanal["valor esperado"]
-    # NOTA: ya NO se agrega 'ratio bruto' aquí
+
+    if modo_supervisor:
+        # Lógica antigua para Supervisor/Coordinador
+        valor_esperado_map = {
+            'Precampo': 340,
+            'Control de Calidad Precampo': 510,
+            'Postcampo': 340,
+            'Control de Calidad Postcampo': 765
+        }
+        semanal["valor esperado"] = semanal["proceso"].map(valor_esperado_map).fillna(0)
+        semanal["diferencia"] = semanal["edificas"] - semanal["valor esperado"]
+    else:
+        # Lógica nueva para Operario/Profesional Jurídico
+        tasa_por_hora = {
+            'Precampo': 8,
+            'Control de Calidad Precampo': 10,
+            'Postcampo': 7,
+            'Control de Calidad Postcampo': 10,
+            'Vinculación Precampo': 8,
+            'Control de Calidad Vinculación Precampo': 10
+        }
+        semanal["valor esperado"] = semanal["proceso"].map(tasa_por_hora).fillna(0) * semanal["horas"]
+        semanal["diferencia"] = semanal["edificas"] + semanal["unidades_catastrales"] - semanal["valor esperado"]
+        semanal["ratio bruto"] = (semanal["edificas"] + semanal["unidades_catastrales"]) / semanal["horas"]
+
     return diario, semanal
 
 def generar_resumen_calidad(data_r):
@@ -463,22 +477,19 @@ def Historial(usuario, puesto):
     mostrar_resumen_horas(datos_horas, ph_horas_data, ph_horas_error)
 
 
-    # --- Resumen de Producción modificado para operario ---
+    # --- Resumen de Producción ---
     ph_prod_titulo.subheader("Resumen de Producción")
-    diario, semanal = generar_resumen_produccion(data_r)
     
     if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
-        # Para supervisores: mostrar ambas tablas (sin ratio bruto)
+        diario, semanal = generar_resumen_produccion(data_r, modo_supervisor=True)
         mostrar_resumen_produccion(diario, semanal, data_r, ph_prod_diario, ph_prod_semanal_titulo,
                                    ph_prod_semanal, ph_prod_error)
     else:
-        # Para operario y profesional jurídico: agregar ratio bruto (como en la versión vieja)
+        diario, semanal = generar_resumen_produccion(data_r, modo_supervisor=False)
         if len(data_r) == 0:
             ph_prod_error.error("No existe producción para mostrar")
         else:
-            # Calcular ratio bruto (exactamente como en el viejo)
-            semanal["ratio bruto"] = (semanal["edificas"] + semanal["unidades_catastrales"]) / semanal["horas"]
-            # No mostramos la tabla diaria
+            # Para operario: no mostrar tabla diaria, solo la semanal con título específico
             ph_prod_semanal_titulo.subheader("Resumen de Producción por Proceso")
             ph_prod_semanal.dataframe(semanal)
 
