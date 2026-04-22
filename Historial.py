@@ -192,7 +192,7 @@ def cargar_datos_operario(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombr
 # FUNCIONES DE PROCESAMIENTO DE DATOS
 # -------------------------------------------------------------------
 
-#RESUMEN DE HORAS
+# RESUMEN DE HORAS
 def generar_resumen_horas(data_r, data_c, data_o): #FILTROS 
     data_8_r = data_r[~data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy() #Produccion menos ...
     data_6_r = data_r[data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy() #Produccion igual a ....
@@ -464,10 +464,21 @@ def Historial(usuario, puesto):
 
     mostrar_resumen_horas(datos_horas, ph_horas_data, ph_horas_error)
 
+    # --- Resumen de Producción modificado para operario ---
     ph_prod_titulo.subheader("Resumen de Producción")
     diario, semanal = generar_resumen_produccion(data_r)
-    mostrar_resumen_produccion(diario, semanal, data_r, ph_prod_diario, ph_prod_semanal_titulo,
-                               ph_prod_semanal, ph_prod_error)
+    if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
+        # Para supervisores: mostrar ambas tablas (diario y semanal) como antes
+        mostrar_resumen_produccion(diario, semanal, data_r, ph_prod_diario, ph_prod_semanal_titulo,
+                                   ph_prod_semanal, ph_prod_error)
+    else:
+        # Para operario y profesional jurídico: solo mostrar la tabla semanal con el título específico
+        if len(data_r) == 0:
+            ph_prod_error.error("No existe producción para mostrar")
+        else:
+            # No mostramos la tabla diaria (ph_prod_diario queda vacío)
+            ph_prod_semanal_titulo.subheader("Resumen de Producción por Proceso")
+            ph_prod_semanal.dataframe(semanal)
 
     # Resumen de Calidad
     if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
