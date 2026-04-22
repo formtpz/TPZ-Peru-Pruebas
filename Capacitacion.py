@@ -1,390 +1,151 @@
-# ----- Librerías ---- #
+# ----- Librerías -----
 import streamlit as st
 import pandas as pd
 from datetime import datetime
 import pytz
-import Procesos,Historial,Otros_Registros,Bonos_Extras,Salir
-import numpy as np
-from Autenticacion import obtener_usuario_activo
-from db_core import execute, fetch_one
 
-def Capacitacion(usuario,puesto):
+import Procesos
+from db_core import fetch_df, fetch_one, execute
 
-  # ----- Conexión, Botones y Memoria ---- #
-  uri=st.secrets.db_credentials.URI
 
-  
-  placeholder1_8= st.sidebar.empty()
-  titulo= placeholder1_8.title("Menú")
+def limpiar_placeholders(lista_placeholders):
+    """Vacía todos los placeholders proporcionados."""
+    for ph in lista_placeholders:
+        if ph is not None:
+            ph.empty()
 
-  placeholder2_8 = st.sidebar.empty()
-  procesos_8 = placeholder2_8.button("Procesos",key="procesos_8")
 
-  placeholder3_8 = st.sidebar.empty()
-  historial_8 = placeholder3_8.button("Historial",key="historial_8")
+def navegar_a_procesos(usuario, puesto):
+    """Determina el perfil y redirige a la función correspondiente de Procesos."""
+    perfil_info = fetch_one(
+        "SELECT perfil FROM usuarios WHERE usuario = %s",
+        params=[usuario]
+    )
+    perfil = str(perfil_info["perfil"]) if perfil_info else "1"
 
-  placeholder4_8 = st.sidebar.empty()
-  otros_registros_8 = placeholder4_8.button("Otros Registros",key="otros_registros_8")
+    if perfil == "1":
+        Procesos.Procesos1(usuario, puesto)
+    elif perfil == "2":
+        Procesos.Procesos2(usuario, puesto)
+    else:
+        Procesos.Procesos3(usuario, puesto)
 
-  placeholder5_8 = st.sidebar.empty()
-  bonos_extras_8 = placeholder5_8.button("Bonos y Horas Extras",key="bonos_extra_8")
 
-  placeholder6_8 = st.sidebar.empty()
-  salir_8 = placeholder6_8.button("Salir",key="salir_8")
+def Capacitacion(usuario, puesto):
+    # Obtener nombre completo del usuario
+    nombre_df = fetch_df("SELECT nombre FROM usuarios WHERE usuario = %s", params=[usuario])
+    nombre_completo = nombre_df.loc[0, 'nombre'] if not nombre_df.empty else ""
 
-  placeholder7_8 = st.empty()
-  capacitacion_8 = placeholder7_8.title("Capacitaciones")
+    # --- Sidebar ---
+    ph_sidebar = []
+    ph_titulo = st.sidebar.empty()
+    ph_titulo.title("Menú")
+    ph_sidebar.append(ph_titulo)
 
-  if puesto== "Coordinador":
+    btn_procesos = st.sidebar.empty()
+    ph_sidebar.append(btn_procesos)
+    btn_historial = st.sidebar.empty()
+    ph_sidebar.append(btn_historial)
+    btn_otros = st.sidebar.empty()
+    ph_sidebar.append(btn_otros)
+    btn_bonos = st.sidebar.empty()
+    ph_sidebar.append(btn_bonos)
+    btn_salir = st.sidebar.empty()
+    ph_sidebar.append(btn_salir)
 
-    nombre_8= pd.read_sql(f"select nombre from usuarios where usuario='{usuario}'",uri)
-    nombre_8 = nombre_8.loc[0,'nombre']
+    # --- Contenido principal ---
+    ph_main = []
+    titulo = st.empty()
+    ph_main.append(titulo)
+    titulo.title("Registro de Capacitaciones")
 
-    placeholder8_8 = st.empty()
-    capacitacion_registro_8 = placeholder8_8.subheader("Registro")
+    # Formulario de registro
+    with st.form(key="form_capacitacion", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            fecha = st.date_input(
+                "Fecha",
+                value=datetime.now(pytz.timezone("America/Guatemala")),
+                key="fecha_cap"
+            )
+        with col2:
+            tema = st.text_input("Tema de la capacitación", max_chars=100, key="tema_cap")
 
-    data_personal_8 = pd.read_sql(f"select nombre from usuarios where estado='Activo'", con)
-    placeholder9_8 = st.empty()
-    personal_8= placeholder9_8.multiselect("Personal",data_personal_8,key="personal_8")
+        horas = st.number_input("Horas", min_value=0.0, step=0.25, key="horas_cap")
+        observaciones = st.text_area("Observaciones", value="N/A", max_chars=200, key="obs_cap")
+        enviar = st.form_submit_button("Registrar Capacitación")
 
-    default_date_8 = datetime.now(pytz.timezone('America/Guatemala'))
-      
-    placeholder10_8= st.empty()
-    fecha_8= placeholder10_8.date_input("Fecha",value=default_date_8,key="fecha_8")
+        if enviar:
+            if tema.strip() == "":
+                st.error("Debe ingresar el tema de la capacitación.")
+            elif horas <= 0:
+                st.error("Las horas deben ser mayores a 0.")
+            else:
+                marca = datetime.now(pytz.timezone("America/Guatemala")).strftime("%Y-%m-%d %H:%M:%S")
+                execute(
+                    """
+                    INSERT INTO capacitaciones (
+                        marca, usuario, nombre, puesto, supervisor,
+                        fecha, tema, horas, observaciones
+                    )
+                    VALUES (%s, %s, %s, %s, (SELECT supervisor FROM usuarios WHERE usuario = %s), %s, %s, %s, %s)
+                    """,
+                    params=[
+                        marca, usuario, nombre_completo, puesto, usuario,
+                        fecha, tema.strip(), horas, observaciones
+                    ]
+                )
+                st.success("Capacitación registrada correctamente.")
+                st.rerun()
 
-    placeholder11_8= st.empty()
-    tema_8=placeholder11_8.selectbox("Tema", options=("Bonos","Información General","Precampo","QC Precampo","Postcampo","QC Postcampo","QGIS","Reportes y Registros","Sistema de Gestión Empresarial","Otros",), key="tema_8")
+    # Historial de capacitaciones del usuario (últimos 30 días)
+    st.subheader("📋 Mis capacitaciones recientes")
+    fecha_limite = datetime.now().date() - pd.Timedelta(days=30)
+    historial = fetch_df(
+        """
+        SELECT fecha, tema, horas, observaciones
+        FROM capacitaciones
+        WHERE usuario = %s AND fecha::date >= %s
+        ORDER BY fecha DESC
+        """,
+        params=[usuario, fecha_limite]
+    )
+    if historial.empty:
+        st.info("No hay capacitaciones registradas en los últimos 30 días.")
+    else:
+        st.dataframe(historial, use_container_width=True)
 
-    placeholder12_8= st.empty()
-    observaciones_8= placeholder12_8.text_input("Observaciones",max_chars=60,key="observaciones_8")
-    
-    placeholder13_8= st.empty()
-    horas_8= placeholder13_8.number_input("Cantidad de Horas de Capacitación Individuales",min_value=0.0,key="horas_8")
+    # --- Navegación ---
+    if btn_procesos.button("Procesos", key="procesos_cap"):
+        limpiar_placeholders(ph_sidebar + ph_main)
+        st.session_state.Capacitacion = False
+        navegar_a_procesos(usuario, puesto)
 
-    placeholder14_8 = st.empty()
-    reporte_8 = placeholder14_8.button("Generar Reporte",key="reporte_8")
+    elif btn_historial.button("Historial", key="historial_cap"):
+        limpiar_placeholders(ph_sidebar + ph_main)
+        st.session_state.Capacitacion = False
+        st.session_state.Historial = True
+        import Historial
+        Historial.Historial(usuario, puesto)
 
-    placeholder15_8= st.empty()
-    separador_8 = placeholder15_8.markdown("_____")
+    elif btn_otros.button("Otros Registros", key="otros_cap"):
+        limpiar_placeholders(ph_sidebar + ph_main)
+        st.session_state.Capacitacion = False
+        st.session_state.Otros_Registros = True
+        import Otros_Registros
+        Otros_Registros.Otros_Registros(usuario, puesto)
 
-    placeholder16_8 = st.empty()
-    capacitacion_historial_8 = placeholder16_8.subheader("Historial Capacitaciones")
+    elif btn_bonos.button("Bonos y Horas Extras", key="bonos_cap"):
+        limpiar_placeholders(ph_sidebar + ph_main)
+        st.session_state.Capacitacion = False
+        st.session_state.Bonos_Extras = True
+        import Bonos_Extras
+        Bonos_Extras.Bonos_Extras(usuario, puesto)
 
-    placeholder17_8 = st.empty()
-    fecha_de__inicio_8 = placeholder17_8.date_input("Fecha de Inicio",value=default_date_8,key="fecha_de_inicio_8")
-
-    placeholder18_8 = st.empty()
-    fecha_de__finalizacion_8 = placeholder18_8.date_input("Fecha de Finalización",value=default_date_8,key="fecha_de_finalizacion_8")
-      
-    placeholder19_8 = st.empty()
-    filtro_8 = placeholder19_8.selectbox("Filtro", options=("Todos","Operarios","Profesional Jurídico","Propio","Personal Asignado","Reportados"), key="filtro_8")
-
-    if filtro_8=="Todos":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte from capacitaciones where fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-
-    elif filtro_8=="Operarios":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte from capacitaciones where puesto='Operario Catastral' and fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-
-    elif filtro_8=="Profesional Jurídico":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte from capacitaciones where puesto='Profesiona Jurídico' and fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-    
-    elif filtro_8=="Propio" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte from capacitaciones where usuario='{usuario}' and fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-
-    elif filtro_8=="Personal Asignado" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,observaciones,horas,reporte from capacitaciones where supervisor='{nombre_8}' and fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-
-    elif filtro_8=="Reportados" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,observaciones,horas,reporte from capacitaciones where reporte='{nombre_8}' and fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-      
-  elif puesto=="Supervisor":   
-
-    nombre_8= pd.read_sql(f"select nombre from usuarios where usuario ='{usuario}'",uri)
-    nombre_8 = nombre_8.loc[0,'nombre']   
-
-    placeholder8_8 = st.empty()
-    capacitacion_registro_8 = placeholder8_8.subheader("Registro")
-
-    data_personal_8 = pd.read_sql(f"select nombre from usuarios where estado='Activo' and supervisor='{nombre_8}' or usuario='{usuario}'", con)
-    placeholder9_8 = st.empty()
-    personal_8= placeholder9_8.multiselect("Personal",data_personal_8,key="personal_8")
-
-    default_date_8 = datetime.now(pytz.timezone('America/Guatemala'))
-
-    placeholder10_8= st.empty()
-    fecha_8= placeholder10_8.date_input("Fecha",value=default_date_8,key="fecha_8")
-      
-    placeholder11_8= st.empty()
-    tema_8=placeholder11_8.selectbox("Tema", options=("Bonos","Criterios Técnicos","Información General","QGIS","Reportes y Registros","Sistema de Gestión Empresarial","Otros"), key="tema_8")
-
-    placeholder12_8= st.empty()
-    observaciones_8= placeholder12_8.text_input("Observaciones",max_chars=60,key="observaciones_8")
-    
-    placeholder13_8= st.empty()
-    horas_8= placeholder13_8.number_input("Cantidad de Horas de Capacitación Individuales",min_value=0.0,key="horas_8")
-
-    placeholder14_8 = st.empty()
-    reporte_8 = placeholder14_8.button("Generar Reporte",key="reporte_8")
-
-    placeholder15_8= st.empty()
-    separador_8 = placeholder15_8.markdown("_____")
-
-    placeholder16_8 = st.empty()
-    capacitacion_historial_8 = placeholder16_8.subheader("Historial")
-
-    placeholder17_8 = st.empty()
-    fecha_de__inicio_8 = placeholder17_8.date_input("Fecha de Inicio",value=default_date_8,key="fecha_de_inicio_8")
-
-    placeholder18_8 = st.empty()
-    fecha_de__finalizacion_8 = placeholder18_8.date_input("Fecha de Finalización",value=default_date_8,key="fecha_de_finalizacion_8")
-      
-    placeholder19_8 = st.empty()
-    filtro_8 = placeholder19_8.selectbox("Filtro", options=("Todos","Operarios","Personal Jurídico","Propio","Personal Asignado","Reportados"), key="filtro_8")
-
-    if filtro_8=="Todos":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte from capacitaciones where fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-
-    elif filtro_8=="Operarios":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte from capacitaciones where puesto='Operario Catastral' and fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-
-    elif filtro_8=="Personal Jurídico":
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte from capacitaciones where puesto='Profesional Jurídico' and fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-      
-    elif filtro_8=="Propio" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte from capacitaciones where usuario='{usuario}' and fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-
-    elif filtro_8=="Personal Asignado" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte from capacitaciones where supervisor='{nombre_8}' and fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-
-    elif filtro_8=="Reportados" :
-      data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte from capacitaciones where reporte='{nombre_8}' and fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-
-  elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico" or puesto=="QC":
-
-    placeholder19_8 = st.empty()
-    capacitacion_historial_8 = placeholder19_8.subheader("Historial")
-
-    default_date_8 = datetime.now(pytz.timezone('America/Guatemala'))
-
-    placeholder20_8 = st.empty()
-    fecha_de__inicio_8 = placeholder20_8.date_input("Fecha de Inicio",value=default_date_8,key="fecha_de_inicio_8")
-
-    placeholder21_8 = st.empty()
-    fecha_de__finalizacion_8 = placeholder21_8.date_input("Fecha de Finalización",value=default_date_8,key="fecha_de_finalizacion_8")
-      
-    data = pd.read_sql(f"select cast(id as integer),marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte from capacitaciones where usuario='{usuario}' and fecha>='{fecha_de__inicio_8}' and fecha<='{fecha_de__finalizacion_8}'", con)
-
-  placeholder22_8 = st.empty()
-  histo_8= placeholder22_8.dataframe(data=data)
-
-  # ----- Procesos ---- #
-    
-  if procesos_8:
-    placeholder1_8.empty()
-    placeholder2_8.empty()
-    placeholder3_8.empty()
-    placeholder4_8.empty()
-    placeholder5_8.empty()   
-    placeholder6_8.empty()
-    placeholder7_8.empty()
-    if puesto=="Supervisor" or puesto=="Coordinador":
-      placeholder8_8.empty()
-      placeholder9_8.empty()
-      placeholder10_8.empty()
-      placeholder11_8.empty()
-      placeholder12_8.empty()
-      placeholder13_8.empty()
-      placeholder14_8.empty()
-      placeholder15_8.empty()  
-      placeholder16_8.empty()
-      placeholder17_8.empty()
-      placeholder18_8.empty()
-      placeholder19_8.empty()
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico" or puesto=="QC":
-      placeholder19_8.empty()
-      placeholder20_8.empty()
-      placeholder21_8.empty()
-    placeholder22_8.empty()
-    st.session_state.Procesos=False
-    st.session_state.Capacitacion=False
-    
-    usuario_activo = obtener_usuario_activo(usuario)
-    perfil = str(usuario_activo["perfil"]) if usuario_activo else ""
-
-    if perfil=="1":        
-                    
-      Procesos.Procesos1(usuario,puesto)
-                
-    elif perfil=="2":        
-                    
-      Procesos.Procesos2(usuario,puesto)   
-
-    elif perfil=="3":  
-
-      Procesos.Procesos3(usuario,puesto)       
-                
-  # ----- Historial ---- #
-    
-  elif historial_8:
-    placeholder1_8.empty()
-    placeholder2_8.empty()
-    placeholder3_8.empty()
-    placeholder4_8.empty()
-    placeholder5_8.empty()   
-    placeholder6_8.empty()
-    placeholder7_8.empty()
-    if puesto=="Supervisor" or puesto=="Coordinador":
-      placeholder8_8.empty()
-      placeholder9_8.empty()
-      placeholder10_8.empty()
-      placeholder11_8.empty()
-      placeholder12_8.empty()
-      placeholder13_8.empty()
-      placeholder14_8.empty()
-      placeholder15_8.empty()  
-      placeholder16_8.empty()
-      placeholder17_8.empty()
-      placeholder18_8.empty()
-      placeholder19_8.empty()
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico" or puesto=="QC":
-      placeholder19_8.empty()
-      placeholder20_8.empty()
-      placeholder21_8.empty()
-    placeholder22_8.empty()
-    st.session_state.Capacitacion=False
-    st.session_state.Historial=True
-    Historial.Historial(usuario,puesto)
-
-  # ----- Otros Registros ---- #
-    
-  elif otros_registros_8:
-    placeholder1_8.empty()
-    placeholder2_8.empty()
-    placeholder3_8.empty()
-    placeholder4_8.empty()
-    placeholder5_8.empty()   
-    placeholder6_8.empty()
-    placeholder7_8.empty()
-    if puesto=="Supervisor" or puesto=="Coordinador":
-      placeholder8_8.empty()
-      placeholder9_8.empty()
-      placeholder10_8.empty()
-      placeholder11_8.empty()
-      placeholder12_8.empty()
-      placeholder13_8.empty()
-      placeholder14_8.empty()
-      placeholder15_8.empty()  
-      placeholder16_8.empty()
-      placeholder17_8.empty()
-      placeholder18_8.empty()
-      placeholder19_8.empty()
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico" or puesto=="QC":
-      placeholder19_8.empty()
-      placeholder20_8.empty()
-      placeholder21_8.empty()
-    placeholder22_8.empty()
-    st.session_state.Capacitacion=False
-    st.session_state.Otros_Registros=True
-    Otros_Registros.Otros_Registros(usuario,puesto)
-
-  # ----- Bonos y Horas Extras ---- #
-    
-  elif bonos_extras_8:
-    placeholder1_8.empty()
-    placeholder2_8.empty()
-    placeholder3_8.empty()
-    placeholder4_8.empty()
-    placeholder5_8.empty()   
-    placeholder6_8.empty()
-    placeholder7_8.empty()
-    if puesto=="Supervisor" or puesto=="Coordinador":
-      placeholder8_8.empty()
-      placeholder9_8.empty()
-      placeholder10_8.empty()
-      placeholder11_8.empty()
-      placeholder12_8.empty()
-      placeholder13_8.empty()
-      placeholder14_8.empty()
-      placeholder15_8.empty()  
-      placeholder16_8.empty()
-      placeholder17_8.empty()
-      placeholder18_8.empty()
-      placeholder19_8.empty()
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico" or puesto=="QC":
-      placeholder19_8.empty()
-      placeholder20_8.empty()
-      placeholder21_8.empty()
-    placeholder22_8.empty()
-    st.session_state.Capacitacion=False
-    st.session_state.Bonos_Extras=True
-    Bonos_Extras.Bonos_Extras(usuario,puesto)
-    
-  # ----- Salir ---- #
-    
-  elif salir_8:
-    placeholder1_8.empty()
-    placeholder2_8.empty()
-    placeholder3_8.empty()
-    placeholder4_8.empty()
-    placeholder5_8.empty()   
-    placeholder6_8.empty()
-    placeholder7_8.empty()
-    if puesto=="Supervisor" or puesto=="Coordinador":
-      placeholder8_8.empty()
-      placeholder9_8.empty()
-      placeholder10_8.empty()
-      placeholder11_8.empty()
-      placeholder12_8.empty()
-      placeholder13_8.empty()
-      placeholder14_8.empty()
-      placeholder15_8.empty()  
-      placeholder16_8.empty()
-      placeholder17_8.empty()
-      placeholder18_8.empty()
-      placeholder19_8.empty()
-    elif puesto=="Operario Catastral" or puesto=="Profesional Jurídico" or puesto=="QC":
-      placeholder19_8.empty()
-      placeholder20_8.empty()
-      placeholder21_8.empty()
-    placeholder22_8.empty()
-    st.session_state.Ingreso=False
-    st.session_state.Capacitacion=False
-    st.session_state.Salir=True
-    Salir.Salir()
-
-  # ----- Reporte ---- #
-
-  if puesto=="Supervisor" or puesto=="Coordinador":
-
-    if reporte_8:
-
-      if personal_8 =='':
-        
-        st.error('Favor ingresar el nombre de alguna persona')
-
-      else:
-        for nombre in personal_8:
-          marca_8= datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
-          persona = fetch_one(
-            """
-            SELECT usuario, puesto, supervisor
-            FROM usuarios
-            WHERE nombre = %s
-            LIMIT 1
-            """,
-            params=[nombre],
-          )
-          if not persona:
-            continue
-
-          execute(
-            """
-            INSERT INTO capacitaciones (marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """,
-            params=[
-              marca_8, persona["usuario"], nombre, persona["puesto"], persona["supervisor"],
-              fecha_8, tema_8, horas_8, observaciones_8, nombre_8
-            ],
-          )
-        st.success('Registro enviado correctamente')
+    elif btn_salir.button("Salir", key="salir_cap"):
+        limpiar_placeholders(ph_sidebar + ph_main)
+        st.session_state.Ingreso = False
+        st.session_state.Capacitacion = False
+        st.session_state.Salir = True
+        import Salir
+        Salir.Salir()
