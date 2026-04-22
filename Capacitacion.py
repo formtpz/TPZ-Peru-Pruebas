@@ -1,13 +1,12 @@
 # ----- Librerías ---- #
 import streamlit as st
 import pandas as pd
-import psycopg2
 from datetime import datetime
-from urllib.parse import urlparse
 import pytz
 import Procesos,Historial,Otros_Registros,Bonos_Extras,Salir
 import numpy as np
-from Autenticacion import hostname, database, username, pwd, port_id, con
+from Autenticacion import obtener_usuario_activo
+from db_core import execute, fetch_one
 
 def Capacitacion(usuario,puesto):
 
@@ -209,8 +208,8 @@ def Capacitacion(usuario,puesto):
     st.session_state.Procesos=False
     st.session_state.Capacitacion=False
     
-    perfil=pd.read_sql(f"select perfil from usuarios where usuario ='{usuario}'",uri)
-    perfil= perfil.loc[0,'perfil']
+    usuario_activo = obtener_usuario_activo(usuario)
+    perfil = str(usuario_activo["perfil"]) if usuario_activo else ""
 
     if perfil=="1":        
                     
@@ -364,21 +363,28 @@ def Capacitacion(usuario,puesto):
         st.error('Favor ingresar el nombre de alguna persona')
 
       else:
-        uri=st.secrets.db_credentials.URI
         for nombre in personal_8:
-          cursor01=con.cursor()
-          
           marca_8= datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
+          persona = fetch_one(
+            """
+            SELECT usuario, puesto, supervisor
+            FROM usuarios
+            WHERE nombre = %s
+            LIMIT 1
+            """,
+            params=[nombre],
+          )
+          if not persona:
+            continue
 
-          usuario_8= pd.read_sql(f"select usuario from usuarios where nombre ='{nombre}'",uri)
-          usuario_8 = usuario_8.loc[0,'usuario']
-    
-          puesto_8= pd.read_sql(f"select puesto from usuarios where nombre ='{nombre}'",uri)
-          puesto_8 = puesto_8.loc[0,'puesto']
-
-          supervisor_8= pd.read_sql(f"select supervisor from usuarios where nombre ='{nombre}'",uri)
-          supervisor_8 = supervisor_8.loc[0,'supervisor']
-          
-          cursor01.execute(f"INSERT INTO capacitaciones (marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte)VALUES('{marca_8}','{usuario_8}','{nombre}','{puesto_8}','{supervisor_8}','{fecha_8}','{tema_8}','{horas_8}','{observaciones_8}','{nombre_8}')")
-          con.commit()                                                                                               
+          execute(
+            """
+            INSERT INTO capacitaciones (marca,usuario,nombre,puesto,supervisor,fecha,tema,horas,observaciones,reporte)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """,
+            params=[
+              marca_8, persona["usuario"], nombre, persona["puesto"], persona["supervisor"],
+              fecha_8, tema_8, horas_8, observaciones_8, nombre_8
+            ],
+          )
         st.success('Registro enviado correctamente')

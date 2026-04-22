@@ -1,14 +1,13 @@
 # ----- Librerías ---- #
 import streamlit as st
 import pandas as pd
-import psycopg2
 from datetime import datetime
-from urllib.parse import urlparse
 
 import pytz
 
 import Procesos,Historial,Capacitacion,Bonos_Extras,Salir
-from Autenticacion import hostname, database, username, pwd, port_id, con
+from Autenticacion import obtener_usuario_activo
+from db_core import execute, fetch_one
 
 def Otros_Registros(usuario,puesto):
 
@@ -211,8 +210,8 @@ def Otros_Registros(usuario,puesto):
     st.session_state.Procesos=False
     st.session_state.Otros_Registros=False
 
-    perfil=pd.read_sql(f"select perfil from usuarios where usuario ='{usuario}'",uri)
-    perfil= perfil.loc[0,'perfil']
+    usuario_activo = obtener_usuario_activo(usuario)
+    perfil = str(usuario_activo["perfil"]) if usuario_activo else ""
 
     if perfil=="1":        
                     
@@ -366,22 +365,29 @@ def Otros_Registros(usuario,puesto):
         st.error('Favor ingresar el nombre de alguna persona')
 
       else:
-        uri=st.secrets.db_credentials.URI
         for nombre in personal_13:
-          cursor01=con.cursor()
-          
           marca_13= datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
-
-          usuario_13= pd.read_sql(f"select usuario from usuarios where nombre ='{nombre}'",uri)
-          usuario_13 = usuario_13.loc[0,'usuario']
-
-          puesto_13= pd.read_sql(f"select puesto from usuarios where nombre ='{nombre}'",uri)
-          puesto_13 = puesto_13.loc[0,'puesto']
-
-          supervisor_13= pd.read_sql(f"select supervisor from usuarios where nombre ='{nombre}'",uri)
-          supervisor_13 = supervisor_13.loc[0,'supervisor']
+          persona = fetch_one(
+            """
+            SELECT usuario, puesto, supervisor
+            FROM usuarios
+            WHERE nombre = %s
+            LIMIT 1
+            """,
+            params=[nombre],
+          )
+          if not persona:
+            continue
 
           horas_bi = float(horas_13)
-          cursor01.execute(f"INSERT INTO otros_registros (marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte,horas_bi)VALUES('{marca_13}','{usuario_13}','{nombre}','{puesto_13}','{supervisor_13}','{fecha_13}','{motivo_13}','{horas_13}','{observaciones_13}','{nombre_13}','{horas_bi}')")
-          con.commit()                                                                                            
+          execute(
+            """
+            INSERT INTO otros_registros (marca,usuario,nombre,puesto,supervisor,fecha,motivo,horas,observaciones,reporte,horas_bi)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """,
+            params=[
+              marca_13, persona["usuario"], nombre, persona["puesto"], persona["supervisor"],
+              fecha_13, motivo_13, horas_13, observaciones_13, nombre_13, horas_bi
+            ],
+          )
         st.success('Registro enviado correctamente')
