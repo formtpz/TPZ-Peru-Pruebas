@@ -16,6 +16,25 @@ def Correcciones(usuario, puesto):
         return v.item() if hasattr(v, "item") else v
 
     # =============================
+    # Función auxiliar para convertir cualquier valor a date
+    # =============================
+    def _a_date(valor):
+        if valor is None:
+            return None
+        if isinstance(valor, str):
+            # Intentar formatos comunes
+            for fmt in ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"):
+                try:
+                    return datetime.strptime(valor, fmt).date()
+                except ValueError:
+                    continue
+            raise ValueError(f"No se pudo convertir '{valor}' a fecha")
+        if hasattr(valor, 'date'):
+            return valor.date()
+        # Asumir que ya es date
+        return valor
+
+    # =============================
     # Menú lateral
     # =============================
     placeholder1_3 = st.sidebar.empty()
@@ -121,10 +140,13 @@ def Correcciones(usuario, puesto):
                         elif registro_info["usuario"] != usuario:
                             st.error("No puedes solicitar corrección de un reporte que no te pertenece.")
                         else:
-                            # Validar antigüedad máxima de 3 días
-                            fecha_reporte = registro_info["fecha"]
-                            if hasattr(fecha_reporte, 'date'):
-                                fecha_reporte = fecha_reporte.date()
+                            # Validar antigüedad máxima de 3 días (convirtiendo fecha a date)
+                            try:
+                                fecha_reporte = _a_date(registro_info["fecha"])
+                            except Exception as e:
+                                st.error(f"Error al interpretar la fecha del reporte: {e}")
+                                st.stop()
+
                             if fecha_reporte < fecha_limite:
                                 st.error(
                                     f"No se pueden solicitar correcciones para reportes con más de 3 días de antigüedad. "
