@@ -99,7 +99,7 @@ def Correcciones(usuario, puesto):
                     df["id"] = df["id"].astype(str)
 
             # ---------- Filtro para mostrar una sola tabla ----------
-            st.subheader("📋 Mis reportes recientes (últimos 3 días)")
+            st.subheader("📋Paso 1) Visualizar y copiar reportes recientes (últimos 3 días)")
             tabla_viz = st.radio(
                 "Selecciona la tabla que deseas visualizar:",
                 ("Registro", "Otros Registros", "Capacitaciones"),
@@ -113,7 +113,7 @@ def Correcciones(usuario, puesto):
                 st.dataframe(df_capacitaciones, use_container_width=True)
 
             # ---------- Nueva solicitud de corrección ----------
-            st.subheader("➕ Nueva solicitud de corrección / eliminación")
+            st.subheader("➕ Paso 2) Agregar solicitud de Modificación / Eliminación de reporte")
 
             with st.form(key="nueva_correccion_form", clear_on_submit=True):
                 col1, col2 = st.columns(2)
@@ -127,7 +127,7 @@ def Correcciones(usuario, puesto):
 
                 tipo_solicitud = st.radio(
                     "Tipo de solicitud",
-                    ("Eliminar reporte", "Modificar valor")
+                    ("Eliminar reporte", "Modificar reporte")
                 )
                 enviar = st.form_submit_button("Registrar solicitud")
 
@@ -185,7 +185,7 @@ def Correcciones(usuario, puesto):
                             params=(tabla, id_reporte)
                         )
                         if existente is not None:
-                            st.error("Ya existe una solicitud para este ID en esta tabla.")
+                            st.error("Ya existe una solicitud para este ID en esta tabla. Solo se permite una solicitud por id")
                         else:
                             marca = datetime.now(pytz.timezone("America/Guatemala")).strftime("%Y-%m-%d %H:%M:%S")
                             solucion = "Eliminar" if tipo_solicitud == "Eliminar reporte" else "Modificar"
@@ -203,13 +203,13 @@ def Correcciones(usuario, puesto):
                                     marca, solucion, tabla, "", "", "Pendiente"
                                 )
                             )
-                            st.success("Solicitud registrada. Ahora puedes editar los detalles abajo.")
+                            st.success("Solicitud registrada. Ahora puedes continuar con el Paso 3) editar los detalles de la solicitud.")
                             st.rerun()
 
             # -------------------------------------------------
             # EDICIÓN DE SOLICITUDES PENDIENTES (data_editor nativo)
             # -------------------------------------------------
-            st.subheader("✏️ Editar detalles de mis solicitudes pendientes")
+            st.subheader("✏️Paso 3) Editar detalles de las solicitudes pendientes")
 
             query_pendientes = """
                 SELECT id, fecha, tabla, id_asociado, solucion, columna, nuevo_valor, estado
@@ -244,9 +244,9 @@ def Correcciones(usuario, puesto):
                     COLUMNAS_EDITABLES["capacitaciones"]
                 ))
 
-                st.caption("✏️ Haz doble clic en 'Solución' para cambiar entre Eliminar/Modificar.")
-                st.caption("📂 Haz doble clic en 'Columna' y elige de la lista desplegable (incluye columnas de todas las tablas).")
-                st.caption("⚠️ Asegúrate de elegir una columna válida para la tabla indicada en cada fila.")
+                st.caption("✏️ Paso 1) Haz doble clic en 'Solución' para cambiar entre Eliminar/Modificar reporte.")
+                st.caption("📂 Paso 2) Haz doble clic en 'Columna' y elige de la lista desplegable la columna a modificar. Omitir si eligió Eliminar reporte.")
+                st.caption("⚠️ Paso 3) Llena la columna "nuevo valor" para la columna seleccionada. Omitir si se eligió Eliminar reporte.")
                 st.info(f"Columnas válidas por tabla:\n\n"
                         f"**Registro**: {', '.join(COLUMNAS_EDITABLES['registro'])}\n\n"
                         f"**Otros Registros**: {', '.join(COLUMNAS_EDITABLES['otros_registros'])}\n\n"
@@ -279,7 +279,7 @@ def Correcciones(usuario, puesto):
                     key="editor_pendientes"
                 )
 
-                if st.button("💾 Guardar cambios en solicitudes"):
+                if st.button("💾 Paso 4) Guardar cambios en solicitudes"):
                     cambios = df_editado.compare(df_pendientes)
                     if cambios.empty:
                         st.info("No se detectaron cambios.")
@@ -364,7 +364,7 @@ def Correcciones(usuario, puesto):
                     st.info("No has marcado ninguna solicitud para eliminar.")
 
             # ---------- Ver todas mis solicitudes ----------
-            with st.expander("📋 Ver todas mis solicitudes"):
+            with st.expander("📋Paso 4) Verificar mis solicitudes."):
                 query_todas = """
                     SELECT id, fecha, tabla, id_asociado, solucion, columna, nuevo_valor, estado
                     FROM correcciones
