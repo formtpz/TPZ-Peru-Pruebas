@@ -204,8 +204,8 @@ def Correcciones(usuario, puesto):
                     "registro": [
                         "fecha", "horas", "observaciones",
                         "distrito", "tipo", "lotes", "aprobados", "rechazados",
-                        "manzana", "sector", "numero_lote", "estado", "area",
-                        "edificas", "partida", "zona", "tipo_calidad",
+                        "manzana", "sector", "numero_lote", "estado",
+                        "edificas","unidades_catastrales", "registros", "partida","operador_cc",
                         "total_de_errores", "errores_por_excepcion",
                         "tipo_de_errores", "conteo_de_errores"
                     ],
