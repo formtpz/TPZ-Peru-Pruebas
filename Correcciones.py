@@ -71,7 +71,7 @@ def Correcciones(usuario, puesto):
             query_registro = """
                 SELECT *
                 FROM registro
-                WHERE usuario = %s AND fecha >= %s
+                WHERE usuario = %s AND fecha::date >= %s
                 ORDER BY fecha DESC
             """
             df_registro = fetch_df(query_registro, params=(usuario, fecha_limite))
@@ -80,7 +80,7 @@ def Correcciones(usuario, puesto):
             query_otros = """
                 SELECT *
                 FROM otros_registros
-                WHERE reporte = %s AND fecha >= %s
+                WHERE reporte = %s AND fecha::date >= %s
                 ORDER BY fecha DESC
             """
             df_otros = fetch_df(query_otros, params=(nombre, fecha_limite))
@@ -89,7 +89,7 @@ def Correcciones(usuario, puesto):
             query_capacitacion = """
                 SELECT *
                 FROM capacitaciones
-                WHERE reporte = %s AND fecha >= %s
+                WHERE reporte = %s AND fecha::date >= %s
                 ORDER BY fecha DESC
             """
             df_capacitaciones = fetch_df(query_capacitacion, params=(nombre, fecha_limite))
