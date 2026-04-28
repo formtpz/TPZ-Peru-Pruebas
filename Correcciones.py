@@ -50,7 +50,7 @@ def Correcciones(usuario, puesto):
         page = st.empty()
         with page.container():
 
-            st.title("Corrección de Reportes")
+            st.title("Solicitud de Corrección de Reportes")
             st.write("Aquí puedes visualizar tus reportes recientes y solicitar correcciones o eliminaciones.")
 
             # -------------------------------------------------
@@ -99,7 +99,7 @@ def Correcciones(usuario, puesto):
                     df["id"] = df["id"].astype(str)
 
             # ---------- Filtro para mostrar una sola tabla ----------
-            st.subheader("📋Paso 1) Visualizar y copiar reportes recientes (últimos 3 días)")
+            st.subheader("📋Paso 1) Visualizar reportes recientes (últimos 3 días) y copiar ID a corregir")
             tabla_viz = st.radio(
                 "Selecciona la tabla que deseas visualizar:",
                 ("Registro", "Otros Registros", "Capacitaciones"),
