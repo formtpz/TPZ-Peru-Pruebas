@@ -123,7 +123,7 @@ def Correcciones(usuario, puesto):
                         ("registro", "otros_registros", "capacitaciones")
                     )
                 with col2:
-                    id_reporte = st.text_input("ID del reporte")
+                    id_reporte = st.text_input("ID del reporte (copiado de la tabla anterior)")
 
                 tipo_solicitud = st.radio(
                     "Tipo de solicitud",
