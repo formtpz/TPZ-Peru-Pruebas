@@ -364,7 +364,7 @@ def Correcciones(usuario, puesto):
                     st.info("No has marcado ninguna solicitud para eliminar.")
 
             # ---------- Ver todas mis solicitudes ----------
-            with st.expander("📋Paso 4) Verificar mis solicitudes."):
+            with st.expander("📋Paso 5) Verificar mis solicitudes (Esta es la solicitud hecha)."):
                 query_todas = """
                     SELECT id, fecha, tabla, id_asociado, solucion, columna, nuevo_valor, estado
                     FROM correcciones
