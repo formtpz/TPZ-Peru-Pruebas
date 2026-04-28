@@ -264,9 +264,16 @@ def Correcciones(usuario, puesto):
                             fila_nueva = df_editado.loc[idx]
                             fila_original = df_pendientes.loc[idx]
 
+                            # Si la solución es Eliminar, forzamos columna y nuevo_valor vacíos
+                            if fila_nueva["solucion"] == "Eliminar":
+                                fila_nueva["columna"] = ""
+                                fila_nueva["nuevo_valor"] = ""
+
                             tabla_actual = fila_nueva["tabla"]
                             columna_elegida = fila_nueva["columna"]
-                            if fila_nueva["solucion"] == "Modificar":
+
+                            # Validar columna solo si es Modificar y la columna no está vacía
+                            if fila_nueva["solucion"] == "Modificar" and columna_elegida:
                                 if columna_elegida not in COLUMNAS_EDITABLES.get(tabla_actual, []):
                                     errores.append(f"Fila ID {fila_nueva['id']}: La columna '{columna_elegida}' no es editable en la tabla '{tabla_actual}'.")
                                     continue
@@ -300,6 +307,40 @@ def Correcciones(usuario, puesto):
                         else:
                             st.success("Cambios guardados correctamente.")
                             st.rerun()
+
+            # -------------------------------------------------
+            # 🗑️ ELIMINAR SOLICITUDES PENDIENTES (por error)
+            # -------------------------------------------------
+            st.subheader("🗑️ Eliminar solicitudes pendientes erróneas")
+            query_pend_del = f"""
+                SELECT id, fecha, tabla, id_asociado, solucion
+                FROM correcciones
+                WHERE usuario = '{usuario}' AND estado = 'Pendiente'
+                ORDER BY fecha DESC
+            """
+            df_del = fetch_df(query_pend_del)
+            if df_del.empty:
+                st.info("No tienes solicitudes pendientes que eliminar.")
+            else:
+                if "id" in df_del.columns:
+                    df_del["id"] = df_del["id"].astype(str)
+
+                st.caption("Selecciona las solicitudes que deseas eliminar completamente y pulsa el botón.")
+                # Mostrar con checkboxes
+                seleccionados = []
+                for idx, row in df_del.iterrows():
+                    if st.checkbox(f"{row['fecha']} - {row['tabla']} ID {row['id_asociado']} (Solicitud {row['id']})", key=f"del_{row['id']}"):
+                        seleccionados.append(row['id'])
+
+                if seleccionados:
+                    if st.button("🗑️ Eliminar solicitudes seleccionadas"):
+                        # Eliminar de la base de datos
+                        for id_sol in seleccionados:
+                            execute("DELETE FROM correcciones WHERE id = %s", params=(id_sol,))
+                        st.success(f"Se eliminaron {len(seleccionados)} solicitud(es).")
+                        st.rerun()
+                else:
+                    st.info("No has marcado ninguna solicitud para eliminar.")
 
             # ---------- Ver todas mis solicitudes ----------
             with st.expander("📋 Ver todas mis solicitudes"):
