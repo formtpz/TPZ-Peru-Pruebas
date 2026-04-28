@@ -244,9 +244,9 @@ def Correcciones(usuario, puesto):
                     COLUMNAS_EDITABLES["capacitaciones"]
                 ))
 
-                st.caption("✏️ Paso 1) Haz doble clic en 'Solución' para cambiar entre Eliminar/Modificar reporte.")
-                st.caption("📂 Paso 2) Haz doble clic en 'Columna' y elige de la lista desplegable la columna a modificar. Omitir si eligió Eliminar reporte.")
-                st.caption("⚠️ Paso 3) Llena la columna (nuevo valor) para la columna seleccionada. Omitir si se eligió Eliminar reporte.")
+                st.caption("✏️ Paso Opcional) Haz doble clic en 'Solución' para cambiar entre Eliminar/Modificar reporte en caso de equivocación.")
+                st.caption("📂 Paso 1) Haz doble clic en 'Columna' y elige de la lista desplegable la columna a modificar. Omitir si eligió Eliminar reporte.")
+                st.caption("⚠️ Paso 2) Llena la columna (nuevo valor) para la columna seleccionada. Omitir si se eligió Eliminar reporte.")
                 st.info(f"Columnas válidas por tabla:\n\n"
                         f"**Registro**: {', '.join(COLUMNAS_EDITABLES['registro'])}\n\n"
                         f"**Otros Registros**: {', '.join(COLUMNAS_EDITABLES['otros_registros'])}\n\n"
