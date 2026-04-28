@@ -57,7 +57,8 @@ def Correcciones(usuario, puesto):
             # Obtener nombre del usuario
             # -------------------------------------------------
             df_nombre = fetch_df(
-                f"SELECT nombre FROM usuarios WHERE usuario = '{usuario}'"
+                "SELECT nombre FROM usuarios WHERE usuario = %s",
+                params=(usuario,)
             )
             nombre = df_nombre.loc[0, "nombre"] if not df_nombre.empty else ""
 
@@ -66,28 +67,32 @@ def Correcciones(usuario, puesto):
             # -------------------------------------------------
             fecha_limite = datetime.now().date() - timedelta(days=3)
 
-            query_registro = f"""
+            # -- Registro (se filtra por usuario) --
+            query_registro = """
                 SELECT *
                 FROM registro
-                WHERE usuario = '{usuario}' AND fecha >= '{fecha_limite}'
+                WHERE usuario = %s AND fecha >= %s
                 ORDER BY fecha DESC
             """
-            query_otros = f"""
+            df_registro = fetch_df(query_registro, params=(usuario, fecha_limite))
+
+            # -- Otros registros (se filtra por reporte = nombre) --
+            query_otros = """
                 SELECT *
                 FROM otros_registros
-                WHERE usuario = '{usuario}' AND fecha >= '{fecha_limite}'
+                WHERE reporte = %s AND fecha >= %s
                 ORDER BY fecha DESC
             """
-            query_capacitacion = f"""
+            df_otros = fetch_df(query_otros, params=(nombre, fecha_limite))
+
+            # -- Capacitaciones (se filtra por reporte = nombre) --
+            query_capacitacion = """
                 SELECT *
                 FROM capacitaciones
-                WHERE usuario = '{usuario}' AND fecha >= '{fecha_limite}'
+                WHERE reporte = %s AND fecha >= %s
                 ORDER BY fecha DESC
             """
-
-            df_registro = fetch_df(query_registro)
-            df_otros = fetch_df(query_otros)
-            df_capacitaciones = fetch_df(query_capacitacion)
+            df_capacitaciones = fetch_df(query_capacitacion, params=(nombre, fecha_limite))
 
             for df in (df_registro, df_otros, df_capacitaciones):
                 if not df.empty and "id" in df.columns:
@@ -131,68 +136,88 @@ def Correcciones(usuario, puesto):
                         st.error("Debe indicar el ID del reporte.")
                     else:
                         # Verificar que el ID exista y pertenezca al usuario
-                        registro_info = fetch_one(
-                            f"SELECT usuario, fecha FROM {tabla} WHERE id = %s",
-                            params=(id_reporte,)
-                        )
-                        if registro_info is None:
-                            st.error(f"No existe el ID {id_reporte} en la tabla {tabla}.")
-                        elif registro_info["usuario"] != usuario:
-                            st.error("No puedes solicitar corrección de un reporte que no te pertenece.")
-                        else:
-                            # Validar antigüedad máxima de 3 días (convirtiendo fecha a date)
-                            try:
-                                fecha_reporte = _a_date(registro_info["fecha"])
-                            except Exception as e:
-                                st.error(f"Error al interpretar la fecha del reporte: {e}")
-                                st.stop()
-
-                            if fecha_reporte < fecha_limite:
-                                st.error(
-                                    f"No se pueden solicitar correcciones para reportes con más de 3 días de antigüedad. "
-                                    f"Este reporte es del {fecha_reporte.strftime('%d/%m/%Y')}."
-                                )
-                                st.stop()
-
-                            # Verificar que no exista ya una solicitud para ese ID
-                            existente = fetch_one(
-                                "SELECT 1 FROM correcciones WHERE tabla = %s AND id_asociado = %s",
-                                params=(tabla, id_reporte)
+                        if tabla == "registro":
+                            registro_info = fetch_one(
+                                "SELECT usuario, fecha FROM registro WHERE id = %s",
+                                params=(id_reporte,)
                             )
-                            if existente is not None:
-                                st.error("Ya existe una solicitud para este ID en esta tabla.")
+                            if registro_info is None:
+                                st.error(f"No existe el ID {id_reporte} en la tabla registro.")
+                            elif registro_info["usuario"] != usuario:
+                                st.error("No puedes solicitar corrección de un reporte que no te pertenece.")
                             else:
-                                marca = datetime.now(pytz.timezone("America/Guatemala")).strftime("%Y-%m-%d %H:%M:%S")
-                                solucion = "Eliminar" if tipo_solicitud == "Eliminar reporte" else "Modificar"
+                                pertenece = True
+                        else:  # otros_registros o capacitaciones -> usan reporte = nombre
+                            registro_info = fetch_one(
+                                f"SELECT reporte, fecha FROM {tabla} WHERE id = %s",
+                                params=(id_reporte,)
+                            )
+                            if registro_info is None:
+                                st.error(f"No existe el ID {id_reporte} en la tabla {tabla}.")
+                            elif registro_info["reporte"] != nombre:
+                                st.error("No puedes solicitar corrección de un reporte que no está a tu nombre.")
+                            else:
+                                pertenece = True
 
-                                execute(
-                                    """
-                                    INSERT INTO correcciones (
-                                        usuario, nombre, tipo_error, id_asociado,
-                                        fecha, solucion, tabla, columna, nuevo_valor, estado
-                                    )
-                                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                                    """,
-                                    params=(
-                                        usuario, nombre, "Pendiente de detalle", id_reporte,
-                                        marca, solucion, tabla, "", "", "Pendiente"
-                                    )
+                        if 'pertenece' not in locals():
+                            pertenece = False
+
+                        if not pertenece:
+                            st.stop()
+
+                        # Validar antigüedad máxima de 3 días
+                        try:
+                            fecha_reporte = _a_date(registro_info["fecha"])
+                        except Exception as e:
+                            st.error(f"Error al interpretar la fecha del reporte: {e}")
+                            st.stop()
+
+                        if fecha_reporte < fecha_limite:
+                            st.error(
+                                f"No se pueden solicitar correcciones para reportes con más de 3 días de antigüedad. "
+                                f"Este reporte es del {fecha_reporte.strftime('%d/%m/%Y')}."
+                            )
+                            st.stop()
+
+                        # Verificar que no exista ya una solicitud para ese ID
+                        existente = fetch_one(
+                            "SELECT 1 FROM correcciones WHERE tabla = %s AND id_asociado = %s",
+                            params=(tabla, id_reporte)
+                        )
+                        if existente is not None:
+                            st.error("Ya existe una solicitud para este ID en esta tabla.")
+                        else:
+                            marca = datetime.now(pytz.timezone("America/Guatemala")).strftime("%Y-%m-%d %H:%M:%S")
+                            solucion = "Eliminar" if tipo_solicitud == "Eliminar reporte" else "Modificar"
+
+                            execute(
+                                """
+                                INSERT INTO correcciones (
+                                    usuario, nombre, tipo_error, id_asociado,
+                                    fecha, solucion, tabla, columna, nuevo_valor, estado
                                 )
-                                st.success("Solicitud registrada. Ahora puedes editar los detalles abajo.")
-                                st.rerun()
+                                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                                """,
+                                params=(
+                                    usuario, nombre, "Pendiente de detalle", id_reporte,
+                                    marca, solucion, tabla, "", "", "Pendiente"
+                                )
+                            )
+                            st.success("Solicitud registrada. Ahora puedes editar los detalles abajo.")
+                            st.rerun()
 
             # -------------------------------------------------
             # EDICIÓN DE SOLICITUDES PENDIENTES (data_editor nativo)
             # -------------------------------------------------
             st.subheader("✏️ Editar detalles de mis solicitudes pendientes")
 
-            query_pendientes = f"""
+            query_pendientes = """
                 SELECT id, fecha, tabla, id_asociado, solucion, columna, nuevo_valor, estado
                 FROM correcciones
-                WHERE usuario = '{usuario}' AND estado = 'Pendiente'
+                WHERE usuario = %s AND estado = 'Pendiente'
                 ORDER BY fecha DESC
             """
-            df_pendientes = fetch_df(query_pendientes)
+            df_pendientes = fetch_df(query_pendientes, params=(usuario,))
             if not df_pendientes.empty and "id" in df_pendientes.columns:
                 df_pendientes["id"] = df_pendientes["id"].astype(str)
 
@@ -272,13 +297,11 @@ def Correcciones(usuario, puesto):
                             tabla_actual = fila_nueva["tabla"]
                             columna_elegida = fila_nueva["columna"]
 
-                            # Validar columna solo si es Modificar y la columna no está vacía
                             if fila_nueva["solucion"] == "Modificar" and columna_elegida:
                                 if columna_elegida not in COLUMNAS_EDITABLES.get(tabla_actual, []):
                                     errores.append(f"Fila ID {fila_nueva['id']}: La columna '{columna_elegida}' no es editable en la tabla '{tabla_actual}'.")
                                     continue
 
-                            # Actualizar solo si hubo cambios
                             if (fila_nueva["solucion"] == fila_original["solucion"] and
                                 fila_nueva["columna"] == fila_original["columna"] and
                                 fila_nueva["nuevo_valor"] == fila_original["nuevo_valor"]):
@@ -312,13 +335,13 @@ def Correcciones(usuario, puesto):
             # 🗑️ ELIMINAR SOLICITUDES PENDIENTES (por error)
             # -------------------------------------------------
             st.subheader("🗑️ Eliminar solicitudes pendientes erróneas")
-            query_pend_del = f"""
+            query_pend_del = """
                 SELECT id, fecha, tabla, id_asociado, solucion
                 FROM correcciones
-                WHERE usuario = '{usuario}' AND estado = 'Pendiente'
+                WHERE usuario = %s AND estado = 'Pendiente'
                 ORDER BY fecha DESC
             """
-            df_del = fetch_df(query_pend_del)
+            df_del = fetch_df(query_pend_del, params=(usuario,))
             if df_del.empty:
                 st.info("No tienes solicitudes pendientes que eliminar.")
             else:
@@ -326,7 +349,6 @@ def Correcciones(usuario, puesto):
                     df_del["id"] = df_del["id"].astype(str)
 
                 st.caption("Selecciona las solicitudes que deseas eliminar completamente y pulsa el botón.")
-                # Mostrar con checkboxes
                 seleccionados = []
                 for idx, row in df_del.iterrows():
                     if st.checkbox(f"{row['fecha']} - {row['tabla']} ID {row['id_asociado']} (Solicitud {row['id']})", key=f"del_{row['id']}"):
@@ -334,7 +356,6 @@ def Correcciones(usuario, puesto):
 
                 if seleccionados:
                     if st.button("🗑️ Eliminar solicitudes seleccionadas"):
-                        # Eliminar de la base de datos
                         for id_sol in seleccionados:
                             execute("DELETE FROM correcciones WHERE id = %s", params=(id_sol,))
                         st.success(f"Se eliminaron {len(seleccionados)} solicitud(es).")
@@ -344,13 +365,13 @@ def Correcciones(usuario, puesto):
 
             # ---------- Ver todas mis solicitudes ----------
             with st.expander("📋 Ver todas mis solicitudes"):
-                query_todas = f"""
+                query_todas = """
                     SELECT id, fecha, tabla, id_asociado, solucion, columna, nuevo_valor, estado
                     FROM correcciones
-                    WHERE usuario = '{usuario}'
+                    WHERE usuario = %s
                     ORDER BY fecha DESC
                 """
-                df_todas = fetch_df(query_todas)
+                df_todas = fetch_df(query_todas, params=(usuario,))
                 if not df_todas.empty and "id" in df_todas.columns:
                     df_todas["id"] = df_todas["id"].astype(str)
                 st.dataframe(df_todas, use_container_width=True)
@@ -446,7 +467,8 @@ def Correcciones(usuario, puesto):
 
         # Obtener perfil del usuario
         perfil_info = fetch_one(
-            f"SELECT perfil FROM usuarios WHERE usuario = '{usuario}'"
+            "SELECT perfil FROM usuarios WHERE usuario = %s",
+            params=(usuario,)
         )
         perfil = str(perfil_info["perfil"]) if perfil_info else ""
 
