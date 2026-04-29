@@ -52,6 +52,13 @@ def Correcciones(usuario, puesto):
 
             st.title("Solicitud de Corrección de Reportes")
             st.write("Aquí puedes visualizar tus reportes recientes y solicitar correcciones o eliminaciones.")
+            st.subheader("🎥 Material de apoyo")
+            st.markdown(
+                """
+                - **Sin VPN:** [Video de Capacitación](http://wiki.tpzcr.com:8060/doku.php?id=app_reportes_-streamlit)  
+                - **Con VPN:** [Video de Capacitación](http://wiki.tpzcr.com/doku.php?id=app_reportes_-streamlit)
+                """
+            )
 
             # -------------------------------------------------
             # Obtener nombre del usuario
