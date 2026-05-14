@@ -46,7 +46,7 @@ def execute(query: str, params=None):
     finally:
         cur.close()
 
-# Reemplaza las funciones en db_core.py con estas versiones actualizadas:
+
 
 def fetch_operadores_cc(filtro_proceso=None, filtro_subproceso=None, filtro_proceso_anterior=None, filtro_subproceso_anterior=None):
     """
@@ -71,40 +71,26 @@ def fetch_operadores_cc(filtro_proceso=None, filtro_subproceso=None, filtro_proc
     condiciones = []
     params = []
     
-    # Filtro por proceso y subproceso
+    # Condición 1: proceso y subproceso actuales cumplen filtros
     if filtro_proceso and filtro_subproceso:
-        condiciones.append("(proceso = %s AND subproceso IN %s)")
+        cond1 = "(proceso = %s AND subproceso IN %s)"
+        condiciones.append(cond1)
         params.extend([filtro_proceso, tuple(filtro_subproceso)])
     
-    # Filtro por proceso_anterior y subproceso_anterior
+    # Condición 2: proceso_anterior y subproceso_anterior cumplen filtros
     if filtro_proceso_anterior and filtro_subproceso_anterior:
-        condiciones.append("(proceso_anterior = %s AND subproceso_anterior IN %s)")
+        cond2 = "(proceso_anterior = %s AND subproceso_anterior IN %s)"
+        condiciones.append(cond2)
         params.extend([filtro_proceso_anterior, tuple(filtro_subproceso_anterior)])
     
-    # Combinar condiciones con OR
+    # Combinar condiciones con OR (cualquiera que cumpla alguna condición)
     if condiciones:
         query += " AND (" + " OR ".join(condiciones) + ")"
     
     query += " ORDER BY nombre"
     
-    df = fetch_df(query, params=params)
-    return df.to_dict('records') if not df.empty else []
-
-
-def fetch_operadores_vinculacion():
-    """
-    Obtiene operadores para Control de Calidad Vinculación Precampo.
-    Todos los usuarios activos que estén habilitados en listas.
+    print(f"DEBUG - Query: {query}")  # Para debugging
+    print(f"DEBUG - Params: {params}")  # Para debugging
     
-    Returns:
-        Lista de diccionarios con nombre y usuario
-    """
-    query = """
-        SELECT DISTINCT nombre, usuario
-        FROM usuarios
-        WHERE estado = 'Activo'
-          AND activo_en_listas = 'activo'
-        ORDER BY nombre
-    """
-    df = fetch_df(query)
+    df = fetch_df(query, params=params)
     return df.to_dict('records') if not df.empty else []
