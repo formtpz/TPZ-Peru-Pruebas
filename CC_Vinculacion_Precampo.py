@@ -7,6 +7,7 @@ import pytz
 import Procesos,Historial,Capacitacion,Otros_Registros,Bonos_Extras,Salir
 from Autenticacion import obtener_usuario_activo
 from db_core import execute
+from db_core import fetch_operadores_cc
 
 def CC_Vinculacion_Precampo(usuario,puesto):
 
