@@ -7,6 +7,7 @@ import pytz
 import Procesos,Historial,Capacitacion,Otros_Registros,Bonos_Extras,Salir
 from Autenticacion import obtener_usuario_activo
 from db_core import execute
+from db_core import fetch_operadores_cc
 
 def CC_Precampo_Juridico(usuario,puesto):
 
@@ -75,10 +76,30 @@ def CC_Precampo_Juridico(usuario,puesto):
   # Convertir a texto para guardar
   # =========================
   numero_lote_3 = ",".join(numero_lote_3)
+  #---------------------------------------------------------------------------------------------------------------------
+  # ----- Selector de Operador con datos desde BD ---- #
   
-  placeholder14_3= st.empty()
-  operador_3= placeholder14_3.selectbox("Operador objeto de CC",options=("Jose Ignacio Fernandez Meza","Alexandra Sherezade Quiroz Mayorga","Aislinn Bulacar Mora","Jonathan Brenes Henriquez","Karla Rivera Villalobos","Wilson Zamora Sanchez","Josafat Urena Blanco","Santiago Valverde Venegas","Esteban Raudes Ledezma","Jimena Bolanos Chaves","Luis Carlos Najarro Flores"), key="operador_3")
-
+  # Obtener operadores desde la base de datos con los filtros necesarios
+  operadores_disponibles = fetch_operadores_cc(
+      filtro_proceso='Jurídico',
+      filtro_subproceso=['Descarga', 'Análisis'],
+      filtro_proceso_anterior='Jurídico',
+      filtro_subproceso_anterior=['Descarga', 'Análisis']
+  )
+  
+  # Crear lista de nombres para el selectbox
+  if operadores_disponibles:
+      opciones_operadores = [op['nombre'] for op in operadores_disponibles]
+  else:
+      opciones_operadores = ["No hay operadores disponibles"]
+  
+  placeholder14_3 = st.empty()
+  operador_3 = placeholder14_3.selectbox(
+      "Operador objeto de CC",
+      options=opciones_operadores,
+      key="operador_3"
+  )
+  #----------------------------------------------------------------------------------------------------------------------------------
   placeholder15_3= st.empty()
   tipo_3= placeholder15_3.selectbox("Tipo", options=("Inspección","Primera Reinspección","Inspección Horas Extras","Control de Calidad Supervisión"), key="tipo_3")
 
