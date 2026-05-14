@@ -48,6 +48,8 @@ def execute(query: str, params=None):
 
 
 
+# En db_core.py, mantenemos UNA SOLA función genérica:
+
 def fetch_operadores_cc(filtro_proceso=None, filtro_subproceso=None, filtro_proceso_anterior=None, filtro_subproceso_anterior=None):
     """
     Obtiene operadores para Control de Calidad con filtros específicos.
@@ -73,24 +75,30 @@ def fetch_operadores_cc(filtro_proceso=None, filtro_subproceso=None, filtro_proc
     
     # Condición 1: proceso y subproceso actuales cumplen filtros
     if filtro_proceso and filtro_subproceso:
-        cond1 = "(proceso = %s AND subproceso IN %s)"
+        # Si filtro_subproceso es una lista, usar IN; si es string, usar =
+        if isinstance(filtro_subproceso, list):
+            cond1 = "(proceso = %s AND subproceso IN %s)"
+            params.extend([filtro_proceso, tuple(filtro_subproceso)])
+        else:
+            cond1 = "(proceso = %s AND subproceso = %s)"
+            params.extend([filtro_proceso, filtro_subproceso])
         condiciones.append(cond1)
-        params.extend([filtro_proceso, tuple(filtro_subproceso)])
     
     # Condición 2: proceso_anterior y subproceso_anterior cumplen filtros
     if filtro_proceso_anterior and filtro_subproceso_anterior:
-        cond2 = "(proceso_anterior = %s AND subproceso_anterior IN %s)"
+        if isinstance(filtro_subproceso_anterior, list):
+            cond2 = "(proceso_anterior = %s AND subproceso_anterior IN %s)"
+            params.extend([filtro_proceso_anterior, tuple(filtro_subproceso_anterior)])
+        else:
+            cond2 = "(proceso_anterior = %s AND subproceso_anterior = %s)"
+            params.extend([filtro_proceso_anterior, filtro_subproceso_anterior])
         condiciones.append(cond2)
-        params.extend([filtro_proceso_anterior, tuple(filtro_subproceso_anterior)])
     
     # Combinar condiciones con OR (cualquiera que cumpla alguna condición)
     if condiciones:
         query += " AND (" + " OR ".join(condiciones) + ")"
     
     query += " ORDER BY nombre"
-    
-    print(f"DEBUG - Query: {query}")  # Para debugging
-    print(f"DEBUG - Params: {params}")  # Para debugging
     
     df = fetch_df(query, params=params)
     return df.to_dict('records') if not df.empty else []
