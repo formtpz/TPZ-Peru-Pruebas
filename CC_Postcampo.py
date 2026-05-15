@@ -7,6 +7,7 @@ import pytz
 import Procesos,Historial,Capacitacion,Otros_Registros,Bonos_Extras,Salir
 from Autenticacion import obtener_usuario_activo
 from db_core import execute
+from db_core import fetch_operadores_cc
 
 def CC_Postcampo(usuario,puesto):
 
@@ -79,115 +80,26 @@ def CC_Postcampo(usuario,puesto):
   numero_lote_3 = ",".join(numero_lote_3)
 
 
+    # Obtener operadores desde la base de datos con los filtros necesarios
+  operadores_disponibles = fetch_operadores_cc(
+      filtro_proceso='Postcampo',
+      filtro_subproceso='Productivo',  # String, no lista
+      filtro_proceso_anterior='Postcampo',
+      filtro_subproceso_anterior='Productivo'  # String, no lista
+  )
   
-  placeholder14_3= st.empty()
-  operador_3= placeholder14_3.selectbox("Operador objeto de CC",options=("Brayan Jose Romero Carazo",
-    "Steve Alberto Sanchez Moreira",
-    "Pamela Gonzalez Arce",
-    "Estefania Aguilar Quiros",
-    "Kevin Anchia Roman",
-    "Kevin Jesus Bonilla Bonilla",
-    "Maria Stefannie Chavarria Barquero",
-    "Ansil Andres Hernandez Smith",
-    "Cristopher Jimenez Serrano",
-    "Daniela Maria Luna Salas",
-    "Veronica Maria Orozco Fernandez",
-    "Keilor Antonio Quiros Elizondo",
-    "Jose Javier Rojas Arias",
-    "Daniel Alfredo Solis Hernandez",
-    "Zairy Vargas Naranjo",
-    "Maria Angelica Dinarte Arley",
-    "Roger Alonso Herrera Blanco",
-    "Veronica Marenco Fonseca",
-    "Aaron Vargas Briceno",
-    "Ana Marcela Chavez Hernandez",
-    "Jonathan Jesus Aguilar Leiva",
-    "Karen Patricia Ruiz Diaz",
-    "Luis Alfredo Castillo Acosta",
-    "Joselyn Calvo Brenes",
-    "Melany Camacho Segura",
-    "Ramiro Montoya Orozco",
-    "Andres Villalta Cespedes",
-    "Rebeca Torres Guzman",
-    "Rafael Alberto Madrigal Cubillo",
-    "Miguel Gamboa Herrera",
-    "Maykol Benavides Villalobos",
-    "Ronald Vargas Chavarria",
-    "Karla Ramirez Monge",
-    "Jorge Gonzalez Hernandez",
-    "Estefania Pinmed Ortega",
-    "Ivan Villagra Rodriguez",
-    "Martha Espinoza Urbina",
-    "Maria Elena Corrales Torres",
-    "Luis Gomez Mantilla",
-    "Karla Morales Maradiaga",
-    "Melba Artavia Venegas",
-    "Sergio Gonzalez Arroyo",
-    "Daniela Quiros Solano",
-    "Valeria Centeno Mora",
-    "Mariano Arroyo Elizondo",
-    "Alexander Araica Urbina",
-    "Rocio Alvarado Corea",
-    "Tatiana Rojas Ramirez",
-    "Dinia Navarro Elizondo",
-    "Sharon Fabiola Delgado Araya",
-    "David Rodriguez Gutierrez",
-    "Jefferson Andres Espinoza Sobalvarro",
-    "Javier Francisco Chinchilla Porras",
-    "Paulette Ramirez Vargas",
-    "Natalia Iannarella Arguedas",
-    "Joustin Romero Umana",
-    "Sergio Gutierrez Umana",
-    "Ximena Alvarez Chavarria",
-    "Mario Alfredo Salazar Chavarria",
-    "Josue David Villegas Delgado",
-    "Melvin Andrade Velasquez",
-    "Sophia Teresita Cruz Godinez",
-    "Diego Armando Lopez Lobo",
-    "Juan Daniel Ledezma Cordero",
-    "Jose Rubi Cascante",
-    "Stephanie Alejandra Navarro Mendez",
-    "Jose Joaquin Rivera Porras",
-    "Yuliana Gamboa Gamboa",
-    "Yocelyn Rodriguez Villegas",
-    "Yocelyn Rodriguez Villegas",
-    "Meylin Vindas Jimnenez",
-    "Maria Fernanda Aguilar Gonzalez",
-    "Yendri Ballestero Nunez",
-    "Eimy Nayeli Rojas Ramirez",
-    "Laura Garmendez Miiranda",
-    "Ileana Fallas Calderon",
-    "Maria Alejandra Gonzalez Masis",
-    "Miguel Manrique Umana Vargas",
-    "Gabriela Patricia Palma Perez",
-    "Maria Jose Farrier Briceno",
-    "Maikol Andres Fallas Cordero",
-    "Gabriel Esteban Rojas Martinez",
-    "Maria Nathalia Vargas Alvarez",
-    "Jackeline Maria Tenorio Guido",
-    "Alondra Sarahi Zelaya Sandoval",
-    "Bernabe Solano Gonzalez",
-    "Fabian Cubillos Huapaya",
-    "Estefania Mora Soto",
-    "Keythy Vanessa Lindo Araya",
-    "Jennifer Castro Duarte",
-    "Older Torres Blanco",
-    "Deylin Rachel Vargas Lopez",
-    "Gabriel Ballestero Torres",
-    "Karen Ramirez Ramos",
-    "Sebastian Alvarado Camacho",
-    "Jean Carlo Garbanzo Gamboa",
-    "Alex Sofia Pacheco Thomas",
-    "Antony Cordero Zuñiga",
-    "Aaron David Blanco Delgado",
-    "Emily Garcia Gonzalez",
-    "Fernando Jose Davila Herrera",
-    "Monserrath Romero Bermudez",
-    "David Jose Young Fuentes",
-    "Andres Cifuentes",
-    "Melany Quesada Mora",
-    "Virginea Montero Trigueros",
-    "Diego Rodriguez Fernandez"), key="operador_3")
+  # Crear lista de nombres para el selectbox
+  if operadores_disponibles:
+      opciones_operadores = [op['nombre'] for op in operadores_disponibles]
+  else:
+      opciones_operadores = ["No hay operadores disponibles"]
+  
+  placeholder14_3 = st.empty()
+  operador_3 = placeholder14_3.selectbox(
+      "Operador objeto de CC",
+      options=opciones_operadores,
+      key="operador_3"
+  )
 
   placeholder15_3= st.empty()
   tipo_3= placeholder15_3.selectbox("Tipo", options=("Inspección","Inspección Reproceso","Primera Reinspección","Inspección Horas Extras","Control de Calidad Supervisión"), key="tipo_3")
