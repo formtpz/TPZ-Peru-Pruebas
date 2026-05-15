@@ -7,6 +7,7 @@ import pytz
 import Procesos,Historial,Capacitacion,Otros_Registros,Bonos_Extras,Salir
 from Autenticacion import obtener_usuario_activo
 from db_core import execute
+from db_core import fetch_operadores_cc
 
 def CC_Precampo(usuario,puesto):
 
@@ -53,114 +54,26 @@ def CC_Precampo(usuario,puesto):
   placeholder12_3= st.empty()
   sector_3= placeholder12_3.selectbox("Sector", options=("01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120"),key="sector_3")
   
-  placeholder13_3= st.empty()
-  operador_3= placeholder13_3.selectbox("Operador objeto de CC",options=("Brayan Jose Romero Carazo",
-    "Steve Alberto Sanchez Moreira",
-    "Pamela Gonzalez Arce",
-    "Estefania Aguilar Quiros",
-    "Kevin Anchia Roman",
-    "Kevin Jesus Bonilla Bonilla",
-    "Maria Stefannie Chavarria Barquero",
-    "Ansil Andres Hernandez Smith",
-    "Cristopher Jimenez Serrano",
-    "Daniela Maria Luna Salas",
-    "Veronica Maria Orozco Fernandez",
-    "Keilor Antonio Quiros Elizondo",
-    "Jose Javier Rojas Arias",
-    "Daniel Alfredo Solis Hernandez",
-    "Zairy Vargas Naranjo",
-    "Maria Angelica Dinarte Arley",
-    "Roger Alonso Herrera Blanco",
-    "Veronica Marenco Fonseca",
-    "Aaron Vargas Briceno",
-    "Ana Marcela Chavez Hernandez",
-    "Jonathan Jesus Aguilar Leiva",
-    "Karen Patricia Ruiz Diaz",
-    "Luis Alfredo Castillo Acosta",
-    "Joselyn Calvo Brenes",
-    "Melany Camacho Segura",
-    "Ramiro Montoya Orozco",
-    "Andres Villalta Cespedes",
-    "Rebeca Torres Guzman",
-    "Rafael Alberto Madrigal Cubillo",
-    "Miguel Gamboa Herrera",
-    "Maykol Benavides Villalobos",
-    "Ronald Vargas Chavarria",
-    "Karla Ramirez Monge",
-    "Jorge Gonzalez Hernandez",
-    "Estefania Pinmed Ortega",
-    "Ivan Villagra Rodriguez",
-    "Martha Espinoza Urbina",
-    "Maria Elena Corrales Torres",
-    "Luis Gomez Mantilla",
-    "Karla Morales Maradiaga",
-    "Melba Artavia Venegas",
-    "Sergio Gonzalez Arroyo",
-    "Daniela Quiros Solano",
-    "Valeria Centeno Mora",
-    "Mariano Arroyo Elizondo",
-    "Alexander Araica Urbina",
-    "Rocio Alvarado Corea",
-    "Tatiana Rojas Ramirez",
-    "Dinia Navarro Elizondo",
-    "Sharon Fabiola Delgado Araya",
-    "David Rodriguez Gutierrez",
-    "Jefferson Andres Espinoza Sobalvarro",
-    "Javier Francisco Chinchilla Porras",
-    "Paulette Ramirez Vargas",
-    "Natalia Iannarella Arguedas",
-    "Joustin Romero Umana",
-    "Sergio Gutierrez Umana",
-    "Ximena Alvarez Chavarria",
-    "Mario Alfredo Salazar Chavarria",
-    "Josue David Villegas Delgado",
-    "Melvin Andrade Velasquez",
-    "Sophia Teresita Cruz Godinez",
-    "Diego Armando Lopez Lobo",
-    "Juan Daniel Ledezma Cordero",
-    "Jose Rubi Cascante",
-    "Stephanie Alejandra Navarro Mendez",
-    "Jose Joaquin Rivera Porras",
-    "Yuliana Gamboa Gamboa",
-    "Yocelyn Rodriguez Villegas",
-    "Yocelyn Rodriguez Villegas",
-    "Meylin Vindas Jimnenez",
-    "Maria Fernanda Aguilar Gonzalez",
-    "Yendri Ballestero Nunez",
-    "Eimy Nayeli Rojas Ramirez",
-    "Laura Garmendez Miiranda",
-    "Ileana Fallas Calderon",
-    "Maria Alejandra Gonzalez Masis",
-    "Miguel Manrique Umana Vargas",
-    "Gabriela Patricia Palma Perez",
-    "Maria Jose Farrier Briceno",
-    "Maikol Andres Fallas Cordero",
-    "Gabriel Esteban Rojas Martinez",
-    "Maria Nathalia Vargas Alvarez",
-    "Jackeline Maria Tenorio Guido",
-    "Alondra Sarahi Zelaya Sandoval",
-    "Bernabe Solano Gonzalez",
-    "Fabian Cubillos Huapaya",
-    "Estefania Mora Soto",
-    "Keythy Vanessa Lindo Araya",
-    "Jennifer Castro Duarte",
-    "Older Torres Blanco",
-    "Deylin Rachel Vargas Lopez",
-    "Gabriel Ballestero Torres",
-    "Karen Ramirez Ramos",
-    "Sebastian Alvarado Camacho",
-    "Jean Carlo Garbanzo Gamboa",
-    "Alex Sofia Pacheco Thomas",
-    "Antony Cordero Zuñiga",
-    "Aaron David Blanco Delgado",
-    "Emily Garcia Gonzalez",
-    "Fernando Jose Davila Herrera",
-    "Monserrath Romero Bermudez",
-    "David Jose Young Fuentes",
-    "Andres Cifuentes",
-    "Melany Quesada Mora",
-    "Virginea Montero Trigueros",
-    "Diego Rodriguez Fernandez"), key="operador_3")
+   # Obtener operadores desde la base de datos con los filtros necesarios
+  operadores_disponibles = fetch_operadores_cc(
+      filtro_proceso='Precampo',
+      filtro_subproceso='Vinculación',  # String, no lista
+      filtro_proceso_anterior='Precampo',
+      filtro_subproceso_anterior='Vinculación'  # String, no lista
+  )
+  
+  # Crear lista de nombres para el selectbox
+  if operadores_disponibles:
+      opciones_operadores = [op['nombre'] for op in operadores_disponibles]
+  else:
+      opciones_operadores = ["No hay operadores disponibles"]
+  
+  placeholder13_3 = st.empty()
+  operador_3 = placeholder13_3.selectbox(
+      "Operador objeto de CC",
+      options=opciones_operadores,
+      key="operador_3"
+  )
 
   placeholder14_3= st.empty()
   tipo_3= placeholder14_3.selectbox("Tipo", options=("Inspección","Primera Reinspección","Inspección Horas Extras","Control de Calidad Supervisión"), key="tipo_3")
