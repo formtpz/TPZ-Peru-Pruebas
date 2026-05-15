@@ -57,9 +57,9 @@ def CC_Precampo(usuario,puesto):
    # Obtener operadores desde la base de datos con los filtros necesarios
   operadores_disponibles = fetch_operadores_cc(
       filtro_proceso='Precampo',
-      filtro_subproceso='Vinculación',  # String, no lista
+      filtro_subproceso='Gráfico',  # String, no lista
       filtro_proceso_anterior='Precampo',
-      filtro_subproceso_anterior='Vinculación'  # String, no lista
+      filtro_subproceso_anterior='Gráfico'  # String, no lista
   )
   
   # Crear lista de nombres para el selectbox
