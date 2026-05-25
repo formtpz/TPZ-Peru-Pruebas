@@ -141,7 +141,7 @@ def fetch_rechazos_pendientes(identificador, tipo='nombre', dias=10):
         FROM registro
         WHERE operador_cc ILIKE %s
           AND estado = 'N/A'
-          AND rechazados > '0'          # ← SOLO CAMBIA ESTO
+          AND rechazados > '0'          
           AND fecha >= %s
         ORDER BY fecha DESC
     """
@@ -180,7 +180,7 @@ def fetch_rechazos_pendientes_por_usuario(usuario, dias=10):
         FROM registro
         WHERE operador_cc ILIKE %s
           AND estado = 'N/A'
-          AND rechazados > '0'          # ← SOLO CAMBIA ESTO
+          AND rechazados > '0'          
           AND fecha >= %s
         ORDER BY fecha DESC
     """
