@@ -162,6 +162,7 @@ def fetch_rechazos_pendientes_por_usuario(usuario, dias=10):
     Versión simplificada: recibe el usuario y automáticamente busca su nombre.
     Esta es la que deberías usar desde Notificaciones.
     """
+    import streamlit as st 
     from datetime import datetime, timedelta
     
     # Paso 1: Obtener el nombre del usuario desde la tabla usuarios
