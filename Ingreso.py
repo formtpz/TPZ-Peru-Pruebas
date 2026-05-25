@@ -9,6 +9,7 @@ st.set_page_config(page_title="Formularios TPZ", page_icon=img, layout="wide")
 
 import Autenticacion
 import Procesos
+import Notificaciones  # <--- NUEVA IMPORTACIÓN
 
 hide_streamlit_style = """
                 <style>
@@ -61,6 +62,10 @@ iniciar_sesion_1 = placeholder4_1.button("Iniciar sesión", key="iniciar_sesion_
 
 if "Ingreso" not in st.session_state:
     st.session_state.Ingreso = False
+    
+# <--- NUEVA BANDERA PARA CONTROLAR NOTIFICACIONES --->
+if "notificaciones_mostradas" not in st.session_state:
+    st.session_state.notificaciones_mostradas = False
 
 
 def _inicializar_banderas():
@@ -113,14 +118,30 @@ if iniciar_sesion_1:
         else:
             if usuario_activo['contraseña'] == contraseña_1:
                 st.success(f"¡Saludos {usuario_activo['nombre']}!")
-
+                
+                # --- NUEVO: Mostrar notificaciones SIN INTERRUMPIR EL FLUJO ---
+                # Usamos un placeholder dinámico que se mostrará solo una vez
+                notificaciones_placeholder = st.empty()
+                
+                with notificaciones_placeholder.container():
+                    # Mostrar notificaciones de rechazos pendientes
+                    Notificaciones.mostrar_notificaciones_rechazos(usuario, usuario_activo['nombre'])
+                    
+                    # Pequeño separador visual
+                    st.markdown("---")
+                    st.info("ℹ️ **Nota:** Para volver a ver sus rechazos pendientes, simplemente cierre sesión y vuelva a ingresar.")
+                    st.markdown("---")
+                
+                # Limpiar el sidebar
                 placeholder1_1.empty()
                 placeholder2_1.empty()
                 placeholder3_1.empty()
                 placeholder4_1.empty()
 
+                # Inicializar banderas
                 _inicializar_banderas()
 
+                # Redirigir a procesos (el flujo continúa normalmente)
                 _redirigir_procesos(usuario, usuario_activo['puesto'], str(usuario_activo['perfil']))
                 pivot = pivot + 1
 
