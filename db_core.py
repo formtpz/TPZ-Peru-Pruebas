@@ -150,7 +150,7 @@ def fetch_rechazos_pendientes(identificador, tipo='nombre', dias=10):
         FROM registro
         WHERE operador_cc ILIKE %s
           AND estado = 'N/A'
-          AND COALESCE(rechazados, 0) > 0
+          AND rechazados > 0
           AND fecha >= %s
         ORDER BY fecha DESC
     """
