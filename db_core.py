@@ -104,17 +104,79 @@ def fetch_operadores_cc(filtro_proceso=None, filtro_subproceso=None, filtro_proc
     return df.to_dict('records') if not df.empty else []
 
 # Agregar al final de db_core.py
+# db_core.py - Versión que busca por usuario o por nombre
 
-# db_core.py - Función corregida para VARCHAR
-
-# db_core.py - VERSIÓN CORREGIDA
-
-def fetch_rechazos_pendientes(nombre_operador, dias=10):
+def fetch_rechazos_pendientes(identificador, tipo='nombre', dias=10):
     """
-    Obtiene los rechazos pendientes (estado = 'N/A') de los últimos N días.
+    Obtiene los rechazos pendientes para un operador.
+    
+    Args:
+        identificador: Puede ser el nombre O el usuario
+        tipo: 'nombre' o 'usuario' - indica qué columna buscar
+        dias: Número de días hacia atrás
     """
     from datetime import datetime, timedelta
     
+    fecha_limite = datetime.now() - timedelta(days=dias)
+    fecha_limite_str = fecha_limite.strftime('%Y-%m-%d')
+    
+    # Determinar por qué columna buscar
+    if tipo == 'usuario':
+        # Buscar por usuario - necesitamos obtener el nombre real del operador
+        query_nombre = """
+            SELECT nombre FROM usuarios WHERE usuario = %s AND estado = 'Activo'
+        """
+        df_nombre = fetch_df(query_nombre, params=[identificador])
+        if df_nombre.empty:
+            return pd.DataFrame()
+        nombre_buscar = df_nombre['nombre'].iloc[0]
+    else:
+        # Buscar directamente por nombre
+        nombre_buscar = identificador
+    
+    # Ahora buscar en registro por el nombre
+    query = """
+        SELECT 
+            id,
+            fecha,
+            proceso,
+            distrito,
+            manzana,
+            sector,
+            numero_lote,
+            rechazados,
+            tipo_de_errores,
+            estado
+        FROM registro
+        WHERE operador_cc ILIKE %s
+          AND estado = 'N/A'
+          AND COALESCE(rechazados, 0) > 0
+          AND fecha >= %s
+        ORDER BY fecha DESC
+    """
+    return fetch_df(query, params=[nombre_buscar, fecha_limite_str])
+
+
+def fetch_rechazos_pendientes_por_usuario(usuario, dias=10):
+    """
+    Versión simplificada: recibe el usuario y automáticamente busca su nombre.
+    Esta es la que deberías usar desde Notificaciones.
+    """
+    from datetime import datetime, timedelta
+    
+    # Paso 1: Obtener el nombre del usuario desde la tabla usuarios
+    query_nombre = """
+        SELECT nombre FROM usuarios WHERE usuario = %s AND estado = 'Activo'
+    """
+    df_nombre = fetch_df(query_nombre, params=[usuario])
+    
+    if df_nombre.empty:
+        st.warning(f"No se encontró el usuario '{usuario}' en la tabla de usuarios")
+        return pd.DataFrame()
+    
+    nombre_operador = df_nombre['nombre'].iloc[0]
+    
+    # Paso 2: Buscar rechazos por ese nombre
     fecha_limite = datetime.now() - timedelta(days=dias)
     fecha_limite_str = fecha_limite.strftime('%Y-%m-%d')
     
@@ -131,29 +193,56 @@ def fetch_rechazos_pendientes(nombre_operador, dias=10):
             tipo_de_errores,
             estado
         FROM registro
-        WHERE operador_cc = %s
-          AND estado = 'N/A'              # ← CORREGIDO: Solo pendientes
-          AND rechazados > 0               # ← Solo donde realmente hay rechazos
-          AND fecha >= %s                  # ← Últimos N días
+        WHERE operador_cc ILIKE %s
+          AND estado = 'N/A'
+          AND COALESCE(rechazados, 0) > 0
+          AND fecha >= %s
         ORDER BY fecha DESC
     """
-    return fetch_df(query, params=[nombre_operador, fecha_limite_str])
+    df_resultado = fetch_df(query, params=[nombre_operador, fecha_limite_str])
+    
+    # Diagnóstico silencioso (opcional)
+    if df_resultado.empty:
+        # Intentar búsqueda más flexible: cualquier coincidencia parcial
+        query_flexible = """
+            SELECT 
+                id,
+                fecha,
+                proceso,
+                distrito,
+                manzana,
+                sector,
+                numero_lote,
+                rechazados,
+                tipo_de_errores,
+                estado
+            FROM registro
+            WHERE operador_cc ILIKE %s
+              AND estado = 'N/A'
+              AND COALESCE(rechazados, 0) > 0
+              AND fecha >= %s
+            ORDER BY fecha DESC
+        """
+        # Buscar con porcentajes (ej: '%juan%' para encontrar 'juan perez')
+        nombre_parcial = f"%{nombre_operador}%"
+        df_resultado = fetch_df(query_flexible, params=[nombre_parcial, fecha_limite_str])
+    
+    return df_resultado
 
 
 def actualizar_estado_rechazo(id_registro, nuevo_estado):
     """
     Actualiza el estado de un registro específico.
-    Solo permite valores 'corregido'.
+    Solo permite 'corregido'
     """
-    estados_permitidos = ['corregido']
-    
-    if nuevo_estado not in estados_permitidos:
+    if nuevo_estado != 'corregido':
         return False
     
     query = """
         UPDATE registro
         SET estado = %s
         WHERE id = %s
+          AND estado = 'N/A'  # Solo actualizar si sigue pendiente
     """
     try:
         execute(query, params=[nuevo_estado, id_registro])
