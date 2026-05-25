@@ -9,7 +9,7 @@ st.set_page_config(page_title="Formularios TPZ", page_icon=img, layout="wide")
 
 import Autenticacion
 import Procesos
-import Notificaciones  # <--- NUEVA IMPORTACIÓN
+import Notificaciones
 
 hide_streamlit_style = """
                 <style>
@@ -44,28 +44,18 @@ hide_streamlit_style = """
                 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-# ----- Conexión, Botones y Memoria ---- #
-
-pivot = 0  # Se requiere para mantener las indicaciones generales en caso de errores de ingreso
-
-placeholder1_1 = st.sidebar.empty()
-titulo_1 = placeholder1_1.title("Ingreso")
-
-placeholder2_1 = st.sidebar.empty()
-usuario = placeholder2_1.text_input("Usuario", key="usuario")
-
-placeholder3_1 = st.sidebar.empty()
-contraseña_1 = placeholder3_1.text_input("Contraseña", type='password', key="contraseña_1")
-
-placeholder4_1 = st.sidebar.empty()
-iniciar_sesion_1 = placeholder4_1.button("Iniciar sesión", key="iniciar_sesion_1")
-
+# ----- Inicialización de estados ---- #
 if "Ingreso" not in st.session_state:
     st.session_state.Ingreso = False
-    
-# <--- NUEVA BANDERA PARA CONTROLAR NOTIFICACIONES --->
-if "notificaciones_mostradas" not in st.session_state:
-    st.session_state.notificaciones_mostradas = False
+
+if "paso_actual" not in st.session_state:
+    st.session_state.paso_actual = "login"  # login, notificaciones, procesos
+
+if "usuario_activo_cache" not in st.session_state:
+    st.session_state.usuario_activo_cache = None
+
+if "usuario_login_cache" not in st.session_state:
+    st.session_state.usuario_login_cache = None
 
 
 def _inicializar_banderas():
@@ -90,101 +80,157 @@ def _redirigir_procesos(usuario_login, puesto_login, perfil_login):
         Procesos.Procesos3(usuario_login, puesto_login)
 
 
-if st.session_state.Ingreso:
-    st.session_state.Ingreso = True
-    placeholder1_1.empty()
-    placeholder2_1.empty()
-    placeholder3_1.empty()
-    placeholder4_1.empty()
+# ==================== PANTALLA DE LOGIN ==================== #
+if st.session_state.paso_actual == "login":
+    
+    pivot = 0
+    
+    placeholder1_1 = st.sidebar.empty()
+    titulo_1 = placeholder1_1.title("Ingreso")
+    
+    placeholder2_1 = st.sidebar.empty()
+    usuario = placeholder2_1.text_input("Usuario", key="usuario_login")
+    
+    placeholder3_1 = st.sidebar.empty()
+    contraseña_1 = placeholder3_1.text_input("Contraseña", type='password', key="contraseña_1")
+    
+    placeholder4_1 = st.sidebar.empty()
+    iniciar_sesion_1 = placeholder4_1.button("Iniciar sesión", key="iniciar_sesion_1")
+    
+    # Si ya había ingresado antes (por si acaso)
+    if st.session_state.Ingreso:
+        st.session_state.Ingreso = True
+        placeholder1_1.empty()
+        placeholder2_1.empty()
+        placeholder3_1.empty()
+        placeholder4_1.empty()
+        
+        usuario_activo = Autenticacion.obtener_usuario_activo(usuario)
+        if usuario_activo:
+            _redirigir_procesos(usuario, usuario_activo['puesto'], str(usuario_activo['perfil']))
+            pivot = pivot + 1
+    
+    # Validación del login
+    if iniciar_sesion_1:
+        if usuario == '' or contraseña_1 == '':
+            st.error('Favor ingresar sus credenciales')
+        else:
+            usuario_activo = Autenticacion.obtener_usuario_activo(usuario)
+            
+            if not usuario_activo:
+                st.error('El usuario no existe, intente de nuevo')
+            else:
+                if usuario_activo['contraseña'] == contraseña_1:
+                    st.success(f"¡Saludos {usuario_activo['nombre']}!")
+                    
+                    # Limpiar sidebar
+                    placeholder1_1.empty()
+                    placeholder2_1.empty()
+                    placeholder3_1.empty()
+                    placeholder4_1.empty()
+                    
+                    # Guardar en sesión para el siguiente paso
+                    st.session_state.usuario_activo_cache = usuario_activo
+                    st.session_state.usuario_login_cache = usuario
+                    
+                    # Cambiar al paso de notificaciones
+                    st.session_state.paso_actual = "notificaciones"
+                    st.rerun()
+                    
+                else:
+                    st.error('Contraseña incorrecta, intente de nuevo')
+    
+    # Mensajes generales (solo si no hay login exitoso)
+    if pivot != 1 and st.session_state.paso_actual == "login":
+        try:
+            st.image(Image.open("logo.png"))
+        except:
+            st.image("logo.png")
+        
+        st.title("Telespazio Argentina S.A.")
+        st.header("Aplicación de uso exclusivo para el personal de Telespazio Argentina S.A.")
+        st.subheader("Proyecto Perú")
+        st.subheader("Para soporte técnico favor escribir a brayan.rojas@tpzcr.com")
 
-    usuario_activo = Autenticacion.obtener_usuario_activo(usuario)
+
+# ==================== PANTALLA DE NOTIFICACIONES ==================== #
+elif st.session_state.paso_actual == "notificaciones":
+    
+    usuario_activo = st.session_state.usuario_activo_cache
+    usuario = st.session_state.usuario_login_cache
+    
+    if usuario_activo:
+        
+        # Mostrar notificaciones de rechazos pendientes
+        Notificaciones.mostrar_notificaciones_rechazos(usuario, usuario_activo['nombre'])
+        
+        st.markdown("---")
+        
+        # Botones de acción
+        col1, col2, col3 = st.columns([1, 2, 1])
+        
+        with col2:
+            # Botón para continuar a procesos
+            if st.button("📊 Continuar a Procesos", type="primary", use_container_width=True):
+                _inicializar_banderas()
+                st.session_state.paso_actual = "procesos"
+                st.rerun()
+            
+            # Espacio entre botones
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Botón para cerrar sesión
+            if st.button("🚪 Cerrar Sesión", use_container_width=True):
+                # Limpiar estados
+                st.session_state.paso_actual = "login"
+                st.session_state.usuario_activo_cache = None
+                st.session_state.usuario_login_cache = None
+                st.session_state.Ingreso = False
+                st.rerun()
+    
+    else:
+        # Si no hay usuario activo, volver al login
+        st.session_state.paso_actual = "login"
+        st.rerun()
+
+
+# ==================== PANTALLA DE PROCESOS ==================== #
+elif st.session_state.paso_actual == "procesos":
+    
+    usuario_activo = st.session_state.usuario_activo_cache
+    usuario = st.session_state.usuario_login_cache
+    
     if usuario_activo:
         _redirigir_procesos(usuario, usuario_activo['puesto'], str(usuario_activo['perfil']))
-        pivot = pivot + 1
-
-# ----- Validación ---- #
-
-if iniciar_sesion_1:
-
-    if usuario == '' or contraseña_1 == '':
-        st.error('Favor ingresar sus credenciales')
-
     else:
-        usuario_activo = Autenticacion.obtener_usuario_activo(usuario)
+        # Si no hay usuario activo, volver al login
+        st.session_state.paso_actual = "login"
+        st.rerun()
 
-        if not usuario_activo:
-            st.error('El usuario no existe, intente de nuevo')
 
-        else:
-            if usuario_activo['contraseña'] == contraseña_1:
-                st.success(f"¡Saludos {usuario_activo['nombre']}!")
-                
-                # --- NUEVO: Mostrar notificaciones SIN INTERRUMPIR EL FLUJO ---
-                # Usamos un placeholder dinámico que se mostrará solo una vez
-                notificaciones_placeholder = st.empty()
-                
-                with notificaciones_placeholder.container():
-                    # Mostrar notificaciones de rechazos pendientes
-                    Notificaciones.mostrar_notificaciones_rechazos(usuario, usuario_activo['nombre'])
-                    
-                    # Pequeño separador visual
-                    st.markdown("---")
-                    st.info("ℹ️ **Nota:** Para volver a ver sus rechazos pendientes, simplemente cierre sesión y vuelva a ingresar.")
-                    st.markdown("---")
-                
-                # Limpiar el sidebar
-                placeholder1_1.empty()
-                placeholder2_1.empty()
-                placeholder3_1.empty()
-                placeholder4_1.empty()
-
-                # Inicializar banderas
-                _inicializar_banderas()
-
-                # Redirigir a procesos (el flujo continúa normalmente)
-                _redirigir_procesos(usuario, usuario_activo['puesto'], str(usuario_activo['perfil']))
-                pivot = pivot + 1
-
-            else:
-                st.error('Contraseña incorrecta, intente de nuevo')
-
-# ----- Mensajes Generales ---- #
-
-if pivot != 1:
-    st.image(Image.open("logo.png"))
-
-    st.title("Telespazio Argentina S.A.")
-
-    st.header("Aplicación de uso exclusivo para el personal de Telespazio Argentina S.A.")
-
-    st.subheader("Proyecto Perú")
-
-    st.subheader("Para soporte técnico favor escribir a brayan.rojas@tpzcr.com")
-
-# ----- Pie de Página ---- #
-
-footer = """
-    <style>
-    .footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background-color: #f1f1f1;
-        text-align: center;
-        padding: 2px;
-        font-size: 12px;
-        color: #555;
-     }
-     .footer a {
-        color: tomato;
-        text-decoration: none;
-        font-weight: bold;
-     }
-
-    </style>
-    <div class="footer">
-        <p>V.1.6 © 2025 Telespazio Argentina S.A. | <a href="https://www.telespazio.com/en" target="_blank">Visit our website</a></p>
-    </div>
-"""
-st.markdown(footer, unsafe_allow_html=True)
+# ==================== PIE DE PÁGINA (solo visible en login) ==================== #
+if st.session_state.paso_actual == "login":
+    footer = """
+        <style>
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #f1f1f1;
+            text-align: center;
+            padding: 2px;
+            font-size: 12px;
+            color: #555;
+         }
+         .footer a {
+            color: tomato;
+            text-decoration: none;
+            font-weight: bold;
+         }
+        </style>
+        <div class="footer">
+            <p>V.1.6 © 2025 Telespazio Argentina S.A. | <a href="https://www.telespazio.com/en" target="_blank">Visit our website</a></p>
+        </div>
+    """
+    st.markdown(footer, unsafe_allow_html=True)
