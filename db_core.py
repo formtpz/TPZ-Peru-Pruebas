@@ -102,3 +102,52 @@ def fetch_operadores_cc(filtro_proceso=None, filtro_subproceso=None, filtro_proc
     
     df = fetch_df(query, params=params)
     return df.to_dict('records') if not df.empty else []
+
+# Agregar al final de db_core.py
+
+def fetch_rechazos_pendientes(nombre_operador, dias=10):
+    """
+    Obtiene los rechazos pendientes para un operador en los últimos N días.
+    """
+    query = """
+        SELECT 
+            id,
+            fecha,
+            proceso,
+            distrito,
+            manzana,
+            sector,
+            numero_lote,
+            rechazados,
+            tipo_de_errores,
+            estado
+        FROM registro
+        WHERE operador_cc = %s
+          AND estado NOT IN ('N/A', 'corregido')
+          AND fecha >= CURRENT_DATE - INTERVAL '%s days'
+        ORDER BY fecha DESC
+    """
+    return fetch_df(query, params=[nombre_operador, dias])
+
+
+def actualizar_estado_rechazo(id_registro, nuevo_estado):
+    """
+    Actualiza el estado de un registro específico.
+    Solo permite valores 'corregido'.
+    """
+    estados_permitidos = ['corregido']
+    
+    if nuevo_estado not in estados_permitidos:
+        return False
+    
+    query = """
+        UPDATE registro
+        SET estado = %s
+        WHERE id = %s
+    """
+    try:
+        execute(query, params=[nuevo_estado, id_registro])
+        return True
+    except Exception as e:
+        print(f"Error al actualizar: {e}")
+        return False
