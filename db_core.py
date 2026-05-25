@@ -105,9 +105,12 @@ def fetch_operadores_cc(filtro_proceso=None, filtro_subproceso=None, filtro_proc
 
 # Agregar al final de db_core.py
 
+# db_core.py - Función corregida para VARCHAR
+
 def fetch_rechazos_pendientes(nombre_operador, dias=10):
     """
     Obtiene los rechazos pendientes para un operador en los últimos N días.
+    La columna fecha es VARCHAR en formato 'YYYY-MM-DD'
     """
     query = """
         SELECT 
@@ -124,7 +127,33 @@ def fetch_rechazos_pendientes(nombre_operador, dias=10):
         FROM registro
         WHERE operador_cc = %s
           AND estado NOT IN ('N/A', 'corregido')
-          AND fecha >= CURRENT_DATE - INTERVAL '%s days'
+          AND fecha >= TO_CHAR(CURRENT_DATE - INTERVAL '%s days', 'YYYY-MM-DD')
+        ORDER BY fecha DESC
+    """
+    return fetch_df(query, params=[nombre_operador, dias])
+
+
+def fetch_rechazos_pendientes_v2(nombre_operador, dias=10):
+    """
+    Versión alternativa si la anterior no funciona en PostgreSQL.
+    Convierte la fecha VARCHAR a DATE para la comparación.
+    """
+    query = """
+        SELECT 
+            id,
+            fecha,
+            proceso,
+            distrito,
+            manzana,
+            sector,
+            numero_lote,
+            rechazados,
+            tipo_de_errores,
+            estado
+        FROM registro
+        WHERE operador_cc = %s
+          AND estado NOT IN ('N/A', 'corregido')
+          AND fecha::DATE >= CURRENT_DATE - INTERVAL '%s days'
         ORDER BY fecha DESC
     """
     return fetch_df(query, params=[nombre_operador, dias])
