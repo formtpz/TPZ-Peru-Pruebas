@@ -107,11 +107,17 @@ def fetch_operadores_cc(filtro_proceso=None, filtro_subproceso=None, filtro_proc
 
 # db_core.py - Función corregida para VARCHAR
 
+# db_core.py - VERSIÓN CORREGIDA
+
 def fetch_rechazos_pendientes(nombre_operador, dias=10):
     """
-    Obtiene los rechazos pendientes para un operador en los últimos N días.
-    La columna fecha es VARCHAR en formato 'YYYY-MM-DD'
+    Obtiene los rechazos pendientes (estado = 'N/A') de los últimos N días.
     """
+    from datetime import datetime, timedelta
+    
+    fecha_limite = datetime.now() - timedelta(days=dias)
+    fecha_limite_str = fecha_limite.strftime('%Y-%m-%d')
+    
     query = """
         SELECT 
             id,
@@ -126,37 +132,12 @@ def fetch_rechazos_pendientes(nombre_operador, dias=10):
             estado
         FROM registro
         WHERE operador_cc = %s
-          AND estado NOT IN ('N/A', 'corregido')
-          AND fecha >= TO_CHAR(CURRENT_DATE - INTERVAL '%s days', 'YYYY-MM-DD')
+          AND estado = 'N/A'              # ← CORREGIDO: Solo pendientes
+          AND rechazados > 0               # ← Solo donde realmente hay rechazos
+          AND fecha >= %s                  # ← Últimos N días
         ORDER BY fecha DESC
     """
-    return fetch_df(query, params=[nombre_operador, dias])
-
-
-def fetch_rechazos_pendientes_v2(nombre_operador, dias=10):
-    """
-    Versión alternativa si la anterior no funciona en PostgreSQL.
-    Convierte la fecha VARCHAR a DATE para la comparación.
-    """
-    query = """
-        SELECT 
-            id,
-            fecha,
-            proceso,
-            distrito,
-            manzana,
-            sector,
-            numero_lote,
-            rechazados,
-            tipo_de_errores,
-            estado
-        FROM registro
-        WHERE operador_cc = %s
-          AND estado = 'N/A'
-          AND fecha::DATE >= CURRENT_DATE - INTERVAL '%s days'
-        ORDER BY fecha DESC
-    """
-    return fetch_df(query, params=[nombre_operador, dias])
+    return fetch_df(query, params=[nombre_operador, fecha_limite_str])
 
 
 def actualizar_estado_rechazo(id_registro, nuevo_estado):
