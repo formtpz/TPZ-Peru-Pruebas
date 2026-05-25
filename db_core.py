@@ -152,7 +152,7 @@ def fetch_rechazos_pendientes_v2(nombre_operador, dias=10):
             estado
         FROM registro
         WHERE operador_cc = %s
-          AND estado NOT IN ('corregido')
+          AND estado = 'N/A'
           AND fecha::DATE >= CURRENT_DATE - INTERVAL '%s days'
         ORDER BY fecha DESC
     """
