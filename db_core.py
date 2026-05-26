@@ -148,7 +148,7 @@ def fetch_rechazos_pendientes(identificador, tipo='nombre', dias=10):
     return fetch_df(query, params=[nombre_buscar, fecha_limite_str])
 
 
-def fetch_rechazos_pendientes_por_usuario(usuario, dias=2):
+def fetch_rechazos_pendientes_por_usuario(usuario, dias=10):
     """Versión simplificada que usa el usuario"""
     from datetime import datetime, timedetime
     
