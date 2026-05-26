@@ -106,6 +106,11 @@ def Otros_Registros(usuario, puesto):
     horas_13 = 0.0
     observaciones_13 = ""
     data_historial = pd.DataFrame()
+    
+    # Variables para filtros
+    fecha_inicio_val = default_date
+    fecha_fin_val = default_date
+    filtro_val = "Todos"
 
     # ---------------------------
     # PERFIL COORDINADOR / SUPERVISOR
@@ -195,6 +200,7 @@ def Otros_Registros(usuario, puesto):
             if not personal_13:
                 st.error("Favor ingresar el nombre de alguna persona")
             else:
+                # Procesar cada persona seleccionada
                 for nombre in personal_13:
                     marca = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
                     persona = fetch_one(
@@ -202,6 +208,7 @@ def Otros_Registros(usuario, puesto):
                         params=[nombre]
                     )
                     if not persona:
+                        st.warning(f"No se encontró información para {nombre}")
                         continue
 
                     execute(
@@ -217,8 +224,21 @@ def Otros_Registros(usuario, puesto):
                             fecha_13, motivo_13, horas_13, observaciones_13, nombre_13, float(horas_13)
                         ]
                     )
-                st.success("Registro enviado correctamente")
-                st.rerun()
+                
+                # Mostrar mensaje de éxito con toast
+                st.toast(f"✅ Registro enviado correctamente para {len(personal_13)} persona(s)", icon="✅")
+                
+                # Recargar el historial automáticamente
+                data_historial = cargar_historial_otros(
+                    filtro_val, fecha_inicio_val, fecha_fin_val, usuario, nombre_13
+                )
+                
+                # Limpiar el formulario (opcional)
+                # Nota: Los placeholders no se pueden limpiar directamente sin rerun
+                # pero podemos resetear las variables
+                personal_13 = []
+                horas_13 = 0.0
+                observaciones_13 = ""
 
     # ---------------------------
     # PERFIL OPERARIO / PROFESIONAL JURÍDICO / QC
