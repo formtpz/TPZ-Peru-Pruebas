@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import time
 from db_core import fetch_rechazos_pendientes, actualizar_estado_rechazo
 
 
@@ -13,9 +14,30 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
     # Obtener rechazos pendientes
     df_rechazos = fetch_rechazos_pendientes(nombre_operador, dias=10)
     
+    # Si NO hay rechazos: auto-avance con contador
     if df_rechazos.empty:
-        st.success("✅ ¡Inicio de sesión exitoso!. Seleccione continuar para abrir la aplicación")
+        st.success("✅ ¡Inicio de sesión exitoso! Redirigiendo a la aplicación...")
+        
+        # Crear placeholder para el contador
+        placeholder = st.empty()
+        
+        # Contador regresivo
+        for i in range(3, 0, -1):
+            placeholder.info(f"⏳ Abriendo aplicación en {i} segundo{'s' if i > 1 else ''}...")
+            time.sleep(1)
+        
+        placeholder.success("🚀 ¡Redirigiendo ahora!")
+        time.sleep(0.5)
+        
+        # Limpiar y continuar
+        placeholder.empty()
+        st.session_state['auto_redirect'] = True
+        st.rerun()
         return
+    
+    # ==========================================
+    # Si HAY rechazos: mostrar todo normalmente
+    # ==========================================
     
     # Contar total de rechazos
     total_rechazos = df_rechazos['rechazados'].sum() if 'rechazados' in df_rechazos.columns else len(df_rechazos)
@@ -117,6 +139,7 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
             if actualizar_estado_rechazo(id_a_corregir, 'corregido'):
                 st.success(f"✅ ¡Rechazo ID {id_a_corregir} marcado como corregido!")
                 st.balloons()
+                time.sleep(1)  # Pequeña pausa para ver el mensaje
                 st.rerun()
             else:
                 st.error("❌ No se pudo actualizar. Intente nuevamente.")
