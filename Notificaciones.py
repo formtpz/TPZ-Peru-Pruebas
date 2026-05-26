@@ -14,7 +14,7 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
     df_rechazos = fetch_rechazos_pendientes(nombre_operador, dias=10)
     
     if df_rechazos.empty:
-        st.success("✅ ¡No tienes rechazos pendientes en los últimos 10 días!")
+        st.success("✅ ¡Inicio de sesión exitoso!. Seleccione continuar para abrir la aplicación")
         return
     
     # Contar total de rechazos
