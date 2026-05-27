@@ -82,14 +82,6 @@ def _redirigir_procesos(usuario_login, puesto_login, perfil_login):
         st.write(f"👤 **Usuario:** {usuario_login}")
         st.write(f"💼 **Puesto:** {puesto_login}")
         st.markdown("---")
-        
-        # Botón de cerrar sesión
-        if st.button("🚪 Cerrar Sesión", type="secondary", use_container_width=True):
-            st.session_state.paso_actual = "login"
-            st.session_state.usuario_activo_cache = None
-            st.session_state.usuario_login_cache = None
-            st.session_state.Ingreso = False
-            st.rerun()
     
     # Redirigir según perfil
     if perfil_login == "1":
@@ -198,31 +190,17 @@ elif st.session_state.paso_actual == "notificaciones":
             time.sleep(0.5)  # Pequeña pausa para que se vea el mensaje
             st.rerun()
         
-        # Si hay rechazos, mostrar los botones de acción
+        # Si hay rechazos, mostrar solo el botón para continuar
         else:
             st.markdown("---")
             
-            # Botones de acción
+            # Botón para continuar a procesos centrado
             col1, col2, col3 = st.columns([1, 2, 1])
             
             with col2:
-                # Botón para continuar a procesos (aunque haya rechazos)
-                if st.button("📊 Continuar a Procesos sin corregir", type="primary", use_container_width=True):
-                    st.warning("⚠️ Recuerda que tienes rechazos pendientes por corregir")
+                if st.button("📊 Continuar a Procesos", type="primary", use_container_width=True):
                     _inicializar_banderas()
                     st.session_state.paso_actual = "procesos"
-                    st.rerun()
-                
-                # Espacio entre botones
-                st.markdown("<br>", unsafe_allow_html=True)
-                
-                # Botón para cerrar sesión
-                if st.button("🚪 Cerrar Sesión", use_container_width=True):
-                    # Limpiar estados
-                    st.session_state.paso_actual = "login"
-                    st.session_state.usuario_activo_cache = None
-                    st.session_state.usuario_login_cache = None
-                    st.session_state.Ingreso = False
                     st.rerun()
     
     else:
