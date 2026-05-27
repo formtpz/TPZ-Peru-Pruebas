@@ -73,12 +73,34 @@ def _inicializar_banderas():
 
 
 def _redirigir_procesos(usuario_login, puesto_login, perfil_login):
+    """
+    Redirige a la pantalla de procesos según el perfil del usuario
+    """
+    # Mostrar información del usuario en sidebar
+    with st.sidebar:
+        st.markdown("---")
+        st.write(f"👤 **Usuario:** {usuario_login}")
+        st.write(f"💼 **Puesto:** {puesto_login}")
+        st.markdown("---")
+        
+        # Botón de cerrar sesión
+        if st.button("🚪 Cerrar Sesión", type="secondary", use_container_width=True):
+            st.session_state.paso_actual = "login"
+            st.session_state.usuario_activo_cache = None
+            st.session_state.usuario_login_cache = None
+            st.session_state.Ingreso = False
+            st.rerun()
+    
+    # Redirigir según perfil
     if perfil_login == "1":
         Procesos.Procesos1(usuario_login, puesto_login)
     elif perfil_login == "2":
         Procesos.Procesos2(usuario_login, puesto_login)
     elif perfil_login == "3":
         Procesos.Procesos3(usuario_login, puesto_login)
+    else:
+        st.error(f"❌ Perfil no reconocido: {perfil_login}")
+        st.info("Contacta al administrador del sistema")
 
 
 # ==================== PANTALLA DE LOGIN ==================== #
@@ -154,8 +176,6 @@ if st.session_state.paso_actual == "login":
         st.subheader("Para soporte técnico favor escribir a brayan.rojas@tpzcr.com")
 
 
-
-# ==================== PANTALLA DE NOTIFICACIONES ==================== #
 # ==================== PANTALLA DE NOTIFICACIONES ==================== #
 elif st.session_state.paso_actual == "notificaciones":
     
@@ -164,22 +184,15 @@ elif st.session_state.paso_actual == "notificaciones":
     
     if usuario_activo:
         
-        # DEBUG
-        print(f"DEBUG - Entrando a notificaciones para usuario: {usuario}")
-        print(f"DEBUG - Usuario activo: {usuario_activo}")
-        
         # Mostrar notificaciones de rechazos pendientes
-        # Esta función ahora retorna True si debe redirigir automáticamente
+        # Esta función retorna True si debe redirigir automáticamente
         redirigir_automatico = Notificaciones.mostrar_notificaciones_rechazos(
             usuario, 
             usuario_activo['nombre']
         )
         
-        print(f"DEBUG - ¿Redirigir automático?: {redirigir_automatico}")
-        
         # Si no hay rechazos, redirigir automáticamente a procesos
         if redirigir_automatico:
-            print("DEBUG - Redirigiendo a procesos...")
             _inicializar_banderas()
             st.session_state.paso_actual = "procesos"
             time.sleep(0.5)  # Pequeña pausa para que se vea el mensaje
@@ -187,7 +200,6 @@ elif st.session_state.paso_actual == "notificaciones":
         
         # Si hay rechazos, mostrar los botones de acción
         else:
-            print("DEBUG - Mostrando panel de rechazos con botones")
             st.markdown("---")
             
             # Botones de acción
@@ -215,9 +227,24 @@ elif st.session_state.paso_actual == "notificaciones":
     
     else:
         # Si no hay usuario activo, volver al login
-        print("DEBUG - No hay usuario activo, volviendo a login")
         st.session_state.paso_actual = "login"
         st.rerun()
+
+
+# ==================== PANTALLA DE PROCESOS ==================== #
+elif st.session_state.paso_actual == "procesos":
+    
+    usuario_activo = st.session_state.usuario_activo_cache
+    usuario = st.session_state.usuario_login_cache
+    
+    if usuario_activo:
+        _redirigir_procesos(usuario, usuario_activo['puesto'], str(usuario_activo['perfil']))
+    else:
+        # Si no hay usuario activo, volver al login
+        st.session_state.paso_actual = "login"
+        st.rerun()
+
+
 # ==================== PIE DE PÁGINA (solo visible en login) ==================== #
 if st.session_state.paso_actual == "login":
     footer = """
