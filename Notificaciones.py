@@ -48,10 +48,10 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
         <h2 style="color: #e65100; margin: 0 0 10px 0;">⚠️ Rechazos Pendientes por Corregir</h2>
         <p style="color: #333; font-size: 16px; margin: 0;">
             Tienes <strong style="color: #d32f2f;">{len(df_rechazos)} rechazo(s)</strong> sin corregir | 
-            Total unidades rechazadas: <strong style="color: #d32f2f;">{total_rechazos}</strong>
+            Total rechazos: <strong style="color: #d32f2f;">{total_rechazos}</strong>
         </p>
         <p style="color: #666; font-size: 14px; margin: 10px 0 0 0;">
-            ⚡ Debes corregirlos en el sistema de origen para que se actualicen aquí
+            ⚡ Debes corregirlos y posterior venir a marcarlos como corregidos para que se actualicen aquí
         </p>
     </div>
     """, unsafe_allow_html=True)
