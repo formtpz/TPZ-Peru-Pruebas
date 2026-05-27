@@ -35,7 +35,7 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
     # ==========================================
     
     # Contar total de rechazos
-    total_rechazos = df_rechazos['rechazados'].sum() if 'rechazados' in df_rechazos.columns else len(df_rechazos)
+    total_rechazos = pd.to_numeric(df_rechazos['rechazados'], errors='coerce').fillna(0).sum() if 'rechazados' in df_rechazos.columns else len(df_rechazos)
     
     # Mostrar encabezado mejorado
     st.markdown(f"""
