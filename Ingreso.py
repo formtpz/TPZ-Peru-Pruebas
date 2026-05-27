@@ -155,12 +155,17 @@ if st.session_state.paso_actual == "login":
 
 
 # ==================== PANTALLA DE NOTIFICACIONES ==================== #
+# ==================== PANTALLA DE NOTIFICACIONES ==================== #
 elif st.session_state.paso_actual == "notificaciones":
     
     usuario_activo = st.session_state.usuario_activo_cache
     usuario = st.session_state.usuario_login_cache
     
     if usuario_activo:
+        
+        # DEBUG
+        print(f"DEBUG - Entrando a notificaciones para usuario: {usuario}")
+        print(f"DEBUG - Usuario activo: {usuario_activo}")
         
         # Mostrar notificaciones de rechazos pendientes
         # Esta función ahora retorna True si debe redirigir automáticamente
@@ -169,14 +174,19 @@ elif st.session_state.paso_actual == "notificaciones":
             usuario_activo['nombre']
         )
         
+        print(f"DEBUG - ¿Redirigir automático?: {redirigir_automatico}")
+        
         # Si no hay rechazos, redirigir automáticamente a procesos
         if redirigir_automatico:
+            print("DEBUG - Redirigiendo a procesos...")
             _inicializar_banderas()
             st.session_state.paso_actual = "procesos"
+            time.sleep(0.5)  # Pequeña pausa para que se vea el mensaje
             st.rerun()
         
         # Si hay rechazos, mostrar los botones de acción
         else:
+            print("DEBUG - Mostrando panel de rechazos con botones")
             st.markdown("---")
             
             # Botones de acción
@@ -204,6 +214,7 @@ elif st.session_state.paso_actual == "notificaciones":
     
     else:
         # Si no hay usuario activo, volver al login
+        print("DEBUG - No hay usuario activo, volviendo a login")
         st.session_state.paso_actual = "login"
         st.rerun()
 # ==================== PIE DE PÁGINA (solo visible en login) ==================== #
