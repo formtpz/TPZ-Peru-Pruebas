@@ -106,9 +106,6 @@ def Otros_Registros(usuario, puesto):
     horas_13 = 0.0
     observaciones_13 = ""
     data_historial = pd.DataFrame()
-    
-    # Variable para controlar mensaje de éxito
-    registro_exitoso = False
 
     # ---------------------------
     # PERFIL COORDINADOR / SUPERVISOR
@@ -163,10 +160,14 @@ def Otros_Registros(usuario, puesto):
         placeholders_contenido.append(ph_reporte)
         reporte_btn = ph_reporte.button("Generar Reporte", key="reporte_13")
         
-        # Procesar el reporte AQUÍ mismo, antes de crear nuevos placeholders
+        # Placeholder para el mensaje de éxito/error (justo debajo del botón)
+        ph_mensaje = st.empty()
+        placeholders_contenido.append(ph_mensaje)
+        
+        # Procesar el reporte cuando se presiona el botón
         if reporte_btn:
             if not personal_13:
-                st.error("Favor ingresar el nombre de alguna persona")
+                ph_mensaje.error("Favor ingresar el nombre de alguna persona")
             else:
                 try:
                     for nombre in personal_13:
@@ -191,9 +192,13 @@ def Otros_Registros(usuario, puesto):
                                 fecha_13, motivo_13, horas_13, observaciones_13, nombre_13, float(horas_13)
                             ]
                         )
-                    registro_exitoso = True
+                    ph_mensaje.success("✅ Registro enviado correctamente")
+                    # Opcional: limpiar campos después del éxito
+                    # personal_13 = []
+                    # horas_13 = 0.0
+                    # observaciones_13 = ""
                 except Exception as e:
-                    st.error(f"Error al guardar: {str(e)}")
+                    ph_mensaje.error(f"❌ Error al guardar: {str(e)}")
 
         ph_separador = st.empty()
         placeholders_contenido.append(ph_separador)
@@ -252,13 +257,6 @@ def Otros_Registros(usuario, puesto):
             params=[usuario, fecha_inicio_val, fecha_fin_val]
         )
 
-    # Mostrar mensaje de éxito después de procesar el reporte
-    if registro_exitoso:
-        st.success("Registro enviado correctamente")
-        # No uses st.rerun() aquí si quieres que el mensaje se vea
-        # En su lugar, podemos limpiar los campos después de un tiempo
-        # o simplemente dejar el mensaje visible
-        
     # Mostrar DataFrame de historial
     ph_dataframe = st.empty()
     placeholders_contenido.append(ph_dataframe)
