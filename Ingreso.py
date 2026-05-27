@@ -1,6 +1,7 @@
 # ----- Librerías ---- #
 import streamlit as st
 from PIL import Image
+import time
 
 # IMPORTANTE:
 # `st.set_page_config(...)` debe ejecutarse antes de cualquier otro comando de Streamlit.
