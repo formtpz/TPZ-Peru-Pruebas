@@ -8,36 +8,34 @@ from db_core import fetch_rechazos_pendientes, actualizar_estado_rechazo
 
 def mostrar_notificaciones_rechazos(usuario, nombre_operador):
     """
-    Muestra panel de rechazos pendientes o redirige directamente a procesos.
-    Retorna True si debe redirigir a procesos, False si el usuario está en el panel.
+    Muestra panel de rechazos pendientes.
+    Retorna:
+        - True: si NO hay rechazos (redirigir automáticamente a procesos)
+        - False: si HAY rechazos (el usuario debe interactuar con el panel)
     """
     
     # Obtener rechazos pendientes
     df_rechazos = fetch_rechazos_pendientes(nombre_operador, dias=10)
     
     # ==========================================
-    # CASO 1: NO HAY RECHAZOS - Redirección directa
+    # CASO 1: NO HAY RECHAZOS - Redirección automática
     # ==========================================
     if df_rechazos.empty:
-        st.success("✅ ¡Inicio de sesión exitoso!")
-        
-        # Mensaje breve y redirección inmediata
-        with st.spinner("🚀 Accediendo a la aplicación..."):
-            time.sleep(0.5)  # Solo para dar feedback visual mínimo
-        
-        # Marcar sesión como lista para procesos
-        st.session_state['pantalla_actual'] = 'procesos'
-        st.rerun()
-        return True  # Redirección exitosa
+        # Mostrar mensaje breve y redirigir automáticamente
+        mensaje = st.empty()
+        mensaje.success("✅ ¡Inicio de sesión exitoso! Accediendo a la aplicación...")
+        time.sleep(1.5)  # Solo para dar feedback visual
+        mensaje.empty()
+        return True  # Señal para redirigir a procesos
     
     # ==========================================
-    # CASO 2: HAY RECHAZOS - Mostrar panel
+    # CASO 2: HAY RECHAZOS - Mostrar panel interactivo
     # ==========================================
     
     # Contar total de rechazos
     total_rechazos = df_rechazos['rechazados'].sum() if 'rechazados' in df_rechazos.columns else len(df_rechazos)
     
-    # Mostrar encabezado con diseño mejorado
+    # Mostrar encabezado mejorado
     st.markdown(f"""
     <div style="background: linear-gradient(135deg, #fff3e0, #ffe0b2); 
                 padding: 20px; 
@@ -45,13 +43,13 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
                 margin-bottom: 25px;
                 border-left: 5px solid #ff6f00;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <h2 style="color: #e65100; margin: 0 0 10px 0;">⚠️ Rechazos Pendientes</h2>
+        <h2 style="color: #e65100; margin: 0 0 10px 0;">⚠️ Rechazos Pendientes por Corregir</h2>
         <p style="color: #333; font-size: 16px; margin: 0;">
             Tienes <strong style="color: #d32f2f;">{len(df_rechazos)} rechazo(s)</strong> sin corregir | 
-            Total unidades: <strong style="color: #d32f2f;">{total_rechazos}</strong>
+            Total unidades rechazadas: <strong style="color: #d32f2f;">{total_rechazos}</strong>
         </p>
         <p style="color: #666; font-size: 14px; margin: 10px 0 0 0;">
-            ⚡ Debes corregirlos en el sistema de origen para continuar
+            ⚡ Debes corregirlos en el sistema de origen para que se actualicen aquí
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -59,8 +57,9 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
     # Crear copia para mostrar
     df_display = df_rechazos.copy()
     
-    # Formatear fechas (tu función original está bien)
+    # Formatear fechas
     def formatear_fecha(fecha_valor):
+        """Convierte fecha en formato 'YYYY-MM-DD' a 'DD/MM/YYYY'"""
         try:
             if hasattr(fecha_valor, 'strftime'):
                 return fecha_valor.strftime('%d/%m/%Y')
@@ -77,7 +76,7 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
     
     df_display['fecha_display'] = df_display['fecha'].apply(formatear_fecha)
     
-    # Renombrar columnas para mejor visualización
+    # Renombrar columnas
     df_display = df_display.rename(columns={
         'id': 'ID',
         'fecha_display': 'Fecha',
@@ -90,7 +89,7 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
         'tipo_de_errores': 'Tipos de Error'
     })
     
-    # Mostrar tabla con estilo mejorado
+    # Mostrar tabla
     columnas_mostrar = ['ID', 'Fecha', 'Proceso', 'Distrito', 'Manzana', 'Sector', 'Lote', 'Cant. Rechazos', 'Tipos de Error']
     columnas_existentes = [col for col in columnas_mostrar if col in df_display.columns]
     
@@ -104,10 +103,10 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
     
     st.divider()
     
-    # Sección para marcar como corregido (mejorada)
-    st.markdown("### ✅ Marcar como Corregido")
+    # Sección para marcar como corregido
+    st.markdown("### ✅ Marcar Rechazo como Corregido")
     
-    col1, col2, col3 = st.columns([3, 1, 1])
+    col1, col2 = st.columns([3, 1])
     
     with col1:
         opciones_ids = df_rechazos['id'].tolist()
@@ -123,7 +122,7 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
                 return f"ID {x} - {fecha_corta} - {row['distrito']} - Lote {row['numero_lote']} ({row['rechazados']} rech.)"
             
             id_a_corregir = st.selectbox(
-                "Selecciona el rechazo corregido:",
+                "Selecciona el rechazo que ya fue corregido:",
                 options=opciones_ids,
                 format_func=format_id_option,
                 key="select_rechazo"
@@ -133,33 +132,27 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
             st.success("🎉 ¡Todos los rechazos han sido corregidos!")
     
     with col2:
-        if id_a_corregir and st.button("✓ Corregido", type="primary", use_container_width=True, key="btn_corregir"):
+        st.markdown("<br>", unsafe_allow_html=True)  # Espacio para alinear
+        if id_a_corregir and st.button("✓ Marcar como Corregido", type="primary", use_container_width=True, key="btn_corregir"):
             if actualizar_estado_rechazo(id_a_corregir, 'corregido'):
                 st.success(f"✅ ¡Rechazo ID {id_a_corregir} marcado como corregido!")
                 st.balloons()
                 time.sleep(0.8)
                 
-                # Verificar si ya no hay más rechazos
+                # Verificar si ya no hay más rechazos después de esta corrección
                 df_check = fetch_rechazos_pendientes(nombre_operador, dias=10)
                 if df_check.empty:
-                    st.success("🎊 ¡Todos los rechazos corregidos! Accediendo a la aplicación...")
+                    st.success("🎊 ¡Todos los rechazos han sido corregidos! Accediendo a procesos...")
                     time.sleep(1)
-                    st.session_state['pantalla_actual'] = 'procesos'
-                    st.rerun()
+                    return True  # Señal para redirigir a procesos
                 else:
                     st.rerun()
             else:
                 st.error("❌ Error al actualizar. Intenta nuevamente.")
     
-    with col3:
-        if st.button("Continuar sin corregir →", type="secondary", use_container_width=True, key="btn_continuar"):
-            st.warning("⚠️ Recuerda corregir los rechazos pendientes")
-            st.session_state['pantalla_actual'] = 'procesos'
-            st.rerun()
-    
-    # Panel de detalles expandible
+    # Mostrar detalles del seleccionado en un expander
     if id_a_corregir:
-        with st.expander("📌 Detalles del rechazo seleccionado", expanded=True):
+        with st.expander("📌 Ver detalles del rechazo seleccionado", expanded=True):
             registro = df_rechazos[df_rechazos['id'] == id_a_corregir].iloc[0]
             fecha_original = registro['fecha']
             if isinstance(fecha_original, str) and '-' in fecha_original:
@@ -180,4 +173,4 @@ def mostrar_notificaciones_rechazos(usuario, nombre_operador):
             
             st.error(f"**Errores detectados:** {registro['tipo_de_errores']}")
     
-    return False  # El usuario está en el panel de rechazos
+    return False  # El usuario debe permanecer en el panel de notificaciones
