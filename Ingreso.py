@@ -153,6 +153,7 @@ if st.session_state.paso_actual == "login":
         st.subheader("Para soporte técnico favor escribir a brayan.rojas@tpzcr.com")
 
 
+
 # ==================== PANTALLA DE NOTIFICACIONES ==================== #
 elif st.session_state.paso_actual == "notificaciones":
     
@@ -162,52 +163,49 @@ elif st.session_state.paso_actual == "notificaciones":
     if usuario_activo:
         
         # Mostrar notificaciones de rechazos pendientes
-        Notificaciones.mostrar_notificaciones_rechazos(usuario, usuario_activo['nombre'])
+        # Esta función ahora retorna True si debe redirigir automáticamente
+        redirigir_automatico = Notificaciones.mostrar_notificaciones_rechazos(
+            usuario, 
+            usuario_activo['nombre']
+        )
         
-        st.markdown("---")
+        # Si no hay rechazos, redirigir automáticamente a procesos
+        if redirigir_automatico:
+            _inicializar_banderas()
+            st.session_state.paso_actual = "procesos"
+            st.rerun()
         
-        # Botones de acción
-        col1, col2, col3 = st.columns([1, 2, 1])
-        
-        with col2:
-            # Botón para continuar a procesos
-            if st.button("📊 Continuar a Procesos", type="primary", use_container_width=True):
-                _inicializar_banderas()
-                st.session_state.paso_actual = "procesos"
-                st.rerun()
+        # Si hay rechazos, mostrar los botones de acción
+        else:
+            st.markdown("---")
             
-            # Espacio entre botones
-            st.markdown("<br>", unsafe_allow_html=True)
+            # Botones de acción
+            col1, col2, col3 = st.columns([1, 2, 1])
             
-            # Botón para cerrar sesión
-            if st.button("🚪 Cerrar Sesión", use_container_width=True):
-                # Limpiar estados
-                st.session_state.paso_actual = "login"
-                st.session_state.usuario_activo_cache = None
-                st.session_state.usuario_login_cache = None
-                st.session_state.Ingreso = False
-                st.rerun()
+            with col2:
+                # Botón para continuar a procesos (aunque haya rechazos)
+                if st.button("📊 Continuar a Procesos sin corregir", type="primary", use_container_width=True):
+                    st.warning("⚠️ Recuerda que tienes rechazos pendientes por corregir")
+                    _inicializar_banderas()
+                    st.session_state.paso_actual = "procesos"
+                    st.rerun()
+                
+                # Espacio entre botones
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Botón para cerrar sesión
+                if st.button("🚪 Cerrar Sesión", use_container_width=True):
+                    # Limpiar estados
+                    st.session_state.paso_actual = "login"
+                    st.session_state.usuario_activo_cache = None
+                    st.session_state.usuario_login_cache = None
+                    st.session_state.Ingreso = False
+                    st.rerun()
     
     else:
         # Si no hay usuario activo, volver al login
         st.session_state.paso_actual = "login"
         st.rerun()
-
-
-# ==================== PANTALLA DE PROCESOS ==================== #
-elif st.session_state.paso_actual == "procesos":
-    
-    usuario_activo = st.session_state.usuario_activo_cache
-    usuario = st.session_state.usuario_login_cache
-    
-    if usuario_activo:
-        _redirigir_procesos(usuario, usuario_activo['puesto'], str(usuario_activo['perfil']))
-    else:
-        # Si no hay usuario activo, volver al login
-        st.session_state.paso_actual = "login"
-        st.rerun()
-
-
 # ==================== PIE DE PÁGINA (solo visible en login) ==================== #
 if st.session_state.paso_actual == "login":
     footer = """
