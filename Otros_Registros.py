@@ -107,10 +107,8 @@ def Otros_Registros(usuario, puesto):
     observaciones_13 = ""
     data_historial = pd.DataFrame()
     
-    # Variables para filtros
-    fecha_inicio_val = default_date
-    fecha_fin_val = default_date
-    filtro_val = "Todos"
+    # Variable para controlar mensaje de éxito
+    registro_exitoso = False
 
     # ---------------------------
     # PERFIL COORDINADOR / SUPERVISOR
@@ -164,6 +162,38 @@ def Otros_Registros(usuario, puesto):
         ph_reporte = st.empty()
         placeholders_contenido.append(ph_reporte)
         reporte_btn = ph_reporte.button("Generar Reporte", key="reporte_13")
+        
+        # Procesar el reporte AQUÍ mismo, antes de crear nuevos placeholders
+        if reporte_btn:
+            if not personal_13:
+                st.error("Favor ingresar el nombre de alguna persona")
+            else:
+                try:
+                    for nombre in personal_13:
+                        marca = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
+                        persona = fetch_one(
+                            "SELECT usuario, puesto, supervisor FROM usuarios WHERE nombre = %s LIMIT 1",
+                            params=[nombre]
+                        )
+                        if not persona:
+                            continue
+
+                        execute(
+                            """
+                            INSERT INTO otros_registros (
+                                marca, usuario, nombre, puesto, supervisor,
+                                fecha, motivo, horas, observaciones, reporte, horas_bi
+                            )
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """,
+                            params=[
+                                marca, persona["usuario"], nombre, persona["puesto"], persona["supervisor"],
+                                fecha_13, motivo_13, horas_13, observaciones_13, nombre_13, float(horas_13)
+                            ]
+                        )
+                    registro_exitoso = True
+                except Exception as e:
+                    st.error(f"Error al guardar: {str(e)}")
 
         ph_separador = st.empty()
         placeholders_contenido.append(ph_separador)
@@ -195,51 +225,6 @@ def Otros_Registros(usuario, puesto):
             filtro_val, fecha_inicio_val, fecha_fin_val, usuario, nombre_13
         )
 
-        # Acción de reporte
-        if reporte_btn:
-            if not personal_13:
-                st.error("Favor ingresar el nombre de alguna persona")
-            else:
-                # Procesar cada persona seleccionada
-                for nombre in personal_13:
-                    marca = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
-                    persona = fetch_one(
-                        "SELECT usuario, puesto, supervisor FROM usuarios WHERE nombre = %s LIMIT 1",
-                        params=[nombre]
-                    )
-                    if not persona:
-                        st.warning(f"No se encontró información para {nombre}")
-                        continue
-
-                    execute(
-                        """
-                        INSERT INTO otros_registros (
-                            marca, usuario, nombre, puesto, supervisor,
-                            fecha, motivo, horas, observaciones, reporte, horas_bi
-                        )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        params=[
-                            marca, persona["usuario"], nombre, persona["puesto"], persona["supervisor"],
-                            fecha_13, motivo_13, horas_13, observaciones_13, nombre_13, float(horas_13)
-                        ]
-                    )
-                
-                # Mostrar mensaje de éxito con toast
-                st.toast(f"✅ Registro enviado correctamente para {len(personal_13)} persona(s)", icon="✅")
-                
-                # Recargar el historial automáticamente
-                data_historial = cargar_historial_otros(
-                    filtro_val, fecha_inicio_val, fecha_fin_val, usuario, nombre_13
-                )
-                
-                # Limpiar el formulario (opcional)
-                # Nota: Los placeholders no se pueden limpiar directamente sin rerun
-                # pero podemos resetear las variables
-                personal_13 = []
-                horas_13 = 0.0
-                observaciones_13 = ""
-
     # ---------------------------
     # PERFIL OPERARIO / PROFESIONAL JURÍDICO / QC
     # ---------------------------
@@ -267,6 +252,13 @@ def Otros_Registros(usuario, puesto):
             params=[usuario, fecha_inicio_val, fecha_fin_val]
         )
 
+    # Mostrar mensaje de éxito después de procesar el reporte
+    if registro_exitoso:
+        st.success("Registro enviado correctamente")
+        # No uses st.rerun() aquí si quieres que el mensaje se vea
+        # En su lugar, podemos limpiar los campos después de un tiempo
+        # o simplemente dejar el mensaje visible
+        
     # Mostrar DataFrame de historial
     ph_dataframe = st.empty()
     placeholders_contenido.append(ph_dataframe)
