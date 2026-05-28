@@ -18,7 +18,7 @@ def limpiar_placeholders(lista_placeholders):
 def navegar_a_procesos(usuario, puesto):
     """Determina el perfil y redirige a la función correspondiente de Procesos."""
     usuario_activo = fetch_one(
-        "SELECT perfil FROM public.usuarios WHERE usuario = %s",
+        "SELECT perfil FROM usuarios WHERE usuario = %s",
         params=[usuario]
     )
     perfil = str(usuario_activo["perfil"]) if usuario_activo else "1"
@@ -59,6 +59,44 @@ def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usua
     elif filtro == "Reportados":
         query = base_query + " AND reporte = %s"
         params.append(nombre_usuario)
+    elif filtro == "Personal Reciente":
+        # Obtener proceso y subproceso del supervisor logueado
+        supervisor_data = fetch_one(
+            """
+            SELECT proceso, subproceso 
+            FROM usuarios 
+            WHERE nombre = %s AND estado = 'Activo'
+            """,
+            params=[nombre_usuario]
+        )
+        
+        if supervisor_data and supervisor_data["proceso"] and supervisor_data["subproceso"]:
+            # Buscar usuarios que tengan proceso_anterior y subproceso_anterior iguales
+            # a los del supervisor actual, y que estén activos en listas
+            usuarios_recientes = fetch_df(
+                """
+                SELECT nombre 
+                FROM usuarios 
+                WHERE proceso_anterior = %s 
+                  AND subproceso_anterior = %s 
+                  AND activo_en_listas = 'activo'
+                  AND usuario != %s
+                  AND estado = 'Activo'
+                """,
+                params=[supervisor_data["proceso"], supervisor_data["subproceso"], usuario]
+            )
+            
+            if not usuarios_recientes.empty:
+                nombres_recientes = usuarios_recientes["nombre"].tolist()
+                # Crear placeholders para la cláusula IN
+                placeholders = ', '.join(['%s'] * len(nombres_recientes))
+                query = base_query + f" AND nombre IN ({placeholders})"
+                params.extend(nombres_recientes)
+            else:
+                # Si no hay usuarios recientes, devolver un DataFrame vacío
+                return pd.DataFrame()
+        else:
+            return pd.DataFrame()
     else:
         return pd.DataFrame()
 
@@ -67,7 +105,7 @@ def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usua
 
 def Otros_Registros(usuario, puesto):
     # Obtener nombre completo del usuario
-    nombre_df = fetch_df("SELECT nombre FROM public.usuarios WHERE usuario = %s", params=[usuario])
+    nombre_df = fetch_df("SELECT nombre FROM usuarios WHERE usuario = %s", params=[usuario])
     nombre_13 = nombre_df.loc[0, 'nombre'] if not nombre_df.empty else ""
 
     # Fecha por defecto
@@ -118,12 +156,42 @@ def Otros_Registros(usuario, puesto):
 
         # Obtener lista de personal
         if puesto == "Coordinador":
-            data_personal = fetch_df("SELECT nombre FROM public.usuarios WHERE estado = 'Activo'")
+            data_personal = fetch_df("SELECT nombre FROM usuarios WHERE estado = 'Activo'")
         else:  # Supervisor
+            # Primero obtenemos el personal actual del supervisor
             data_personal = fetch_df(
-                "SELECT nombre FROM public.usuarios WHERE estado = 'Activo' AND (supervisor = %s OR usuario = %s)",
+                "SELECT nombre FROM usuarios WHERE estado = 'Activo' AND (supervisor = %s OR usuario = %s)",
                 params=[nombre_13, usuario]
             )
+            
+            # Ahora agregamos el "Personal Reciente" si existe
+            supervisor_data = fetch_one(
+                """
+                SELECT proceso, subproceso 
+                FROM usuarios 
+                WHERE nombre = %s AND estado = 'Activo'
+                """,
+                params=[nombre_13]
+            )
+            
+            if supervisor_data and supervisor_data["proceso"] and supervisor_data["subproceso"]:
+                personal_reciente = fetch_df(
+                    """
+                    SELECT nombre 
+                    FROM usuarios 
+                    WHERE proceso_anterior = %s 
+                      AND subproceso_anterior = %s 
+                      AND activo_en_listas = 'activo'
+                      AND usuario != %s
+                      AND estado = 'Activo'
+                    """,
+                    params=[supervisor_data["proceso"], supervisor_data["subproceso"], usuario]
+                )
+                
+                if not personal_reciente.empty:
+                    # Combinar ambas listas de personal
+                    data_personal = pd.concat([data_personal, personal_reciente]).drop_duplicates()
+        
         nombres_personal = data_personal["nombre"].tolist() if not data_personal.empty else []
 
         ph_personal = st.empty()
@@ -173,7 +241,7 @@ def Otros_Registros(usuario, puesto):
                     for nombre in personal_13:
                         marca = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
                         persona = fetch_one(
-                            "SELECT usuario, puesto, supervisor FROM public.usuarios WHERE nombre = %s LIMIT 1",
+                            "SELECT usuario, puesto, supervisor FROM usuarios WHERE nombre = %s LIMIT 1",
                             params=[nombre]
                         )
                         if not persona:
@@ -193,10 +261,6 @@ def Otros_Registros(usuario, puesto):
                             ]
                         )
                     ph_mensaje.success("✅ Registro enviado correctamente")
-                    # Opcional: limpiar campos después del éxito
-                    # personal_13 = []
-                    # horas_13 = 0.0
-                    # observaciones_13 = ""
                 except Exception as e:
                     ph_mensaje.error(f"❌ Error al guardar: {str(e)}")
 
@@ -219,11 +283,40 @@ def Otros_Registros(usuario, puesto):
 
         ph_filtro = st.empty()
         placeholders_contenido.append(ph_filtro)
+        
+        # Verificar si el usuario es Supervisor para agregar la opción "Personal Reciente"
+        if puesto == "Supervisor":
+            opciones_filtro = ("Todos", "Operarios", "Profesional Jurídico", "Propio", 
+                               "Personal Asignado", "Reportados", "Personal Reciente")
+        else:
+            opciones_filtro = ("Todos", "Operarios", "Profesional Jurídico", "Propio", 
+                               "Personal Asignado", "Reportados")
+        
         filtro_val = ph_filtro.selectbox(
             "Filtro",
-            options=("Todos", "Operarios", "Profesional Jurídico", "Propio", "Personal Asignado", "Reportados"),
+            options=opciones_filtro,
             key="filtro_13"
         )
+        
+        # Mostrar información sobre el filtro Personal Reciente
+        if filtro_val == "Personal Reciente":
+            supervisor_info = fetch_one(
+                """
+                SELECT proceso, subproceso 
+                FROM usuarios 
+                WHERE nombre = %s AND estado = 'Activo'
+                """,
+                params=[nombre_13]
+            )
+            
+            if supervisor_info:
+                ph_info_reciente = st.empty()
+                placeholders_contenido.append(ph_info_reciente)
+                ph_info_reciente.info(
+                    f"📋 Mostrando personal que anteriormente estuvo en: "
+                    f"Proceso '{supervisor_info['proceso']}' - "
+                    f"Subproceso '{supervisor_info['subproceso']}'"
+                )
 
         # Cargar historial según filtros
         data_historial = cargar_historial_otros(
