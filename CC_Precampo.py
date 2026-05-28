@@ -40,6 +40,29 @@ def CC_Precampo(usuario,puesto):
   placeholder8_3 = st.empty()
   control_calidad_precampo_3 = placeholder8_3.title("Control de Calidad Precampo")
 
+  # ----- NUEVO: Interruptor para marcar como "Corregido por QC" ----- #
+  placeholder_toggle = st.empty()
+  
+  # Variable para almacenar el estado del toggle
+  corregido_qc = placeholder_toggle.checkbox(
+      "Marcar como Corregido por QC",
+      value=False,
+      key="corregido_qc_toggle",
+      help="Active esta opción si el reporte ya fue corregido por Control de Calidad y NO debe enviarse al operador"
+  )
+  
+  # Mostrar advertencia cuando el toggle está activo
+  placeholder_advertencia = st.empty()
+  if corregido_qc:
+      placeholder_advertencia.warning(
+          "⚠️ ATENCIÓN: Este reporte no se enviará al operador para ser corregido. "
+          "Se marcará como 'Corregido por QC' directamente."
+      )
+  
+  # Determinar el valor del estado según el toggle
+  estado_reporte = "Corregido por QC" if corregido_qc else "N/A"
+  # ----- FIN NUEVO ----- #
+
   default_date_3 = datetime.now(pytz.timezone('America/Guatemala'))
 
   placeholder9_3= st.empty()
@@ -113,8 +136,10 @@ def CC_Precampo(usuario,puesto):
     placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
-    placeholder18_3.empty()#
+    placeholder18_3.empty()
     placeholder19_3.empty()
+    placeholder_toggle.empty()
+    placeholder_advertencia.empty()
     st.session_state.Procesos=False
     st.session_state.CC_FMI=False
 
@@ -153,8 +178,10 @@ def CC_Precampo(usuario,puesto):
     placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
-    placeholder18_3.empty()#
+    placeholder18_3.empty()
     placeholder19_3.empty()
+    placeholder_toggle.empty()
+    placeholder_advertencia.empty()
     st.session_state.CC_FMI=False
     st.session_state.Historial=True
     Historial.Historial(usuario,puesto)   
@@ -179,8 +206,10 @@ def CC_Precampo(usuario,puesto):
     placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
-    placeholder18_3.empty()#
+    placeholder18_3.empty()
     placeholder19_3.empty()
+    placeholder_toggle.empty()
+    placeholder_advertencia.empty()
     st.session_state.CC_FMI=False
     st.session_state.Capacitacion=True
     Capacitacion.Capacitacion(usuario,puesto)
@@ -205,8 +234,10 @@ def CC_Precampo(usuario,puesto):
     placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
-    placeholder18_3.empty()#
+    placeholder18_3.empty()
     placeholder19_3.empty()
+    placeholder_toggle.empty()
+    placeholder_advertencia.empty()
     st.session_state.CC_FMI=False
     st.session_state.Otros_Registros=True
     Otros_Registros.Otros_Registros(usuario,puesto)
@@ -231,8 +262,10 @@ def CC_Precampo(usuario,puesto):
     placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
-    placeholder18_3.empty()#
+    placeholder18_3.empty()
     placeholder19_3.empty()
+    placeholder_toggle.empty()
+    placeholder_advertencia.empty()
     st.session_state.CC_FMI=False
     st.session_state.Bonos_Extras=True
     Bonos_Extras.Bonos_Extras(usuario,puesto)    
@@ -257,8 +290,10 @@ def CC_Precampo(usuario,puesto):
     placeholder15_3.empty()
     placeholder16_3.empty()
     placeholder17_3.empty()
-    placeholder18_3.empty()#
+    placeholder18_3.empty()
     placeholder19_3.empty()
+    placeholder_toggle.empty()
+    placeholder_advertencia.empty()
     st.session_state.Ingreso = False
     st.session_state.CC_FMI=False
     st.session_state.Salir=True
@@ -319,7 +354,7 @@ def CC_Precampo(usuario,puesto):
       """,
       params=[
         marca_3, usuario, nombre_3, puesto, supervisor_3, "Control de Calidad Precampo", fecha_3, semana_3, año_3, distrito_3, tipo_3, 0, aprobados_3, rechazados_3, horas_3,
-        manzana_3, sector_3, 0, "N/A", 0.0, 0, edificas_3, "N/A", 0, 0, "N/A", "N/A",
+        manzana_3, sector_3, 0, estado_reporte, 0.0, 0, edificas_3, "N/A", 0, 0, "N/A", "N/A",
         "N/A", horas_bi, 0, operador_3, 0, 0, tipos_de_errores_3, conteo_3
       ],
     )
