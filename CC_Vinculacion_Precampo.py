@@ -256,4 +256,4 @@ def CC_Vinculacion_Precampo(usuario, puesto):
         )
         
         st.success('✅ Reporte enviado correctamente')
-        st.rerun()
+        
