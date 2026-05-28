@@ -18,7 +18,7 @@ def limpiar_placeholders(lista_placeholders):
 def navegar_a_procesos(usuario, puesto):
     """Determina el perfil y redirige a la función correspondiente de Procesos."""
     usuario_activo = fetch_one(
-        "SELECT perfil FROM usuarios WHERE usuario = %s",
+        "SELECT perfil FROM public.usuarios WHERE usuario = %s",
         params=[usuario]
     )
     perfil = str(usuario_activo["perfil"]) if usuario_activo else "1"
@@ -67,7 +67,7 @@ def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usua
 
 def Otros_Registros(usuario, puesto):
     # Obtener nombre completo del usuario
-    nombre_df = fetch_df("SELECT nombre FROM usuarios WHERE usuario = %s", params=[usuario])
+    nombre_df = fetch_df("SELECT nombre FROM public.usuarios WHERE usuario = %s", params=[usuario])
     nombre_13 = nombre_df.loc[0, 'nombre'] if not nombre_df.empty else ""
 
     # Fecha por defecto
@@ -118,10 +118,10 @@ def Otros_Registros(usuario, puesto):
 
         # Obtener lista de personal
         if puesto == "Coordinador":
-            data_personal = fetch_df("SELECT nombre FROM usuarios WHERE estado = 'Activo'")
+            data_personal = fetch_df("SELECT nombre FROM public.usuarios WHERE estado = 'Activo'")
         else:  # Supervisor
             data_personal = fetch_df(
-                "SELECT nombre FROM usuarios WHERE estado = 'Activo' AND (supervisor = %s OR usuario = %s)",
+                "SELECT nombre FROM public.usuarios WHERE estado = 'Activo' AND (supervisor = %s OR usuario = %s)",
                 params=[nombre_13, usuario]
             )
         nombres_personal = data_personal["nombre"].tolist() if not data_personal.empty else []
@@ -173,7 +173,7 @@ def Otros_Registros(usuario, puesto):
                     for nombre in personal_13:
                         marca = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
                         persona = fetch_one(
-                            "SELECT usuario, puesto, supervisor FROM usuarios WHERE nombre = %s LIMIT 1",
+                            "SELECT usuario, puesto, supervisor FROM public.usuarios WHERE nombre = %s LIMIT 1",
                             params=[nombre]
                         )
                         if not persona:
