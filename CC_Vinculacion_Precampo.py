@@ -214,7 +214,7 @@ def CC_Vinculacion_Precampo(usuario, puesto):
         usuario_activo = obtener_usuario_activo(usuario)
         if not usuario_activo:
             st.error("No se encontró un usuario activo para generar el reporte.")
-            st.rerun()
+            return
         
         nombre = usuario_activo["nombre"]
         supervisor = usuario_activo["supervisor"]
