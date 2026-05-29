@@ -93,36 +93,58 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
     titulo_procesos.title("Procesos")
 
     if perfil == "1":  # Perfil completo
+        # --- BLOQUE JURÍDICO (Naranja) ---
+        st.markdown("### ⚖️ **Área Jurídica**")
+        
         botones_procesos.append(st.empty())  # Precampo Jurídico
         botones_procesos.append(st.empty())  # Descarga Partidas Jurídico
         botones_procesos.append(st.empty())  # CC Precampo Jurídico
         botones_procesos.append(st.empty())  # Asignación de Partidas
+        
+        # --- SEPARADOR VISUAL ---
+        st.markdown("---")
+        
+        # --- BLOQUE PRECAMPO (Verde) ---
+        st.markdown("### 🌱 **Precampo**")
+        
         botones_procesos.append(st.empty())  # Precampo
         botones_procesos.append(st.empty())  # CC Precampo
         botones_procesos.append(st.empty())  # Vinculación Precampo
-        botones_procesos.append(st.empty())  # Preparación de Insumos
+        botones_procesos.append(st.empty())  # CC Vinculación Precampo
+        
+        # --- SEPARADOR VISUAL ---
+        st.markdown("---")
+        
+        # --- BLOQUE POSTCAMPO (Azul) ---
+        st.markdown("### 📦 **Postcampo**")
+        
+        botones_procesos.append(st.empty())  # Preparación de Insumos (comentado)
         botones_procesos.append(st.empty())  # Entregas Postcampo
         botones_procesos.append(st.empty())  # Postcampo
         botones_procesos.append(st.empty())  # CC Postcampo
-        botones_procesos.append(st.empty())  # CC Vinculación Precampo
-        botones_procesos.append(st.empty())  # Calidad Interna XTF
-
+        botones_procesos.append(st.empty())  # Calidad Interna XTF (comentado)
+        
         idx = 0
+        # Jurídicos (naranja)
         btn_precampo_jur = botones_procesos[idx]; idx+=1
         btn_descarga_partidas = botones_procesos[idx]; idx+=1
         btn_cc_precampo_jur = botones_procesos[idx]; idx+=1
         btn_asig_partidas = botones_procesos[idx]; idx+=1
+        
+        # Precampo (verde)
         btn_precampo = botones_procesos[idx]; idx+=1
         btn_cc_precampo = botones_procesos[idx]; idx+=1
         btn_vinculacion = botones_procesos[idx]; idx+=1
-        btn_prep_insumos = botones_procesos[idx]; idx+=1
+        btn_cc_vinculacion = botones_procesos[idx]; idx+=1
+        
+        # Postcampo (azul)
+        btn_prep_insumos = botones_procesos[idx]; idx+=1  # Comentado por ahora
         btn_entregas = botones_procesos[idx]; idx+=1
         btn_postcampo = botones_procesos[idx]; idx+=1
         btn_cc_postcampo = botones_procesos[idx]; idx+=1
-        btn_cc_vinculacion = botones_procesos[idx]; idx+=1
-        btn_estado_uit = botones_procesos[idx]; idx+=1
-
-        # Asignar botones con sus textos y keys
+        btn_estado_uit = botones_procesos[idx]; idx+=1  # Comentado por ahora
+    
+        # --- BOTONES JURÍDICOS (Naranja) ---
         if btn_precampo_jur.button(":orange[Precampo Jurídico]", key="precampo_juridico_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Precampo_Juridico.Precampo_Juridico, usuario, puesto, "Precampo_Juridico")
@@ -139,6 +161,8 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Asignacion_Partidas.Asignacion_Partidas, usuario, puesto, "Asignacion_Partidas")
             return True
+        
+        # --- BOTONES PRECAMPO (Verde) ---
         if btn_precampo.button(":green[Precampo]", key="precampo_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Precampo.Precampo, usuario, puesto, "Precampo")
@@ -147,15 +171,21 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(CC_Precampo.CC_Precampo, usuario, puesto, "CC_Precampo")
             return True
-        if btn_vinculacion.button(":blue[Vinculación Precampo]", key="vinculacion_precampo_2"):
+        if btn_vinculacion.button(":green[Vinculación Precampo]", key="vinculacion_precampo_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Vinculacion_Precampo.Vinculacion_Precampo, usuario, puesto, "Vinculacion_Precampo")
             return True
-        if btn_prep_insumos.button(":gray[Preparación de Insumos]", key="preparacion_insumos_2"):
+        if btn_cc_vinculacion.button(":green[Control de Calidad Vinculación Precampo]", key="cc_vinculacion_precampo_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
-            navegar_a(Preparacion_Insumos.Preparacion_Insumos, usuario, puesto, "Preparacion_Insumos")
+            navegar_a(CC_Vinculacion_Precampo.CC_Vinculacion_Precampo, usuario, puesto, "CC_Vinculacion_Precampo")
             return True
-        if btn_entregas.button(":gray[Entregas Postcampo]", key="entregas_2"):
+        
+        # --- BOTONES POSTCAMPO (Azul) ---
+        # Botón comentado (deshabilitado)
+        # if btn_prep_insumos.button(":gray[Preparación de Insumos (Deshabilitado)]", key="preparacion_insumos_2", disabled=True):
+        #     pass
+        
+        if btn_entregas.button(":blue[Entregas Postcampo]", key="entregas_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Entregas_Postcampo.Entregas_Postcampo, usuario, puesto, "Entregas_Postcampo")
             return True
@@ -167,15 +197,10 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(CC_Postcampo.CC_Postcampo, usuario, puesto, "CC_Postcampo")
             return True
-        if btn_cc_vinculacion.button(":green[Control de Calidad Vinculación Precampo]", key="cc_vinculacion_precampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
-            navegar_a(CC_Vinculacion_Precampo.CC_Vinculacion_Precampo, usuario, puesto, "CC_Vinculacion_Precampo")
-            return True
-        if btn_estado_uit.button("Calidad Interna XTF", key="estado_uit_hito_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
-            navegar_a(Estado_UIT_Hito.Estado_UIT_Hito, usuario, puesto, "Estado_UIT_Hito")
-            return True
-
+        
+        # Botón comentado (deshabilitado)
+        # if btn_estado_uit.button(":gray[Calidad Interna XTF (Deshabilitado)]", key="estado_uit_hito_2", disabled=True):
+        #     pass
     elif perfil == "2":  # Gabinete
         botones_procesos.append(st.empty())  # Precampo
         botones_procesos.append(st.empty())  # CC Precampo
