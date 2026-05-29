@@ -65,7 +65,7 @@ def fetch_operadores_cc(filtro_proceso=None, filtro_subproceso=None, filtro_proc
     """
     query = """
         SELECT DISTINCT nombre, usuario
-        FROM usuarios
+        FROM public.usuarios
         WHERE estado = 'Activo'
           AND activo_en_listas = 'activo'
     """
@@ -117,7 +117,7 @@ def fetch_rechazos_pendientes(identificador, tipo='nombre', dias=10):
     
     if tipo == 'usuario':
         query_nombre = """
-            SELECT nombre FROM usuarios WHERE usuario = %s AND estado = 'Activo'
+            SELECT nombre FROM public.usuarios WHERE usuario = %s AND estado = 'Activo'
         """
         df_nombre = fetch_df(query_nombre, params=[identificador])
         if df_nombre.empty:
@@ -138,7 +138,7 @@ def fetch_rechazos_pendientes(identificador, tipo='nombre', dias=10):
             rechazados,
             tipo_de_errores,
             estado
-        FROM registro
+        FROM public.registro
         WHERE operador_cc ILIKE %s
           AND estado = 'N/A'
           AND rechazados > '0'          
@@ -153,7 +153,7 @@ def fetch_rechazos_pendientes_por_usuario(usuario, dias=10):
     from datetime import datetime, timedetime
     
     query_nombre = """
-        SELECT nombre FROM usuarios WHERE usuario = %s AND estado = 'Activo'
+        SELECT nombre FROM public.usuarios WHERE usuario = %s AND estado = 'Activo'
     """
     df_nombre = fetch_df(query_nombre, params=[usuario])
     
@@ -177,7 +177,7 @@ def fetch_rechazos_pendientes_por_usuario(usuario, dias=10):
             rechazados,
             tipo_de_errores,
             estado
-        FROM registro
+        FROM public.registro
         WHERE operador_cc ILIKE %s
           AND estado = 'N/A'
           AND rechazados > '0'          
@@ -193,7 +193,7 @@ def actualizar_estado_rechazo(id_registro, nuevo_estado):
         return False
     
     query = """
-        UPDATE registro
+        UPDATE public.registro
         SET estado = %s
         WHERE id = %s
           AND estado = 'N/A'
