@@ -47,26 +47,24 @@ def navegar_a(modulo_func, usuario, puesto, flag_name):
 
 def menu_principal_por_perfil(usuario, puesto, perfil):
     """
-    Muestra el menú de procesos según el perfil usando expanders.
-    Retorna True si se debe salir de la función (para evitar doble render).
+    Muestra el menú de procesos usando selectboxes por categoría.
+    Todos los elementos usan placeholders para limpieza completa.
     """
     # Inicializar estado si no existe
     if "Procesos" not in st.session_state:
         st.session_state.Procesos = False
 
-    # Si ya estamos dentro de un submódulo, la función padre ya llamó al submódulo.
+    # Si ya estamos dentro de un submódulo
     if st.session_state.Procesos:
         return True
 
-    # --- Crear placeholders (se guardan en lista para limpiar después) ---
+    # --- Placeholders del Sidebar ---
     placeholders_sidebar = []
     
-    # Sidebar
     ph_titulo = st.sidebar.empty()
     ph_titulo.title("Menú")
     placeholders_sidebar.append(ph_titulo)
 
-    # Botones comunes del sidebar
     btn_historial = st.sidebar.empty()
     btn_capacitacion = st.sidebar.empty()
     btn_otros = st.sidebar.empty()
@@ -77,7 +75,7 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
     placeholders_sidebar.extend([btn_historial, btn_capacitacion, btn_otros, 
                                   btn_bonos, btn_correcciones, btn_salir])
 
-    # Contenido principal
+    # --- Placeholders del contenido principal ---
     ph_main = []
     titulo_procesos = st.empty()
     ph_main.append(titulo_procesos)
@@ -102,9 +100,6 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
                 "Entregas Postcampo": ("Entregas_Postcampo", ":blue[Entregas Postcampo]", Entregas_Postcampo.Entregas_Postcampo),
                 "Postcampo": ("Postcampo", ":blue[Postcampo]", Postcampo.Postcampo),
                 "Control de Calidad Postcampo": ("CC_Postcampo", ":blue[Control de Calidad Postcampo]", CC_Postcampo.CC_Postcampo),
-                # Módulos deshabilitados (comentados)
-                # "Preparación de Insumos": ("Preparacion_Insumos", ":gray[Preparación de Insumos (Próximamente)]", None),
-                # "Calidad Interna XTF": ("Estado_UIT_Hito", ":gray[Calidad Interna XTF (Próximamente)]", None),
             }
         },
         "2": {  # Gabinete
@@ -130,78 +125,68 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         }
     }
 
-    # Lista para almacenar todos los placeholders creados dentro de los expanders
-    placeholders_expanders = []
+    # --- Lista para almacenar todos los placeholders creados ---
+    placeholders_contenido = []
 
-    # Mostrar expanders según el perfil
+    # --- Mostrar selectboxes por categoría ---
     categorias = modulos_config.get(perfil, {})
     
     for categoria, modulos in categorias.items():
-        # Crear expander para la categoría
-        expander = st.expander(f"{categoria}", expanded=True)
+        # Título de categoría
+        ph_categoria = st.empty()
+        ph_categoria.markdown(f"### {categoria}")
+        placeholders_contenido.append(ph_categoria)
         
-        with expander:
-            # Crear 2 columnas para los botones
-            col1, col2 = st.columns(2)
-            
-            # Distribuir botones en las columnas
-            items = list(modulos.items())
-            mitad = (len(items) + 1) // 2
-            
-            # Columna 1
-            with col1:
-                for i in range(mitad):
-                    nombre_modulo, (flag_name, texto, modulo_func) = items[i]
-                    if modulo_func:
-                        if st.button(texto, key=f"btn_{flag_name}", use_container_width=True):
-                            # Limpiar todo antes de navegar
-                            limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
-                            navegar_a(modulo_func, usuario, puesto, flag_name)
-                            return True
-                    else:
-                        st.button(texto, key=f"btn_{flag_name}_disabled", disabled=True, use_container_width=True)
-            
-            # Columna 2
-            with col2:
-                for i in range(mitad, len(items)):
-                    nombre_modulo, (flag_name, texto, modulo_func) = items[i]
-                    if modulo_func:
-                        if st.button(texto, key=f"btn_{flag_name}", use_container_width=True):
-                            # Limpiar todo antes de navegar
-                            limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
-                            navegar_a(modulo_func, usuario, puesto, flag_name)
-                            return True
-                    else:
-                        st.button(texto, key=f"btn_{flag_name}_disabled", disabled=True, use_container_width=True)
+        # Selectbox para la categoría
+        ph_select = st.empty()
+        opciones = list(modulos.keys())
+        seleccion = ph_select.selectbox(f"Seleccionar módulo", [""] + opciones, key=f"select_{categoria}")
+        placeholders_contenido.append(ph_select)
+        
+        # Botón para ejecutar
+        ph_boton = st.empty()
+        if seleccion and seleccion != "":
+            if ph_boton.button(f"▶️ Ir a {seleccion}", key=f"btn_{categoria}_{seleccion}", use_container_width=True):
+                flag_name, texto, modulo_func = modulos[seleccion]
+                if modulo_func:
+                    limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_contenido)
+                    navegar_a(modulo_func, usuario, puesto, flag_name)
+                    return True
+        placeholders_contenido.append(ph_boton)
+        
+        # Separador entre categorías
+        ph_sep = st.empty()
+        ph_sep.markdown("---")
+        placeholders_contenido.append(ph_sep)
 
     # --- Botones comunes del sidebar ---
     if btn_historial.button("Historial", key="historial_2"):
-        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_contenido)
         navegar_a(Historial.Historial, usuario, puesto, "Historial")
         return True
     
     if btn_capacitacion.button("Capacitaciones", key="capacitacion_2"):
-        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_contenido)
         navegar_a(Capacitacion.Capacitacion, usuario, puesto, "Capacitacion")
         return True
     
     if btn_otros.button("Otros Registros", key="otros_registros_2"):
-        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_contenido)
         navegar_a(Otros_Registros.Otros_Registros, usuario, puesto, "Otros_Registros")
         return True
     
     if btn_bonos.button("Bonos y Horas Extras", key="bonos_extras_2"):
-        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_contenido)
         navegar_a(Bonos_Extras.Bonos_Extras, usuario, puesto, "Bonos_Extras")
         return True
     
     if btn_correcciones.button("Solicitud Correcciones", key="correcciones"):
-        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_contenido)
         navegar_a(Correcciones.Correcciones, usuario, puesto, "Correcciones")
         return True
     
     if btn_salir.button("Salir", key="salir_2"):
-        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_contenido)
         st.session_state.Ingreso = False
         st.session_state.Procesos = True
         st.session_state.Salir = True
@@ -210,11 +195,10 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
 
     return False
 
-# ------------------- FUNCIONES PÚBLICAS (mantienen compatibilidad) ------------------- #
+# ------------------- FUNCIONES PÚBLICAS ------------------- #
 
 def Procesos1(usuario, puesto):
     st.session_state.Ingreso = True
-    # Si ya estamos en un submódulo, delegar
     if st.session_state.get("Procesos"):
         if st.session_state.get("Historial"):
             Historial.Historial(usuario, puesto)
@@ -252,7 +236,6 @@ def Procesos1(usuario, puesto):
             CC_Vinculacion_Precampo.CC_Vinculacion_Precampo(usuario, puesto)
         elif st.session_state.get("Estado_UIT_Hito"):
             Estado_UIT_Hito.Estado_UIT_Hito(usuario, puesto)
-        # Si no hay bandera activa, se muestra el menú
         else:
             st.session_state.Procesos = False
             menu_principal_por_perfil(usuario, puesto, "1")
