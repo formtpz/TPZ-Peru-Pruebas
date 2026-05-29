@@ -116,7 +116,7 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         botones_procesos = [btn_precampo_jur, btn_descarga_partidas, btn_cc_precampo_jur, btn_asig_partidas,
                            btn_precampo, btn_cc_precampo, btn_vinculacion, btn_cc_vinculacion,
                            btn_prep_insumos, btn_entregas, btn_postcampo, btn_cc_postcampo, btn_estado_uit]
-
+    
         # --- BOTONES JURÍDICOS (Naranja) ---
         if btn_precampo_jur.button(":orange[Precampo Jurídico]", key="precampo_juridico_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
@@ -174,15 +174,15 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         # Botón deshabilitado (comentado)
         # if btn_estado_uit.button(":gray[Calidad Interna XTF]", key="estado_uit_hito_2", disabled=True):
         #     pass
-
+    
     elif perfil == "2":  # Gabinete
-        # Botones Precampo
+        # Botones Precampo (Verde)
         btn_precampo = st.empty()
         btn_cc_precampo = st.empty()
         btn_vinculacion = st.empty()
         btn_cc_vinculacion = st.empty()
         
-        # Botones Postcampo
+        # Botones Postcampo (Azul)
         btn_entregas = st.empty()
         btn_postcampo = st.empty()
         btn_cc_postcampo = st.empty()
@@ -190,40 +190,40 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         botones_procesos = [btn_precampo, btn_cc_precampo, btn_vinculacion, btn_cc_vinculacion,
                            btn_entregas, btn_postcampo, btn_cc_postcampo]
         
-        # --- BOTONES PRECAMPO ---
-        if btn_precampo.button("Precampo", key="precampo_2"):
+        # --- BOTONES PRECAMPO (Verde) ---
+        if btn_precampo.button(":green[Precampo]", key="precampo_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Precampo.Precampo, usuario, puesto, "Precampo")
             return True
-        if btn_cc_precampo.button("Control de Calidad Precampo", key="cc_precampo_2"):
+        if btn_cc_precampo.button(":green[Control de Calidad Precampo]", key="cc_precampo_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(CC_Precampo.CC_Precampo, usuario, puesto, "CC_Precampo")
             return True
-        if btn_vinculacion.button("Vinculación Precampo", key="vinculacion_precampo_2"):
+        if btn_vinculacion.button(":green[Vinculación Precampo]", key="vinculacion_precampo_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Vinculacion_Precampo.Vinculacion_Precampo, usuario, puesto, "Vinculacion_Precampo")
             return True
-        if btn_cc_vinculacion.button("Control de Calidad Vinculación Precampo", key="cc_vinculacion_precampo_2"):
+        if btn_cc_vinculacion.button(":green[Control de Calidad Vinculación Precampo]", key="cc_vinculacion_precampo_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(CC_Vinculacion_Precampo.CC_Vinculacion_Precampo, usuario, puesto, "CC_Vinculacion_Precampo")
             return True
         
-        # --- BOTONES POSTCAMPO ---
-        if btn_entregas.button("Entregas Postcampo", key="entregas_2"):
+        # --- BOTONES POSTCAMPO (Azul) ---
+        if btn_entregas.button(":blue[Entregas Postcampo]", key="entregas_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Entregas_Postcampo.Entregas_Postcampo, usuario, puesto, "Entregas_Postcampo")
             return True
-        if btn_postcampo.button("Postcampo", key="postcampo_2"):
+        if btn_postcampo.button(":blue[Postcampo]", key="postcampo_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Postcampo.Postcampo, usuario, puesto, "Postcampo")
             return True
-        if btn_cc_postcampo.button("Control de Calidad Postcampo", key="cc_postcampo_2"):
+        if btn_cc_postcampo.button(":blue[Control de Calidad Postcampo]", key="cc_postcampo_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(CC_Postcampo.CC_Postcampo, usuario, puesto, "CC_Postcampo")
             return True
-
+    
     elif perfil == "3":  # Jurídicos
-        # Botones Jurídicos
+        # Botones Jurídicos (Naranja)
         btn_precampo_jur = st.empty()
         btn_descarga_partidas = st.empty()
         btn_cc_precampo_jur = st.empty()
@@ -231,20 +231,20 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         
         botones_procesos = [btn_precampo_jur, btn_descarga_partidas, btn_cc_precampo_jur, btn_asig_partidas]
         
-        # --- BOTONES JURÍDICOS ---
-        if btn_precampo_jur.button("Precampo Jurídico", key="precampo_juridico_2"):
+        # --- BOTONES JURÍDICOS (Naranja) ---
+        if btn_precampo_jur.button(":orange[Precampo Jurídico]", key="precampo_juridico_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Precampo_Juridico.Precampo_Juridico, usuario, puesto, "Precampo_Juridico")
             return True
-        if btn_descarga_partidas.button("Descarga Partidas Jurídico", key="descarga_partidas_juridico_2"):
+        if btn_descarga_partidas.button(":orange[Descarga Partidas Jurídico]", key="descarga_partidas_juridico_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Descarga_Partidas_Juridico.Descarga_Partidas_Juridico, usuario, puesto, "Descarga_Partidas_Juridico")
             return True
-        if btn_cc_precampo_jur.button("Control de Calidad Precampo Jurídico", key="cc_precampo_juridico_2"):
+        if btn_cc_precampo_jur.button(":orange[Control de Calidad Precampo Jurídico]", key="cc_precampo_juridico_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(CC_Precampo_Juridico.CC_Precampo_Juridico, usuario, puesto, "CC_Precampo_Juridico")
             return True
-        if btn_asig_partidas.button("Asignación de Partidas", key="asignacion_partidas"):
+        if btn_asig_partidas.button(":orange[Asignación de Partidas]", key="asignacion_partidas"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(Asignacion_Partidas.Asignacion_Partidas, usuario, puesto, "Asignacion_Partidas")
             return True
