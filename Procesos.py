@@ -47,7 +47,7 @@ def navegar_a(modulo_func, usuario, puesto, flag_name):
 
 def menu_principal_por_perfil(usuario, puesto, perfil):
     """
-    Muestra el menú de procesos según el perfil y maneja la navegación.
+    Muestra el menú de procesos según el perfil usando expanders.
     Retorna True si se debe salir de la función (para evitar doble render).
     """
     # Inicializar estado si no existe
@@ -59,292 +59,149 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         return True
 
     # --- Crear placeholders (se guardan en lista para limpiar después) ---
-    placeholders = []
-
+    placeholders_sidebar = []
+    
     # Sidebar
-    ph_sidebar = []
     ph_titulo = st.sidebar.empty()
     ph_titulo.title("Menú")
-    ph_sidebar.append(ph_titulo)
+    placeholders_sidebar.append(ph_titulo)
 
     # Botones comunes del sidebar
     btn_historial = st.sidebar.empty()
-    ph_sidebar.append(btn_historial)
     btn_capacitacion = st.sidebar.empty()
-    ph_sidebar.append(btn_capacitacion)
     btn_otros = st.sidebar.empty()
-    ph_sidebar.append(btn_otros)
     btn_bonos = st.sidebar.empty()
-    ph_sidebar.append(btn_bonos)
     btn_correcciones = st.sidebar.empty()
-    ph_sidebar.append(btn_correcciones)
     btn_salir = st.sidebar.empty()
-    ph_sidebar.append(btn_salir)
+    
+    placeholders_sidebar.extend([btn_historial, btn_capacitacion, btn_otros, 
+                                  btn_bonos, btn_correcciones, btn_salir])
 
     # Contenido principal
     ph_main = []
     titulo_procesos = st.empty()
     ph_main.append(titulo_procesos)
-
-    # Lista de placeholders de botones de procesos (se llenará según perfil)
-    botones_procesos = []
-    
-    # Lista para elementos visuales (títulos y separadores)
-    elementos_visuales = []
-
-    # --- Mostrar botones según perfil ---
     titulo_procesos.title("Procesos")
 
-    if perfil == "1":  # Perfil completo
-        # --- Placeholders para elementos visuales ---
-        ph_titulo_juridico = st.empty()
-        ph_separador1 = st.empty()
-        ph_titulo_precampo = st.empty()
-        ph_separador2 = st.empty()
-        ph_titulo_postcampo = st.empty()
-        
-        # Agregar elementos visuales a la lista
-        elementos_visuales.extend([ph_titulo_juridico, ph_separador1, 
-                                    ph_titulo_precampo, ph_separador2, 
-                                    ph_titulo_postcampo])
-        
-        # --- BLOQUE JURÍDICO (Naranja) ---
-        ph_titulo_juridico.markdown("### ⚖️ **Área Jurídica**")
-        
-        # Crear botones del bloque jurídico
-        for _ in range(4):
-            botones_procesos.append(st.empty())
-        
-        # --- SEPARADOR VISUAL ---
-        ph_separador1.markdown("---")
-        
-        # --- BLOQUE PRECAMPO (Verde) ---
-        ph_titulo_precampo.markdown("### 🌱 **Precampo**")
-        
-        # Crear botones del bloque precampo
-        for _ in range(4):
-            botones_procesos.append(st.empty())
-        
-        # --- SEPARADOR VISUAL ---
-        ph_separador2.markdown("---")
-        
-        # --- BLOQUE POSTCAMPO (Azul) ---
-        ph_titulo_postcampo.markdown("### 📦 **Postcampo**")
-        
-        # Crear botones del bloque postcampo
-        for _ in range(5):
-            botones_procesos.append(st.empty())
-        
-        # Asignar índices
-        idx = 0
-        # Jurídicos (naranja)
-        btn_precampo_jur = botones_procesos[idx]; idx+=1
-        btn_descarga_partidas = botones_procesos[idx]; idx+=1
-        btn_cc_precampo_jur = botones_procesos[idx]; idx+=1
-        btn_asig_partidas = botones_procesos[idx]; idx+=1
-        
-        # Precampo (verde)
-        btn_precampo = botones_procesos[idx]; idx+=1
-        btn_cc_precampo = botones_procesos[idx]; idx+=1
-        btn_vinculacion = botones_procesos[idx]; idx+=1
-        btn_cc_vinculacion = botones_procesos[idx]; idx+=1
-        
-        # Postcampo (azul)
-        btn_prep_insumos = botones_procesos[idx]; idx+=1
-        btn_entregas = botones_procesos[idx]; idx+=1
-        btn_postcampo = botones_procesos[idx]; idx+=1
-        btn_cc_postcampo = botones_procesos[idx]; idx+=1
-        btn_estado_uit = botones_procesos[idx]; idx+=1
+    # --- Configuración de módulos por perfil ---
+    modulos_config = {
+        "1": {  # Perfil completo
+            "⚖️ Área Jurídica": {
+                "Precampo Jurídico": ("Precampo_Juridico", ":orange[Precampo Jurídico]", Precampo_Juridico.Precampo_Juridico),
+                "Descarga Partidas Jurídico": ("Descarga_Partidas_Juridico", ":orange[Descarga Partidas Jurídico]", Descarga_Partidas_Juridico.Descarga_Partidas_Juridico),
+                "Control de Calidad Precampo Jurídico": ("CC_Precampo_Juridico", ":orange[Control de Calidad Precampo Jurídico]", CC_Precampo_Juridico.CC_Precampo_Juridico),
+                "Asignación de Partidas": ("Asignacion_Partidas", ":orange[Asignación de Partidas]", Asignacion_Partidas.Asignacion_Partidas),
+            },
+            "🌱 Precampo": {
+                "Precampo": ("Precampo", ":green[Precampo]", Precampo.Precampo),
+                "Control de Calidad Precampo": ("CC_Precampo", ":green[Control de Calidad Precampo]", CC_Precampo.CC_Precampo),
+                "Vinculación Precampo": ("Vinculacion_Precampo", ":green[Vinculación Precampo]", Vinculacion_Precampo.Vinculacion_Precampo),
+                "Control de Calidad Vinculación": ("CC_Vinculacion_Precampo", ":green[Control de Calidad Vinculación Precampo]", CC_Vinculacion_Precampo.CC_Vinculacion_Precampo),
+            },
+            "📦 Postcampo": {
+                "Entregas Postcampo": ("Entregas_Postcampo", ":blue[Entregas Postcampo]", Entregas_Postcampo.Entregas_Postcampo),
+                "Postcampo": ("Postcampo", ":blue[Postcampo]", Postcampo.Postcampo),
+                "Control de Calidad Postcampo": ("CC_Postcampo", ":blue[Control de Calidad Postcampo]", CC_Postcampo.CC_Postcampo),
+                # Módulos deshabilitados (comentados)
+                # "Preparación de Insumos": ("Preparacion_Insumos", ":gray[Preparación de Insumos (Próximamente)]", None),
+                # "Calidad Interna XTF": ("Estado_UIT_Hito", ":gray[Calidad Interna XTF (Próximamente)]", None),
+            }
+        },
+        "2": {  # Gabinete
+            "🌱 Precampo": {
+                "Precampo": ("Precampo", "Precampo", Precampo.Precampo),
+                "Control de Calidad Precampo": ("CC_Precampo", "Control de Calidad Precampo", CC_Precampo.CC_Precampo),
+                "Vinculación Precampo": ("Vinculacion_Precampo", "Vinculación Precampo", Vinculacion_Precampo.Vinculacion_Precampo),
+                "Control de Calidad Vinculación": ("CC_Vinculacion_Precampo", "Control de Calidad Vinculación Precampo", CC_Vinculacion_Precampo.CC_Vinculacion_Precampo),
+            },
+            "📦 Postcampo": {
+                "Entregas Postcampo": ("Entregas_Postcampo", "Entregas Postcampo", Entregas_Postcampo.Entregas_Postcampo),
+                "Postcampo": ("Postcampo", "Postcampo", Postcampo.Postcampo),
+                "Control de Calidad Postcampo": ("CC_Postcampo", "Control de Calidad Postcampo", CC_Postcampo.CC_Postcampo),
+            }
+        },
+        "3": {  # Jurídicos
+            "⚖️ Área Jurídica": {
+                "Precampo Jurídico": ("Precampo_Juridico", "Precampo Jurídico", Precampo_Juridico.Precampo_Juridico),
+                "Descarga Partidas Jurídico": ("Descarga_Partidas_Juridico", "Descarga Partidas Jurídico", Descarga_Partidas_Juridico.Descarga_Partidas_Juridico),
+                "Control de Calidad Precampo Jurídico": ("CC_Precampo_Juridico", "Control de Calidad Precampo Jurídico", CC_Precampo_Juridico.CC_Precampo_Juridico),
+                "Asignación de Partidas": ("Asignacion_Partidas", "Asignación de Partidas", Asignacion_Partidas.Asignacion_Partidas),
+            }
+        }
+    }
 
-        # --- BOTONES JURÍDICOS (Naranja) ---
-        if btn_precampo_jur.button(":orange[Precampo Jurídico]", key="precampo_juridico_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Precampo_Juridico.Precampo_Juridico, usuario, puesto, "Precampo_Juridico")
-            return True
-        if btn_descarga_partidas.button(":orange[Descarga Partidas Jurídico]", key="descarga_partidas_juridico_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Descarga_Partidas_Juridico.Descarga_Partidas_Juridico, usuario, puesto, "Descarga_Partidas_Juridico")
-            return True
-        if btn_cc_precampo_jur.button(":orange[Control de Calidad Precampo Jurídico]", key="cc_precampo_juridico_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(CC_Precampo_Juridico.CC_Precampo_Juridico, usuario, puesto, "CC_Precampo_Juridico")
-            return True
-        if btn_asig_partidas.button(":orange[Asignación de Partidas]", key="asignacion_partidas"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Asignacion_Partidas.Asignacion_Partidas, usuario, puesto, "Asignacion_Partidas")
-            return True
-        
-        # --- BOTONES PRECAMPO (Verde) ---
-        if btn_precampo.button(":green[Precampo]", key="precampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Precampo.Precampo, usuario, puesto, "Precampo")
-            return True
-        if btn_cc_precampo.button(":green[Control de Calidad Precampo]", key="cc_precampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(CC_Precampo.CC_Precampo, usuario, puesto, "CC_Precampo")
-            return True
-        if btn_vinculacion.button(":green[Vinculación Precampo]", key="vinculacion_precampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Vinculacion_Precampo.Vinculacion_Precampo, usuario, puesto, "Vinculacion_Precampo")
-            return True
-        if btn_cc_vinculacion.button(":green[Control de Calidad Vinculación Precampo]", key="cc_vinculacion_precampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(CC_Vinculacion_Precampo.CC_Vinculacion_Precampo, usuario, puesto, "CC_Vinculacion_Precampo")
-            return True
-        
-        # --- BOTONES POSTCAMPO (Azul) ---
-        # Botón deshabilitado (comentado)
-        # if btn_prep_insumos.button(":gray[Preparación de Insumos (Deshabilitado)]", key="preparacion_insumos_2", disabled=True):
-        #     pass
-        
-        if btn_entregas.button(":blue[Entregas Postcampo]", key="entregas_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Entregas_Postcampo.Entregas_Postcampo, usuario, puesto, "Entregas_Postcampo")
-            return True
-        if btn_postcampo.button(":blue[Postcampo]", key="postcampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Postcampo.Postcampo, usuario, puesto, "Postcampo")
-            return True
-        if btn_cc_postcampo.button(":blue[Control de Calidad Postcampo]", key="cc_postcampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(CC_Postcampo.CC_Postcampo, usuario, puesto, "CC_Postcampo")
-            return True
-        
-        # Botón deshabilitado (comentado)
-        # if btn_estado_uit.button(":gray[Calidad Interna XTF (Deshabilitado)]", key="estado_uit_hito_2", disabled=True):
-        #     pass
+    # Lista para almacenar todos los placeholders creados dentro de los expanders
+    placeholders_expanders = []
 
-    elif perfil == "2":  # Gabinete
-        # --- Placeholders para elementos visuales ---
-        ph_titulo_precampo = st.empty()
-        ph_separador = st.empty()
-        ph_titulo_postcampo = st.empty()
+    # Mostrar expanders según el perfil
+    categorias = modulos_config.get(perfil, {})
+    
+    for categoria, modulos in categorias.items():
+        # Crear expander para la categoría
+        expander = st.expander(f"{categoria}", expanded=True)
         
-        # Agregar elementos visuales a la lista
-        elementos_visuales.extend([ph_titulo_precampo, ph_separador, ph_titulo_postcampo])
-        
-        # --- BLOQUE PRECAMPO (Verde) ---
-        ph_titulo_precampo.markdown("### 🌱 **Precampo**")
-        
-        # Crear botones del bloque precampo
-        for _ in range(4):
-            botones_procesos.append(st.empty())
-        
-        # --- SEPARADOR VISUAL ---
-        ph_separador.markdown("---")
-        
-        # --- BLOQUE POSTCAMPO (Azul) ---
-        ph_titulo_postcampo.markdown("### 📦 **Postcampo**")
-        
-        # Crear botones del bloque postcampo
-        for _ in range(3):
-            botones_procesos.append(st.empty())
-        
-        idx = 0
-        # Precampo (verde)
-        btn_precampo = botones_procesos[idx]; idx+=1
-        btn_cc_precampo = botones_procesos[idx]; idx+=1
-        btn_vinculacion = botones_procesos[idx]; idx+=1
-        btn_cc_vinculacion = botones_procesos[idx]; idx+=1
-        
-        # Postcampo (azul)
-        btn_entregas = botones_procesos[idx]; idx+=1
-        btn_postcampo = botones_procesos[idx]; idx+=1
-        btn_cc_postcampo = botones_procesos[idx]; idx+=1
-        
-        # --- BOTONES PRECAMPO (Verde) ---
-        if btn_precampo.button(":green[Precampo]", key="precampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Precampo.Precampo, usuario, puesto, "Precampo")
-            return True
-        if btn_cc_precampo.button(":green[Control de Calidad Precampo]", key="cc_precampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(CC_Precampo.CC_Precampo, usuario, puesto, "CC_Precampo")
-            return True
-        if btn_vinculacion.button(":green[Vinculación Precampo]", key="vinculacion_precampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Vinculacion_Precampo.Vinculacion_Precampo, usuario, puesto, "Vinculacion_Precampo")
-            return True
-        if btn_cc_vinculacion.button(":green[Control de Calidad Vinculación Precampo]", key="cc_vinculacion_precampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(CC_Vinculacion_Precampo.CC_Vinculacion_Precampo, usuario, puesto, "CC_Vinculacion_Precampo")
-            return True
-        
-        # --- BOTONES POSTCAMPO (Azul) ---
-        if btn_entregas.button(":blue[Entregas Postcampo]", key="entregas_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Entregas_Postcampo.Entregas_Postcampo, usuario, puesto, "Entregas_Postcampo")
-            return True
-        if btn_postcampo.button(":blue[Postcampo]", key="postcampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Postcampo.Postcampo, usuario, puesto, "Postcampo")
-            return True
-        if btn_cc_postcampo.button(":blue[Control de Calidad Postcampo]", key="cc_postcampo_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(CC_Postcampo.CC_Postcampo, usuario, puesto, "CC_Postcampo")
-            return True
-
-    elif perfil == "3":  # Jurídicos
-        # --- Placeholder para elemento visual ---
-        ph_titulo_juridico = st.empty()
-        
-        # Agregar elemento visual a la lista
-        elementos_visuales.append(ph_titulo_juridico)
-        
-        # --- BLOQUE JURÍDICO (Naranja) ---
-        ph_titulo_juridico.markdown("### ⚖️ **Área Jurídica**")
-        
-        # Crear botones del bloque jurídico
-        for _ in range(4):
-            botones_procesos.append(st.empty())
-        
-        idx = 0
-        btn_precampo_jur = botones_procesos[idx]; idx+=1
-        btn_descarga_partidas = botones_procesos[idx]; idx+=1
-        btn_cc_precampo_jur = botones_procesos[idx]; idx+=1
-        btn_asig_partidas = botones_procesos[idx]; idx+=1
-        
-        # --- BOTONES JURÍDICOS (Naranja) ---
-        if btn_precampo_jur.button(":orange[Precampo Jurídico]", key="precampo_juridico_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Precampo_Juridico.Precampo_Juridico, usuario, puesto, "Precampo_Juridico")
-            return True
-        if btn_descarga_partidas.button(":orange[Descarga Partidas Jurídico]", key="descarga_partidas_juridico_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Descarga_Partidas_Juridico.Descarga_Partidas_Juridico, usuario, puesto, "Descarga_Partidas_Juridico")
-            return True
-        if btn_cc_precampo_jur.button(":orange[Control de Calidad Precampo Jurídico]", key="cc_precampo_juridico_2"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(CC_Precampo_Juridico.CC_Precampo_Juridico, usuario, puesto, "CC_Precampo_Juridico")
-            return True
-        if btn_asig_partidas.button(":orange[Asignación de Partidas]", key="asignacion_partidas"):
-            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
-            navegar_a(Asignacion_Partidas.Asignacion_Partidas, usuario, puesto, "Asignacion_Partidas")
-            return True
+        with expander:
+            # Crear 2 columnas para los botones
+            col1, col2 = st.columns(2)
+            
+            # Distribuir botones en las columnas
+            items = list(modulos.items())
+            mitad = (len(items) + 1) // 2
+            
+            # Columna 1
+            with col1:
+                for i in range(mitad):
+                    nombre_modulo, (flag_name, texto, modulo_func) = items[i]
+                    if modulo_func:
+                        if st.button(texto, key=f"btn_{flag_name}", use_container_width=True):
+                            # Limpiar todo antes de navegar
+                            limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
+                            navegar_a(modulo_func, usuario, puesto, flag_name)
+                            return True
+                    else:
+                        st.button(texto, key=f"btn_{flag_name}_disabled", disabled=True, use_container_width=True)
+            
+            # Columna 2
+            with col2:
+                for i in range(mitad, len(items)):
+                    nombre_modulo, (flag_name, texto, modulo_func) = items[i]
+                    if modulo_func:
+                        if st.button(texto, key=f"btn_{flag_name}", use_container_width=True):
+                            # Limpiar todo antes de navegar
+                            limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
+                            navegar_a(modulo_func, usuario, puesto, flag_name)
+                            return True
+                    else:
+                        st.button(texto, key=f"btn_{flag_name}_disabled", disabled=True, use_container_width=True)
 
     # --- Botones comunes del sidebar ---
     if btn_historial.button("Historial", key="historial_2"):
-        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
         navegar_a(Historial.Historial, usuario, puesto, "Historial")
         return True
+    
     if btn_capacitacion.button("Capacitaciones", key="capacitacion_2"):
-        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
         navegar_a(Capacitacion.Capacitacion, usuario, puesto, "Capacitacion")
         return True
+    
     if btn_otros.button("Otros Registros", key="otros_registros_2"):
-        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
         navegar_a(Otros_Registros.Otros_Registros, usuario, puesto, "Otros_Registros")
         return True
+    
     if btn_bonos.button("Bonos y Horas Extras", key="bonos_extras_2"):
-        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
         navegar_a(Bonos_Extras.Bonos_Extras, usuario, puesto, "Bonos_Extras")
         return True
+    
     if btn_correcciones.button("Solicitud Correcciones", key="correcciones"):
-        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
         navegar_a(Correcciones.Correcciones, usuario, puesto, "Correcciones")
         return True
+    
     if btn_salir.button("Salir", key="salir_2"):
-        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos + elementos_visuales)
+        limpiar_sidebar_y_contenido(placeholders_sidebar + ph_main + placeholders_expanders)
         st.session_state.Ingreso = False
         st.session_state.Procesos = True
         st.session_state.Salir = True
