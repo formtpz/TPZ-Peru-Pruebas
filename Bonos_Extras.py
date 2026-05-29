@@ -78,7 +78,6 @@ def Bonos_Extras(usuario, puesto):
         with ph_sub.container():
             st.subheader("Archivos")
 
-            # Cada file_uploader y botón dentro de su propio placeholder
             ph_bloques = st.empty()
             placeholders_contenido.append(ph_bloques)
             bloques_nuevos = ph_bloques.file_uploader("Cargar Archivo de Bloques", ['csv', 'xlsx'], key="bloques")
@@ -176,8 +175,9 @@ def Bonos_Extras(usuario, puesto):
             placeholders_contenido.append(ph_extras)
             with ph_extras.container():
                 st.subheader("Horas Extra")
+                # CORRECCIÓN: Mostrar todas las columnas como en el código viejo
                 extras_df = fetch_df(
-                    "SELECT horas FROM extras WHERE tipo_reporte IN ('Extra','Horas Extra','Horas Extra Apoyo Otros Proyectos') AND fecha_bono = %s",
+                    "SELECT marca, usuario, nombre, puesto, supervisor, tipo_reporte, justificacion, fecha, horas, semana, dia, fecha_corte, fecha_bono FROM extras WHERE tipo_reporte IN ('Extra','Horas Extra','Horas Extra Apoyo Otros Proyectos') AND fecha_bono = %s",
                     params=[periodo_sel]
                 )
                 if extras_df.empty:
@@ -185,6 +185,7 @@ def Bonos_Extras(usuario, puesto):
                 else:
                     total_extras = extras_df['horas'].astype(float).sum()
                     st.metric("Total de Horas Extra", total_extras)
+                    st.dataframe(extras_df)
 
         else:
             ph_bonos = st.empty()
@@ -220,8 +221,9 @@ def Bonos_Extras(usuario, puesto):
             placeholders_contenido.append(ph_extras)
             with ph_extras.container():
                 st.subheader("Horas Extra")
+                # CORRECCIÓN: Mostrar todas las columnas como en el código viejo
                 extras_df = fetch_df(
-                    "SELECT horas, marca, fecha, justificacion FROM extras WHERE nombre = %s AND tipo_reporte IN ('Extra','Horas Extra','Horas Extra Apoyo Otros Proyectos') AND fecha_bono = %s",
+                    "SELECT marca, usuario, nombre, puesto, supervisor, tipo_reporte, justificacion, fecha, horas, semana, dia, fecha_corte, fecha_bono FROM extras WHERE nombre = %s AND tipo_reporte IN ('Extra','Horas Extra','Horas Extra Apoyo Otros Proyectos') AND fecha_bono = %s",
                     params=[personal_sel, periodo_sel]
                 )
                 if extras_df.empty:
@@ -280,10 +282,10 @@ def Bonos_Extras(usuario, puesto):
                 else:
                     fila = bonos_jur_df.iloc[0]
                     data_procesos = {
-                        "Variables": ["Producción (Según Reportes)","Producción (Limpia)","Producción (Estándar)","Bono (COP)"],
-                        "Folios de Matricula Inmobiliaria": [fila['a4'], fila['a8'], fila['a12'], fila['a16']],
-                        "CC Folios de Matricula Inmobiliaria": [fila['a5'], fila['a9'], fila['a13'], fila['a17']],
-                        "Consultas de Campo": [fila['a6'], fila['a10'], fila['a14'], fila['a18']]
+                        "Variables": ["Producción (Según Reportes)","Producción (Limpia)","Producción (Estándar)","Bono (COP)", "Bonificación Otras Funciones (COP)", "Observaciones", "Bonificación Total (COP)"],
+                        "Folios de Matricula Inmobiliaria": [fila['a4'], fila['a8'], fila['a12'], fila['a16'], fila['a20'], fila['a22'], fila['a23']],
+                        "CC Folios de Matricula Inmobiliaria": [fila['a5'], fila['a9'], fila['a13'], fila['a17'], " ", " ", " "],
+                        "Consultas de Campo": [fila['a6'], fila['a10'], fila['a14'], fila['a18'], " ", " ", " "]
                     }
                     st.dataframe(pd.DataFrame(data_procesos))
 
@@ -322,14 +324,29 @@ def Bonos_Extras(usuario, puesto):
         ph_bonos = st.empty()
         placeholders_contenido.append(ph_bonos)
         with ph_bonos.container():
+            # CORRECCIÓN: Usar las columnas correctas como en el código viejo
             bonos_df = fetch_df(
-                "SELECT a5, a6, a7, a8, a9, a10, a17, a19, a18, a20, a21, a22 FROM bonos WHERE a0 = %s AND a23 = %s",
+                "SELECT a5, a6, a7, a8, a9, a10, a17, a18, a19, a20, a21, a22 FROM bonos WHERE a0 = %s AND a23 = %s",
                 params=[usuario, periodo_sel]
             )
             if bonos_df.empty:
                 st.error("No existen datos para mostrar")
             else:
                 fila = bonos_df.iloc[0]
+                # Mapeo correcto según el código viejo
+                bono_productividad_precampo = float(fila['a5']) if pd.notna(fila['a5']) else 0.0
+                bono_calidad_precampo = float(fila['a6']) if pd.notna(fila['a6']) else 0.0
+                bono_productividad_postcampo = float(fila['a7']) if pd.notna(fila['a7']) else 0.0
+                bono_calidad_postcampo = float(fila['a8']) if pd.notna(fila['a8']) else 0.0
+                bono_productividad_vinculacion = float(fila['a9']) if pd.notna(fila['a9']) else 0.0
+                bono_calidad_vinculacion = float(fila['a10']) if pd.notna(fila['a10']) else 0.0
+                bono_supervision = float(fila['a17']) if pd.notna(fila['a17']) else 0.0
+                bonos_entregas = float(fila['a18']) if pd.notna(fila['a18']) else 0.0
+                bono_calidad_externa = float(fila['a19']) if pd.notna(fila['a19']) else 0.0
+                bonos_fijos = float(fila['a20']) if pd.notna(fila['a20']) else 0.0
+                bonos_otro_proyecto = float(fila['a21']) if pd.notna(fila['a21']) else 0.0
+                bono_total = float(fila['a22']) if pd.notna(fila['a22']) else 0.0
+                
                 df_bonos = pd.DataFrame({
                     "Concepto": [
                         "Bono Productividad (Precampo)",
@@ -339,16 +356,25 @@ def Bonos_Extras(usuario, puesto):
                         "Bono Productividad (Vinculación)",
                         "Bono Calidad (Vinculación)",
                         "Bono Supervisión",
-                        "Bono Calidad Externa",
                         "Bono Entregas",
+                        "Bono Calidad Externa",
                         "Bono Fijo",
                         "Bono Otro Proyecto",
                         "TOTAL"
                     ],
-                    "Monto": [
-                        float(fila['a5']), float(fila['a6']), float(fila['a7']), float(fila['a8']),
-                        float(fila['a9']), float(fila['a10']), float(fila['a17']), float(fila['a19']),
-                        float(fila['a18']), float(fila['a20']), float(fila['a21']), float(fila['a22'])
+                    "Monto de bonificación": [
+                        bono_productividad_precampo,
+                        bono_calidad_precampo,
+                        bono_productividad_postcampo,
+                        bono_calidad_postcampo,
+                        bono_productividad_vinculacion,
+                        bono_calidad_vinculacion,
+                        bono_supervision,
+                        bonos_entregas,
+                        bono_calidad_externa,
+                        bonos_fijos,
+                        bonos_otro_proyecto,
+                        bono_total
                     ]
                 })
                 st.dataframe(df_bonos, hide_index=True, height=460)
@@ -357,8 +383,9 @@ def Bonos_Extras(usuario, puesto):
         placeholders_contenido.append(ph_extras)
         with ph_extras.container():
             st.subheader("Horas Extras")
+            # CORRECCIÓN: Mostrar todas las columnas como en el código viejo
             extras_df = fetch_df(
-                "SELECT horas, marca, fecha, justificacion FROM extras WHERE nombre = %s AND tipo_reporte IN ('Extra','Horas Extra','Horas Extra Apoyo Otros Proyectos') AND fecha_bono = %s",
+                "SELECT marca, usuario, nombre, puesto, supervisor, tipo_reporte, justificacion, fecha, horas, semana, dia, fecha_corte, fecha_bono FROM extras WHERE nombre = %s AND tipo_reporte IN ('Extra','Horas Extra','Horas Extra Apoyo Otros Proyectos') AND fecha_bono = %s",
                 params=[nombre_9, periodo_sel]
             )
             if extras_df.empty:
@@ -384,8 +411,9 @@ def Bonos_Extras(usuario, puesto):
         placeholders_contenido.append(ph_extras)
         with ph_extras.container():
             st.subheader("Horas Extras")
+            # CORRECCIÓN: Mostrar todas las columnas como en el código viejo
             extras_df = fetch_df(
-                "SELECT horas, marca, fecha, justificacion FROM extras WHERE nombre = %s AND tipo_reporte IN ('Extra','Horas Extra','Horas Extra Apoyo Otros Proyectos') AND fecha_bono = %s",
+                "SELECT marca, usuario, nombre, puesto, supervisor, tipo_reporte, justificacion, fecha, horas, semana, dia, fecha_corte, fecha_bono FROM extras WHERE nombre = %s AND tipo_reporte IN ('Extra','Horas Extra','Horas Extra Apoyo Otros Proyectos') AND fecha_bono = %s",
                 params=[nombre_9, periodo_sel]
             )
             if extras_df.empty:
