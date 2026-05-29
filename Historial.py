@@ -493,12 +493,12 @@ def Historial(usuario, puesto):
             ph_prod_semanal_titulo.subheader("Resumen de Producción por Proceso")
             ph_prod_semanal.dataframe(semanal)
 
-    # Resumen de Calidad
+        # Resumen de Calidad
     if puesto in ["Supervisor", "Técnico SIG", "Coordinador"]:
         ph_calidad_titulo.subheader("Resumen Calidad")
         calidad = generar_resumen_calidad(data_r)
         if len(calidad) == 0:
-            st.error("No existen reportes para mostrar")
+            ph_calidad_data.error("No existen reportes para mostrar")  # ✅ Usar el placeholder existente
         else:
             calidad_vista = calidad.rename(columns={"edificas": "muestra"})
             ph_calidad_data.dataframe(calidad_vista)
@@ -506,11 +506,10 @@ def Historial(usuario, puesto):
         ph_calidad_titulo_op.subheader("Resumen Calidad")
         calidad_op = generar_resumen_calidad_operario(data_5_r)
         if len(calidad_op) == 0:
-            st.error("No existen reportes para mostrar")
+            ph_calidad_data_op.error("No existen reportes para mostrar")  # ✅ Usar el placeholder existente
         else:
             calidad_vista = calidad_op.rename(columns={"unidades_catastrales": "muestra unidades catastrales", "edificas": "muestra edificas"})
             ph_calidad_data_op.dataframe(calidad_vista)
-
     # --- Navegación ---
     if btn_procesos.button("Procesos", key="procesos_hist"):
         limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
