@@ -61,6 +61,10 @@ def Capacitacion(usuario, puesto):
     data = pd.DataFrame()
     placeholders_contenido = []
 
+    # Placeholder para mensajes (se crea una vez y se reutiliza)
+    ph_mensaje = st.empty()
+    placeholders_contenido.append(ph_mensaje)
+
     # =========================================================
     # COORDINADOR
     # =========================================================
@@ -203,42 +207,44 @@ def Capacitacion(usuario, puesto):
         # --- Lógica del botón Generar Reporte ---
         if reporte_btn:
             if not personal_sel:
-                st.error("Favor ingresar el nombre de alguna persona")
+                ph_mensaje.error("Favor ingresar el nombre de alguna persona")
             else:
-                marca = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
-                for nombre in personal_sel:
-                    # Obtener datos del usuario
-                    user_info = fetch_one(
-                        """
-                        SELECT usuario, puesto, supervisor
-                        FROM usuarios
-                        WHERE nombre = %s
-                        """,
-                        params=[nombre]
-                    )
-                    if user_info:
-                        execute(
+                try:
+                    marca = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
+                    for nombre in personal_sel:
+                        # Obtener datos del usuario
+                        user_info = fetch_one(
                             """
-                            INSERT INTO capacitaciones
-                                (marca, usuario, nombre, puesto, supervisor, fecha, tema, horas, observaciones, reporte)
-                            VALUES
-                                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            SELECT usuario, puesto, supervisor
+                            FROM usuarios
+                            WHERE nombre = %s
                             """,
-                            params=[
-                                marca,
-                                user_info["usuario"],
-                                nombre,
-                                user_info["puesto"],
-                                user_info["supervisor"],
-                                fecha_val,
-                                tema_val,
-                                horas_val,
-                                obs_val,
-                                nombre_usuario
-                            ]
+                            params=[nombre]
                         )
-                st.success("Registro enviado correctamente")
-                st.rerun()
+                        if user_info:
+                            execute(
+                                """
+                                INSERT INTO capacitaciones
+                                    (marca, usuario, nombre, puesto, supervisor, fecha, tema, horas, observaciones, reporte)
+                                VALUES
+                                    (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                """,
+                                params=[
+                                    marca,
+                                    user_info["usuario"],
+                                    nombre,
+                                    user_info["puesto"],
+                                    user_info["supervisor"],
+                                    fecha_val,
+                                    tema_val,
+                                    horas_val,
+                                    obs_val,
+                                    nombre_usuario
+                                ]
+                            )
+                    ph_mensaje.success("✅ Registro enviado correctamente")
+                except Exception as e:
+                    ph_mensaje.error(f"❌ Error al guardar: {str(e)}")
 
     # =========================================================
     # SUPERVISOR
@@ -386,41 +392,43 @@ def Capacitacion(usuario, puesto):
         # Botón Generar Reporte
         if reporte_btn:
             if not personal_sel:
-                st.error("Favor ingresar el nombre de alguna persona")
+                ph_mensaje.error("Favor ingresar el nombre de alguna persona")
             else:
-                marca = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
-                for nombre in personal_sel:
-                    user_info = fetch_one(
-                        """
-                        SELECT usuario, puesto, supervisor
-                        FROM usuarios
-                        WHERE nombre = %s
-                        """,
-                        params=[nombre]
-                    )
-                    if user_info:
-                        execute(
+                try:
+                    marca = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
+                    for nombre in personal_sel:
+                        user_info = fetch_one(
                             """
-                            INSERT INTO capacitaciones
-                                (marca, usuario, nombre, puesto, supervisor, fecha, tema, horas, observaciones, reporte)
-                            VALUES
-                                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            SELECT usuario, puesto, supervisor
+                            FROM usuarios
+                            WHERE nombre = %s
                             """,
-                            params=[
-                                marca,
-                                user_info["usuario"],
-                                nombre,
-                                user_info["puesto"],
-                                user_info["supervisor"],
-                                fecha_val,
-                                tema_val,
-                                horas_val,
-                                obs_val,
-                                nombre_usuario
-                            ]
+                            params=[nombre]
                         )
-                st.success("Registro enviado correctamente")
-                st.rerun()
+                        if user_info:
+                            execute(
+                                """
+                                INSERT INTO capacitaciones
+                                    (marca, usuario, nombre, puesto, supervisor, fecha, tema, horas, observaciones, reporte)
+                                VALUES
+                                    (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                """,
+                                params=[
+                                    marca,
+                                    user_info["usuario"],
+                                    nombre,
+                                    user_info["puesto"],
+                                    user_info["supervisor"],
+                                    fecha_val,
+                                    tema_val,
+                                    horas_val,
+                                    obs_val,
+                                    nombre_usuario
+                                ]
+                            )
+                    ph_mensaje.success("✅ Registro enviado correctamente")
+                except Exception as e:
+                    ph_mensaje.error(f"❌ Error al guardar: {str(e)}")
 
     # =========================================================
     # OPERARIO / PROFESIONAL JURÍDICO / QC
