@@ -78,6 +78,7 @@ def _redirigir_procesos(usuario_login, puesto_login, perfil_login):
     """
     # Mostrar información del usuario en sidebar
     with st.sidebar:
+        st.image("logo.png", width=100)
         st.markdown("---")
         st.write(f"👤 **Usuario:** {usuario_login}")
         st.write(f"💼 **Puesto:** {puesto_login}")
