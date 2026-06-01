@@ -204,3 +204,57 @@ def actualizar_estado_rechazo(id_registro, nuevo_estado):
     except Exception as e:
         print(f"Error: {e}")
         return False
+def fetch_registros_corregidos_pendientes(usuario):
+    """
+    Obtiene los registros con estado 'corregido' para un usuario específico,
+    donde el operador_cc no es 'N/A'.
+    
+    Args:
+        usuario: Usuario logueado para filtrar los registros
+    
+    Returns:
+        DataFrame con los registros pendientes de revisión
+    """
+    query = """
+        SELECT id, marca, fecha, distrito, manzana, sector, numero_lote, 
+               operador_cc, tipo_de_errores, estado
+        FROM public.registro
+        WHERE usuario = %s 
+          AND operador_cc != 'N/A' 
+          AND estado = 'corregido'
+        ORDER BY marca DESC
+    """
+    return fetch_df(query, params=[usuario])
+
+
+def actualizar_estado_revision(id_registro, nuevo_estado='revisado'):
+    """
+    Actualiza el estado de un registro a 'revisado' solo si actualmente está 'corregido'.
+    
+    Args:
+        id_registro: ID del registro a actualizar
+        nuevo_estado: Nuevo estado (por defecto 'revisado')
+    
+    Returns:
+        True si se actualizó correctamente, False en caso contrario
+    """
+    if nuevo_estado != 'revisado':
+        return False
+    
+    query = """
+        UPDATE public.registro
+        SET estado = %s
+        WHERE id = %s
+          AND estado = 'corregido'
+    """
+    try:
+        execute(query, params=[nuevo_estado, id_registro])
+        return True
+    except Exception as e:
+        print(f"Error al actualizar estado: {e}")
+        return False
+
+
+
+
+
