@@ -9,7 +9,21 @@ import Procesos,Historial,Capacitacion,Otros_Registros,Bonos_Extras,Salir
 from Autenticacion import obtener_usuario_activo
 from db_core import execute
 
-def validar_datos_masivos(df):
+def formatear_sector(valor):
+    """Asegura que el sector tenga 2 dígitos (01, 02, etc.)"""
+    try:
+        return str(int(valor)).zfill(2)
+    except:
+        return str(valor).zfill(2)
+
+def formatear_manzana(valor):
+    """Asegura que la manzana tenga 3 dígitos (001, 002, etc.)"""
+    try:
+        return str(int(valor)).zfill(3)
+    except:
+        return str(valor).zfill(3)
+
+def validar_datos_masivos(df, fecha_seleccionada):
     """
     Valida los datos antes de la inserción masiva
     Retorna (es_valido, mensaje_error)
@@ -20,9 +34,9 @@ def validar_datos_masivos(df):
     if df.empty:
         return False, "La tabla está vacía. No hay datos para procesar."
     
-    # Columnas requeridas según tu estructura
+    # Columnas requeridas (sin fecha porque ya la tenemos)
     columnas_requeridas = [
-        'fecha', 'distrito', 'sector', 'manzana', 'tipo', 
+        'distrito', 'sector', 'manzana', 'tipo', 
         'estado', 'numero_lote', 'partida', 'unidades_catastrales', 
         'horas', 'observaciones'
     ]
@@ -42,34 +56,36 @@ def validar_datos_masivos(df):
     distritos_validos = ["Chorrillos", "San Juan De Miraflores", "Villa el Salvador"]
     distritos_invalidos = df[~df['distrito'].isin(distritos_validos)]
     if not distritos_invalidos.empty:
-        errores.append(f"Hay {len(distritos_invalidos)} registros con distrito inválido")
+        errores.append(f"Hay {len(distritos_invalidos)} registros con distrito inválido. Válidos: {distritos_validos}")
     
     # Validar tipos válidos
     tipos_validos = ["Ordinario", "Reproceso Ordinario", "Corrección de Calidad", 
                      "Corrección de Calidad Extraordinaria", "Producción Horas Extras"]
     tipos_invalidos = df[~df['tipo'].isin(tipos_validos)]
     if not tipos_invalidos.empty:
-        errores.append(f"Hay {len(tipos_invalidos)} registros con tipo inválido")
+        errores.append(f"Hay {len(tipos_invalidos)} registros con tipo inválido. Válidos: {tipos_validos}")
     
     # Validar estados válidos
     estados_validos = ["Finalizado", "En Conflicto"]
     estados_invalidos = df[~df['estado'].isin(estados_validos)]
     if not estados_invalidos.empty:
-        errores.append(f"Hay {len(estados_invalidos)} registros con estado inválido")
+        errores.append(f"Hay {len(estados_invalidos)} registros con estado inválido. Válidos: {estados_validos}")
     
     # Validar que horas sea numérico y positivo
     try:
-        horas_invalidas = df[~df['horas'].apply(lambda x: float(x) >= 0)]
+        df['horas'] = pd.to_numeric(df['horas'], errors='coerce')
+        horas_invalidas = df[df['horas'].isnull() | (df['horas'] < 0)]
         if not horas_invalidas.empty:
-            errores.append(f"Hay {len(horas_invalidas)} registros con horas negativas")
+            errores.append(f"Hay {len(horas_invalidas)} registros con horas inválidas (debe ser número positivo)")
     except:
         errores.append("La columna 'horas' debe contener valores numéricos")
     
     # Validar que unidades_catastrales sea entero positivo
     try:
-        uc_invalidas = df[~df['unidades_catastrales'].apply(lambda x: int(x) >= 0)]
+        df['unidades_catastrales'] = pd.to_numeric(df['unidades_catastrales'], errors='coerce')
+        uc_invalidas = df[df['unidades_catastrales'].isnull() | (df['unidades_catastrales'] < 0)]
         if not uc_invalidas.empty:
-            errores.append(f"Hay {len(uc_invalidas)} registros con unidades catastrales negativas")
+            errores.append(f"Hay {len(uc_invalidas)} registros con unidades catastrales inválidas")
     except:
         errores.append("La columna 'unidades_catastrales' debe contener valores enteros")
     
@@ -78,25 +94,7 @@ def validar_datos_masivos(df):
     
     return True, "Datos válidos"
 
-def parsear_datos_pegados(texto_pegado):
-    """
-    Convierte texto pegado desde Excel en un DataFrame
-    """
-    try:
-        # Intentar con tabulación (formato más común al pegar desde Excel)
-        df = pd.read_csv(io.StringIO(texto_pegado), sep='\t', encoding='utf-8')
-        
-        # Si solo tiene una columna, intentar con otros separadores
-        if len(df.columns) == 1:
-            df = pd.read_csv(io.StringIO(texto_pegado), sep=',', encoding='utf-8')
-            if len(df.columns) == 1:
-                df = pd.read_csv(io.StringIO(texto_pegado), sep=';', encoding='utf-8')
-        
-        return df, None
-    except Exception as e:
-        return None, f"Error al procesar los datos: {str(e)}"
-
-def insertar_registros_masivos(df, usuario, usuario_activo):
+def insertar_registros_masivos(df, fecha_seleccionada, usuario, usuario_activo):
     """
     Inserta múltiples registros usando la función execute existente
     Retorna (exito, registros_insertados, mensaje)
@@ -107,20 +105,23 @@ def insertar_registros_masivos(df, usuario, usuario_activo):
         supervisor = usuario_activo["supervisor"]
         puesto = usuario_activo.get("puesto", "")
         
+        # Calcular semana y año de la fecha seleccionada
+        semana = fecha_seleccionada.isocalendar()[1]
+        año = fecha_seleccionada.isocalendar()[0]
+        
         registros_insertados = 0
         
         for index, row in df.iterrows():
-            # Procesar fecha
-            fecha = pd.to_datetime(row['fecha']).date()
-            semana = fecha.isocalendar()[1]
-            año = fecha.isocalendar()[0]
+            # Formatear sector y manzana
+            sector_formateado = formatear_sector(row['sector'])
+            manzana_formateada = formatear_manzana(row['manzana'])
             
             # Convertir horas a float
             horas = float(row['horas'])
             horas_bi = horas
             
             # Convertir unidades catastrales
-            unidades_catastrales = int(row['unidades_catastrales'])
+            unidades_catastrales = int(float(row['unidades_catastrales']))
             
             # Valores por defecto
             partida = str(row.get('partida', 'N/A'))
@@ -142,8 +143,8 @@ def insertar_registros_masivos(df, usuario, usuario_activo):
                 """,
                 params=[
                     marca, usuario, nombre, puesto, supervisor, "Precampo Jurídico", 
-                    fecha, semana, año, row['distrito'], row['tipo'], 0, 0, 0, horas,
-                    row['manzana'], row['sector'], numero_lote, row['estado'], 
+                    fecha_seleccionada, semana, año, row['distrito'], row['tipo'], 0, 0, 0, horas,
+                    manzana_formateada, sector_formateado, numero_lote, row['estado'], 
                     0.0, unidades_catastrales, 0, partida, 0, 0, observaciones, "N/A",
                     "N/A", horas_bi, 0.0, "N/A", 0, 0, "N/A", 0
                 ],
@@ -181,7 +182,7 @@ def Precampo_Juridico(usuario,puesto):
   placeholder7_3 = st.sidebar.empty()
   salir_3 = placeholder7_3.button("Salir",key="salir_3")
 
-  # ----- NUEVO: Selector de modo de carga ----- #
+  # ----- Selector de modo de carga ----- #
   placeholder_modo = st.empty()
   modo_carga = placeholder_modo.radio(
       "Selecciona el modo de carga:",
@@ -248,95 +249,173 @@ def Precampo_Juridico(usuario,puesto):
     reporte_3 = placeholder23_3.button("Generar Reporte",key="reporte_3")
 
   # ============================================
-  # MODO DE CARGA MASIVA (NUEVA FUNCIONALIDAD)
+  # MODO DE CARGA MASIVA (OPTIMIZADO)
   # ============================================
   else:
-    st.info("""
-    📋 **Instrucciones para carga masiva:**
-    1. Prepara tu archivo Excel con las siguientes columnas:
-       - fecha, distrito, sector, manzana, tipo, estado, numero_lote, partida, unidades_catastrales, horas, observaciones
-    2. Selecciona todas las celdas en Excel (incluyendo encabezados)
-    3. Copia con Ctrl+C
-    4. Pega en el área de texto con Ctrl+V
-    5. Revisa los datos en la vista previa
-    6. Haz clic en 'Subir Registros Masivos'
-    """)
     
-    placeholder_pegado = st.empty()
-    datos_pegados = placeholder_pegado.text_area(
-        "📋 Pega aquí los datos desde Excel (Ctrl+V)",
-        height=200,
-        key="datos_pegados_precampo",
-        help="Copia los datos desde Excel incluyendo los encabezados de las columnas"
+    # Fecha común para todos los registros
+    placeholder_fecha_masiva = st.empty()
+    fecha_masiva = placeholder_fecha_masiva.date_input(
+        "📅 Fecha para todos los registros",
+        value=datetime.now(pytz.timezone('America/Guatemala')),
+        key="fecha_masiva_precampo"
     )
     
-    if datos_pegados:
-        df, error = parsear_datos_pegados(datos_pegados)
+    st.info("""
+    📋 **Instrucciones para carga masiva:**
+    1. Prepara tu Excel con estas columnas en orden:
+       `distrito | sector | manzana | tipo | estado | numero_lote | partida | unidades_catastrales | horas | observaciones`
+    2. La **fecha** se asigna arriba para todos los registros
+    3. **Sector** y **manzana** se formatean automáticamente (1 → 01, 20 → 020)
+    4. Copia los datos desde Excel (sin encabezados) con Ctrl+C
+    5. Haz clic en la primera celda de la tabla y pega con Ctrl+V
+    6. Si necesitas agregar filas, usa el botón "+" al final de la tabla
+    """)
+    
+    # Crear DataFrame vacío con las columnas requeridas
+    columnas_masivas = [
+        'distrito', 'sector', 'manzana', 'tipo', 'estado', 
+        'numero_lote', 'partida', 'unidades_catastrales', 'horas', 'observaciones'
+    ]
+    
+    # Inicializar DataFrame vacío o cargar datos previos
+    if 'df_masivo_precampo' not in st.session_state:
+        st.session_state.df_masivo_precampo = pd.DataFrame(columns=columnas_masivas)
+    
+    placeholder_tabla_masiva = st.empty()
+    
+    st.subheader("📊 Datos a cargar (pega aquí desde Excel)")
+    
+    # Tabla editable donde pegar directamente
+    df_editado = placeholder_tabla_masiva.data_editor(
+        st.session_state.df_masivo_precampo,
+        num_rows="dynamic",  # Permite agregar/eliminar filas
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "distrito": st.column_config.SelectboxColumn(
+                "Distrito",
+                options=["Chorrillos", "San Juan De Miraflores", "Villa el Salvador"],
+                required=True
+            ),
+            "sector": st.column_config.TextColumn(
+                "Sector",
+                help="Se formateará automáticamente a 2 dígitos",
+                required=True
+            ),
+            "manzana": st.column_config.TextColumn(
+                "Manzana",
+                help="Se formateará automáticamente a 3 dígitos",
+                required=True
+            ),
+            "tipo": st.column_config.SelectboxColumn(
+                "Tipo",
+                options=["Ordinario", "Reproceso Ordinario", "Corrección de Calidad", 
+                        "Corrección de Calidad Extraordinaria", "Producción Horas Extras"],
+                required=True
+            ),
+            "estado": st.column_config.SelectboxColumn(
+                "Estado",
+                options=["Finalizado", "En Conflicto"],
+                required=True
+            ),
+            "numero_lote": st.column_config.TextColumn(
+                "Número de Lote",
+                help="Ej: 001,002,003 o Todos",
+                default="Todos"
+            ),
+            "partida": st.column_config.TextColumn(
+                "Partida",
+                default="N/A"
+            ),
+            "unidades_catastrales": st.column_config.NumberColumn(
+                "Cantidad de Registros",
+                min_value=0,
+                required=True
+            ),
+            "horas": st.column_config.NumberColumn(
+                "Horas Trabajadas",
+                min_value=0.0,
+                required=True
+            ),
+            "observaciones": st.column_config.TextColumn(
+                "Observaciones",
+                default="N/A"
+            )
+        },
+        key="editor_masivo_precampo"
+    )
+    
+    # Guardar en session_state para persistencia
+    st.session_state.df_masivo_precampo = df_editado
+    
+    # Estadísticas en tiempo real
+    if not df_editado.empty:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("📊 Registros a insertar", len(df_editado))
+        with col2:
+            # Mostrar cómo quedarán los sectores formateados
+            sectores_unicos = df_editado['sector'].dropna().apply(formatear_sector).unique()
+            st.metric("🏘️ Sectores únicos", len(sectores_unicos))
+        with col3:
+            # Mostrar cómo quedarán las manzanas formateadas
+            manzanas_unicas = df_editado['manzana'].dropna().apply(formatear_manzana).unique()
+            st.metric("🏠 Manzanas únicas", len(manzanas_unicas))
         
-        if error:
-            st.error(error)
-        elif df is not None:
-            st.subheader("📊 Vista previa de datos")
+        # Mostrar preview del formateo
+        with st.expander("🔍 Ver vista previa del formateo automático"):
+            preview_df = df_editado.copy()
+            if 'sector' in preview_df.columns:
+                preview_df['sector_formateado'] = preview_df['sector'].apply(formatear_sector)
+            if 'manzana' in preview_df.columns:
+                preview_df['manzana_formateada'] = preview_df['manzana'].apply(formatear_manzana)
+            st.dataframe(preview_df, use_container_width=True)
+    
+    # Botón de carga masiva
+    placeholder_boton_masivo = st.empty()
+    subir_masivo = placeholder_boton_masivo.button(
+        "🚀 Subir Registros Masivos", 
+        type="primary", 
+        use_container_width=True,
+        key="subir_masivo_precampo",
+        disabled=df_editado.empty  # Se deshabilita si no hay datos
+    )
+    
+    if subir_masivo:
+        with st.spinner("⏳ Validando datos..."):
+            # Aplicar formateo antes de validar
+            df_validar = df_editado.copy()
+            df_validar['sector'] = df_validar['sector'].apply(formatear_sector)
+            df_validar['manzana'] = df_validar['manzana'].apply(formatear_manzana)
             
-            # Permitir edición antes de subir
-            df_editado = st.data_editor(
-                df,
-                num_rows="dynamic",
-                use_container_width=True,
-                hide_index=True,
-                key="editor_datos_precampo"
-            )
+            es_valido, mensaje_validacion = validar_datos_masivos(df_validar, fecha_masiva)
             
-            # Estadísticas
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Registros a insertar", len(df_editado))
-            with col2:
-                st.metric("Columnas detectadas", len(df_editado.columns))
-            with col3:
-                nulos = df_editado.isnull().sum().sum()
-                st.metric("Celdas vacías", nulos)
-            
-            # Botón de carga masiva
-            placeholder_boton_masivo = st.empty()
-            subir_masivo = placeholder_boton_masivo.button(
-                "🚀 Subir Registros Masivos", 
-                type="primary", 
-                use_container_width=True,
-                key="subir_masivo_precampo"
-            )
-            
-            if subir_masivo:
-                with st.spinner("⏳ Validando datos..."):
-                    es_valido, mensaje_validacion = validar_datos_masivos(df_editado)
+            if not es_valido:
+                st.error(f"❌ Error de validación:\n{mensaje_validacion}")
+                st.warning("⚠️ No se subió ningún registro. Corrige los errores e intenta de nuevo.")
+            else:
+                st.success("✅ Validación exitosa")
+                
+                usuario_activo = obtener_usuario_activo(usuario)
+                if not usuario_activo:
+                    st.error("No se encontró un usuario activo para generar el reporte.")
+                    return
+                
+                with st.spinner("💾 Insertando registros en la base de datos..."):
+                    exito, insertados, mensaje = insertar_registros_masivos(
+                        df_validar, fecha_masiva, usuario, usuario_activo
+                    )
                     
-                    if not es_valido:
-                        st.error(f"❌ Error de validación:\n{mensaje_validacion}")
-                        st.warning("⚠️ No se subió ningún registro. Corrige los errores e intenta de nuevo.")
+                    if exito:
+                        st.success(f"✅ {mensaje}")
+                        st.balloons()
+                        # Limpiar la tabla después del éxito
+                        st.session_state.df_masivo_precampo = pd.DataFrame(columns=columnas_masivas)
+                        st.rerun()
                     else:
-                        st.success("✅ Validación exitosa")
-                        
-                        usuario_activo = obtener_usuario_activo(usuario)
-                        if not usuario_activo:
-                            st.error("No se encontró un usuario activo para generar el reporte.")
-                            return
-                        
-                        with st.spinner("💾 Insertando registros en la base de datos..."):
-                            exito, insertados, mensaje = insertar_registros_masivos(
-                                df_editado, usuario, usuario_activo
-                            )
-                            
-                            if exito:
-                                st.success(f"✅ {mensaje}")
-                                st.balloons()
-                                # Limpiar el área de pegado después de éxito
-                                placeholder_pegado.empty()
-                                placeholder_boton_masivo.empty()
-                            else:
-                                st.error(f"❌ {mensaje}")
-                                st.error(f"Se insertaron {insertados} registros antes del error. Verifica los datos restantes.")
-        else:
-            st.warning("No se pudieron procesar los datos pegados. Verifica el formato.")
+                        st.error(f"❌ {mensaje}")
+                        st.error(f"Se insertaron {insertados} registros antes del error. Verifica los datos restantes.")
 
   # ----- Procesos ---- #
     
@@ -364,6 +443,14 @@ def Precampo_Juridico(usuario,puesto):
         placeholder21_3.empty()
         placeholder22_3.empty()
         placeholder23_3.empty()
+    else:
+        # Limpiar placeholders de carga masiva
+        if 'placeholder_fecha_masiva' in locals():
+            placeholder_fecha_masiva.empty()
+        if 'placeholder_tabla_masiva' in locals():
+            placeholder_tabla_masiva.empty()
+        if 'placeholder_boton_masivo' in locals():
+            placeholder_boton_masivo.empty()
     
     st.session_state.Procesos=False
     st.session_state.Postcampo=False
@@ -404,6 +491,13 @@ def Precampo_Juridico(usuario,puesto):
         placeholder21_3.empty()
         placeholder22_3.empty()
         placeholder23_3.empty()
+    else:
+        if 'placeholder_fecha_masiva' in locals():
+            placeholder_fecha_masiva.empty()
+        if 'placeholder_tabla_masiva' in locals():
+            placeholder_tabla_masiva.empty()
+        if 'placeholder_boton_masivo' in locals():
+            placeholder_boton_masivo.empty()
     
     st.session_state.Postcampo=False
     st.session_state.Historial=True
@@ -435,6 +529,13 @@ def Precampo_Juridico(usuario,puesto):
         placeholder21_3.empty()
         placeholder22_3.empty()
         placeholder23_3.empty()
+    else:
+        if 'placeholder_fecha_masiva' in locals():
+            placeholder_fecha_masiva.empty()
+        if 'placeholder_tabla_masiva' in locals():
+            placeholder_tabla_masiva.empty()
+        if 'placeholder_boton_masivo' in locals():
+            placeholder_boton_masivo.empty()
     
     st.session_state.Postcampo=False
     st.session_state.Capacitacion=True
@@ -466,6 +567,13 @@ def Precampo_Juridico(usuario,puesto):
         placeholder21_3.empty()
         placeholder22_3.empty()
         placeholder23_3.empty()
+    else:
+        if 'placeholder_fecha_masiva' in locals():
+            placeholder_fecha_masiva.empty()
+        if 'placeholder_tabla_masiva' in locals():
+            placeholder_tabla_masiva.empty()
+        if 'placeholder_boton_masivo' in locals():
+            placeholder_boton_masivo.empty()
     
     st.session_state.Postcampo=False
     st.session_state.Otros_Registros=True
@@ -497,6 +605,13 @@ def Precampo_Juridico(usuario,puesto):
         placeholder21_3.empty()
         placeholder22_3.empty()
         placeholder23_3.empty()
+    else:
+        if 'placeholder_fecha_masiva' in locals():
+            placeholder_fecha_masiva.empty()
+        if 'placeholder_tabla_masiva' in locals():
+            placeholder_tabla_masiva.empty()
+        if 'placeholder_boton_masivo' in locals():
+            placeholder_boton_masivo.empty()
     
     st.session_state.Postcampo=False
     st.session_state.Bonos_Extras=True
@@ -528,6 +643,13 @@ def Precampo_Juridico(usuario,puesto):
         placeholder21_3.empty()
         placeholder22_3.empty()
         placeholder23_3.empty()
+    else:
+        if 'placeholder_fecha_masiva' in locals():
+            placeholder_fecha_masiva.empty()
+        if 'placeholder_tabla_masiva' in locals():
+            placeholder_tabla_masiva.empty()
+        if 'placeholder_boton_masivo' in locals():
+            placeholder_boton_masivo.empty()
     
     st.session_state.Ingreso = False
     st.session_state.Postcampo=False
