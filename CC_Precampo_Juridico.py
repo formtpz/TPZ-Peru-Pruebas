@@ -146,7 +146,7 @@ def procesar_dataframe_excel(df):
     df_procesado['observaciones'] = df_procesado['observaciones'].apply(lambda x: normalizar_texto(x, "N/A"))
     df_procesado['partida'] = df_procesado['partida'].apply(lambda x: normalizar_texto(x, "N/A"))
     df_procesado['numero_lote'] = df_procesado['numero_lote'].apply(lambda x: normalizar_texto(x, "Todos"))
-    df_procesado['tipo_errores'] = df_procesado['tipo_errores'].apply(lambda x: normalizar_texto(x, "N/A"))
+    df_procesado['tipo_errores'] = df_procesado['tipo_errores'].apply(lambda x: normalizar_texto(x, "N/A", "Numeración errónea o incompleta", "Errores geométricos y/o de forma", "Polígonos y/o puntos duplicados", "Polígonos no se ajustan a ortofoto", "Omisión/Comisión de puertas", "Omisión/Comisión de polígonos"))
     
     # Agregar campo operador_cc con valor fijo "IA"
     df_procesado['operador_cc'] = "IA"
