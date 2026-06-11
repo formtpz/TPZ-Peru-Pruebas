@@ -5,9 +5,9 @@ import pandas as pd
 from datetime import datetime
 import pytz
 import io
-import Procesos,Historial,Capacitacion,Otros_Registros,Bonos_Extras,Salir
+import Procesos, Historial, Capacitacion, Otros_Registros, Bonos_Extras, Salir
 from Autenticacion import obtener_usuario_activo
-from db_core import execute
+from db_core import execute, fetch_operadores_cc
 
 def formatear_sector(valor):
     """Asegura que el sector tenga 2 dígitos (01, 02, etc.)"""
@@ -302,42 +302,39 @@ def CC_Precampo_Juridico(usuario, puesto):
     )
 
     placeholder8_cc = st.empty()
-    CC_Precampo_Juridico_titulo = placeholder8_cc.title("CC Precampo Jurídico")
+    CC_Precampo_Juridico_titulo = placeholder8_cc.title("Control de Calidad Precampo Jurídico")
 
     # Inicializar variables del formulario manual como None
     placeholder9_cc = None
     placeholder10_cc = None
+    placeholder11_cc = None
     placeholder12_cc = None
     placeholder13_cc = None
+    placeholder14_cc = None
     placeholder15_cc = None
-    placeholder16_cc = None  # Ya no se usa pero se mantiene para limpieza
+    placeholder16_cc = None
+    placeholderP_cc = None
+    placeholder17_cc = None
     placeholder18_cc = None
     placeholder19_cc = None
     placeholder20_cc = None
-    placeholder20b_cc = None
-    placeholder20c_cc = None
-    placeholder21_cc = None
-    placeholder22_cc = None
-    placeholder23_cc = None
-    placeholder24_cc = None
     
     fecha_cc = None
     distrito_cc = None
-    sector_cc = None
     manzana_cc = None
-    tipo_cc = None
+    sector_cc = None
     numero_lote_cc = None
+    operador_cc = None
+    tipo_cc = None
+    tipo_errores_cc = None
     partida_cc = None
     aprobados_cc = None
     rechazados_cc = None
-    unidades_catastrales_cc = None
     horas_cc = None
-    observaciones_cc = None
-    tipo_errores_cc = None
     reporte_cc = None
 
     # ============================================
-    # MODO DE CARGA MANUAL (FORMULARIO)
+    # MODO DE CARGA MANUAL (FORMULARIO SIMPLIFICADO)
     # ============================================
     if modo_carga == "📝 Carga Manual (Formulario)":
         
@@ -349,94 +346,86 @@ def CC_Precampo_Juridico(usuario, puesto):
         placeholder10_cc = st.empty()
         distrito_cc = placeholder10_cc.selectbox("📍 Distrito", options=("Chorrillos", "San Juan De Miraflores", "Villa el Salvador"), key="distrito_cc")
         
+        placeholder11_cc = st.empty()
+        manzana_cc = placeholder11_cc.selectbox("🏠 Manzana", options=("001","002","003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022","023","024","025","026","027","028","029","030","031","032","033","034","035","036","037","038","039","040","041","042","043","044","045","046","047","048","049","050","051","052","053","054","055","056","057","058","058","059","060","061","062","063","064","065","066","067","068","069","070","071","072","073","074","075","076","077","078","079","080","081","082","083","084","085","086","087","088","089","090","091","092","093","094","095","096","097","098","099","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120"), key="manzana_cc")
+        
         placeholder12_cc = st.empty()
         sector_cc = placeholder12_cc.selectbox("🏘️ Sector", options=("01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120"), key="sector_cc")
 
+        # =========================
+        # Generar lista dinámica de lotes
+        # =========================
+        lotes = ["Todos"] + [f"{i:03d}" for i in range(1,249)]
+        
         placeholder13_cc = st.empty()
-        manzana_cc = placeholder13_cc.selectbox("🏠 Manzana", options=("001","002","003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022","023","024","025","026","027","028","029","030","031","032","033","034","035","036","037","038","039","040","041","042","043","044","045","046","047","048","049","050","051","052","053","054","055","056","057","058","058","059","060","061","062","063","064","065","066","067","068","069","070","071","072","073","074","075","076","077","078","079","080","081","082","083","084","085","086","087","088","089","090","091","092","093","094","095","096","097","098","099","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120"), key="manzana_cc")
-        
-        placeholder15_cc = st.empty()
-        tipo_cc = placeholder15_cc.selectbox("📋 Tipo", options=("Ordinario", "Reproceso Ordinario", "Corrección de Calidad", "Corrección de Calidad Extraordinaria", "Producción Horas Extras"), key="tipo_cc")
-        
-        # ⚠️ ELIMINADO: Selector de "Estado" (siempre es "N/A")
-        
-        lotes = ["Todos"] + [f"{i:03d}" for i in range(1, 249)]
-        
-        placeholder18_cc = st.empty()
-        numero_lote_cc = placeholder18_cc.multiselect(
+        numero_lote_seleccionado = placeholder13_cc.multiselect(
             "🔢 Número de Lote",
             options=lotes,
             key="numero_lote_cc"
         )
         
-        if "Todos" in numero_lote_cc:
-            numero_lote_cc = ["Todos"]
+        # Lógica para "Todos"
+        if "Todos" in numero_lote_seleccionado:
+            numero_lote_seleccionado = ["Todos"]
         
-        numero_lote_cc = ",".join(numero_lote_cc) 
+        numero_lote_cc = ",".join(numero_lote_seleccionado)
+        
+        # ----- Selector de Operador con datos desde BD ---- #
+        operadores_disponibles = fetch_operadores_cc(
+            filtro_proceso='Jurídico',
+            filtro_subproceso=['Descarga', 'Análisis'],
+            filtro_proceso_anterior='Jurídico',
+            filtro_subproceso_anterior=['Descarga', 'Análisis']
+        )
+        
+        if operadores_disponibles:
+            opciones_operadores = [op['nombre'] for op in operadores_disponibles]
+        else:
+            opciones_operadores = ["No hay operadores disponibles"]
+        
+        placeholder14_cc = st.empty()
+        operador_cc = placeholder14_cc.selectbox(
+            "👤 Operador objeto de CC",
+            options=opciones_operadores,
+            key="operador_cc"
+        )
+        
+        placeholder15_cc = st.empty()
+        tipo_cc = placeholder15_cc.selectbox(
+            "📋 Tipo",
+            options=("Inspección", "Primera Reinspección", "Inspección Horas Extras", "Control de Calidad Supervisión"),
+            key="tipo_cc"
+        )
+        
+        placeholder16_cc = st.empty()
+        tipo_errores_seleccionados = placeholder16_cc.multiselect(
+            "⚠️ Tipo de Errores",
+            options=("Numeración errónea o incompleta",
+                     "Errores geométricos y/o de forma",
+                     "Polígonos y/o puntos duplicados",
+                     "Omisión/Comisión de polígonos",
+                     "Polígonos no se ajustan a ortofoto",
+                     "Omisión/Comisión de puertas"),
+            key="tipo_errores_cc"
+        )
+        
+        placeholderP_cc = st.empty()
+        partida_cc = placeholderP_cc.text_input("📄 Número de Partida", value='N/A', max_chars=60, key="partida_cc")
+        
+        placeholder17_cc = st.empty()
+        aprobados_cc = placeholder17_cc.number_input("✅ Cantidad de Registros Aprobados", min_value=0, step=1, key="aprobados_cc")
+        
+        placeholder18_cc = st.empty()
+        rechazados_cc = placeholder18_cc.number_input("❌ Cantidad de Registros Rechazados", min_value=0, step=1, key="rechazados_cc")
         
         placeholder19_cc = st.empty()
-        partida_cc = placeholder19_cc.text_input("📄 Número de Partida", value="N/A", max_chars=60, key="partida_cc")
+        horas_cc = placeholder19_cc.number_input("⏱️ Cantidad de Horas Trabajadas en el Proceso", min_value=0.0, key="horas_cc")
         
-        # CAMPOS: Aprobados y Rechazados
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            placeholder20b_cc = st.empty()
-            aprobados_cc = placeholder20b_cc.number_input(
-                "✅ Cantidad de Registros Aprobados", 
-                min_value=0, 
-                step=1, 
-                value=0,
-                key="aprobados_cc"
-            )
-        
-        with col2:
-            placeholder20c_cc = st.empty()
-            rechazados_cc = placeholder20c_cc.number_input(
-                "❌ Cantidad de Registros Rechazados", 
-                min_value=0, 
-                step=1, 
-                value=0,
-                key="rechazados_cc"
-            )
-        
-        # Unidades Catastrales = Aprobados + Rechazados (calculado automáticamente)
         placeholder20_cc = st.empty()
-        unidades_catastrales_cc = placeholder20_cc.number_input(
-            "📊 Total Unidades Catastrales (Aprobados + Rechazados)",
-            value=aprobados_cc + rechazados_cc,
-            disabled=True,
-            key="unidades_catastrales_cc"
-        )
-        
-        placeholder21_cc = st.empty()
-        horas_cc = placeholder21_cc.number_input("⏱️ Cantidad de Horas Trabajadas en el Proceso", min_value=0.0, key="horas_cc")
-
-        placeholder22_cc = st.empty()
-        observaciones_cc = placeholder22_cc.text_input("📝 Observaciones", value="N/A", max_chars=60, key="observaciones_cc")
-        
-        placeholder24_cc = st.empty()
-        tipo_errores_cc = placeholder24_cc.text_input(
-            "⚠️ Tipo de Errores (separados por coma si son varios)",
-            value="N/A",
-            max_chars=255,
-            key="tipo_errores_cc",
-            help="Ej: Error de digitalización, Error de georreferenciación, Datos incompletos"
-        )
-        
-        # Mostrar info de campos automáticos
-        with st.expander("ℹ️ Campos automáticos"):
-            st.info("""
-            Los siguientes campos se asignan automáticamente:
-            - **Estado**: "N/A" (no aplica para CC Precampo Jurídico)
-            - **Operador CC**: "IA"
-            """)
-       
-        placeholder23_cc = st.empty()
-        reporte_cc = placeholder23_cc.button("🚀 Generar Reporte", key="reporte_cc", type="primary")
+        reporte_cc = placeholder20_cc.button("🚀 Generar Reporte", key="reporte_cc", type="primary")
 
     # ============================================
-    # MODO DE CARGA MASIVA (SUBIR EXCEL)
+    # MODO DE CARGA MASIVA (SUBIR EXCEL) - SIN MODIFICACIONES
     # ============================================
     else:
         
@@ -690,19 +679,17 @@ def CC_Precampo_Juridico(usuario, puesto):
         
         if placeholder9_cc: placeholder9_cc.empty()
         if placeholder10_cc: placeholder10_cc.empty()
+        if placeholder11_cc: placeholder11_cc.empty()
         if placeholder12_cc: placeholder12_cc.empty()
         if placeholder13_cc: placeholder13_cc.empty()
+        if placeholder14_cc: placeholder14_cc.empty()
         if placeholder15_cc: placeholder15_cc.empty()
         if placeholder16_cc: placeholder16_cc.empty()
+        if placeholderP_cc: placeholderP_cc.empty()
+        if placeholder17_cc: placeholder17_cc.empty()
         if placeholder18_cc: placeholder18_cc.empty()
         if placeholder19_cc: placeholder19_cc.empty()
         if placeholder20_cc: placeholder20_cc.empty()
-        if placeholder20b_cc: placeholder20b_cc.empty()
-        if placeholder20c_cc: placeholder20c_cc.empty()
-        if placeholder21_cc: placeholder21_cc.empty()
-        if placeholder22_cc: placeholder22_cc.empty()
-        if placeholder23_cc: placeholder23_cc.empty()
-        if placeholder24_cc: placeholder24_cc.empty()
         
         if placeholder_fecha_masiva: placeholder_fecha_masiva.empty()
         if placeholder_instrucciones_masivo: placeholder_instrucciones_masivo.empty()
@@ -767,7 +754,7 @@ def CC_Precampo_Juridico(usuario, puesto):
         Salir.Salir()
 
     # ============================================
-    # ENVÍO DE FORMULARIO MANUAL
+    # ENVÍO DE FORMULARIO MANUAL (SIMPLIFICADO)
     # ============================================
     elif modo_carga == "📝 Carga Manual (Formulario)" and reporte_cc:
 
@@ -783,9 +770,9 @@ def CC_Precampo_Juridico(usuario, puesto):
         semana_cc = fecha_cc.isocalendar()[1]
         año_cc = fecha_cc.isocalendar()[0]
         horas_bi = float(horas_cc)
-        operador_cc_valor = "IA"
-        estado_cc_valor = "N/A"  # FIJO para CC Precampo Jurídico
-        unidades_catastrales_cc = int(aprobados_cc) + int(rechazados_cc)
+        unidades_catastrales_cc = aprobados_cc + rechazados_cc
+        tipos_de_errores_cc = ','.join(tipo_errores_seleccionados)
+        conteo_errores_cc = len(tipo_errores_seleccionados)
         
         execute(
             """
@@ -801,11 +788,10 @@ def CC_Precampo_Juridico(usuario, puesto):
             )
             """,
             params=[
-                marca_cc, usuario, nombre_cc, puesto, supervisor_cc, "CC Precampo Jurídico", 
-                fecha_cc, semana_cc, año_cc, distrito_cc, tipo_cc, 0, int(aprobados_cc), int(rechazados_cc), horas_cc,
-                manzana_cc, sector_cc, numero_lote_cc, estado_cc_valor, 0.0, unidades_catastrales_cc, 
-                0, partida_cc, 0, 0, observaciones_cc, "N/A",
-                "N/A", horas_bi, 0.0, operador_cc_valor, 0, 0, tipo_errores_cc, 0
+                marca_cc, usuario, nombre_cc, puesto, supervisor_cc, "Control de Calidad Precampo Jurídico", 
+                fecha_cc, semana_cc, año_cc, distrito_cc, tipo_cc, 0, aprobados_cc, rechazados_cc, horas_cc,
+                manzana_cc, sector_cc, numero_lote_cc, "N/A", 0.0, unidades_catastrales_cc, 0, partida_cc, 0, 0, "N/A", "N/A",
+                "N/A", horas_bi, 0.0, operador_cc, 0, 0, tipos_de_errores_cc, conteo_errores_cc
             ],
         )
         st.success('✅ Reporte enviado correctamente')
