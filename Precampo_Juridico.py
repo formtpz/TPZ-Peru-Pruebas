@@ -156,10 +156,21 @@ def insertar_registros_masivos(df, fecha_seleccionada, usuario, usuario_activo):
     except Exception as e:
         return False, registros_insertados, f"Error al insertar registros: {str(e)}"
 
+def limpiar_todos_placeholders():
+    """Limpia todos los placeholders del formulario"""
+    # Esta función se usa para asegurar que no queden elementos residuales
+    pass
+
 def Precampo_Juridico(usuario,puesto):
 
   # ----- Conexión, Botones y Memoria ---- #
   uri=st.secrets.db_credentials.URI
+
+  # Inicializar variables de placeholders para carga masiva como None
+  placeholder_fecha_masiva = None
+  placeholder_texto_pegado = None
+  placeholder_tabla_masiva = None
+  placeholder_boton_masivo = None
 
   placeholder1_3= st.sidebar.empty()
   titulo= placeholder1_3.title("Menú")
@@ -192,6 +203,33 @@ def Precampo_Juridico(usuario,puesto):
 
   placeholder8_3 = st.empty()
   Precampo_Juridico_3 = placeholder8_3.title("Precampo Jurídico")
+
+  # Inicializar variables del formulario manual como None
+  placeholder9_3 = None
+  placeholder10_3 = None
+  placeholder12_3 = None
+  placeholder13_3 = None
+  placeholder15_3 = None
+  placeholder16_3 = None
+  placeholder18_3 = None
+  placeholder19_3 = None
+  placeholder20_3 = None
+  placeholder21_3 = None
+  placeholder22_3 = None
+  placeholder23_3 = None
+  
+  fecha_3 = None
+  distrito_3 = None
+  sector_3 = None
+  manzana_3 = None
+  tipo_3 = None
+  estado_3 = None
+  numero_lote_3 = None
+  partida_3 = None
+  unidades_catastrales_3 = None
+  horas_3 = None
+  observaciones_3 = None
+  reporte_3 = None
 
   # ============================================
   # MODO DE CARGA MANUAL (TU CÓDIGO ORIGINAL)
@@ -249,7 +287,7 @@ def Precampo_Juridico(usuario,puesto):
     reporte_3 = placeholder23_3.button("Generar Reporte",key="reporte_3")
 
   # ============================================
-  # MODO DE CARGA MASIVA (OPTIMIZADO)
+  # MODO DE CARGA MASIVA (PEGAR CON ENCABEZADOS)
   # ============================================
   else:
     
@@ -263,114 +301,130 @@ def Precampo_Juridico(usuario,puesto):
     
     st.info("""
     📋 **Instrucciones para carga masiva:**
-    1. Prepara tu Excel con estas columnas en orden:
+    1. Prepara tu Excel con estos **encabezados exactos**:
        `distrito | sector | manzana | tipo | estado | numero_lote | partida | unidades_catastrales | horas | observaciones`
     2. La **fecha** se asigna arriba para todos los registros
     3. **Sector** y **manzana** se formatean automáticamente (1 → 01, 20 → 020)
-    4. Copia los datos desde Excel (sin encabezados) con Ctrl+C
-    5. Haz clic en la primera celda de la tabla y pega con Ctrl+V
-    6. Si necesitas agregar filas, usa el botón "+" al final de la tabla
+    4. Copia los datos desde Excel **INCLUYENDO los encabezados** con Ctrl+C
+    5. Pega en el área de texto inferior con Ctrl+V
+    6. Revisa la vista previa y corrige si es necesario
     """)
     
-    # Crear DataFrame vacío con las columnas requeridas
-    columnas_masivas = [
-        'distrito', 'sector', 'manzana', 'tipo', 'estado', 
-        'numero_lote', 'partida', 'unidades_catastrales', 'horas', 'observaciones'
-    ]
-    
-    # Inicializar DataFrame vacío o cargar datos previos
-    if 'df_masivo_precampo' not in st.session_state:
-        st.session_state.df_masivo_precampo = pd.DataFrame(columns=columnas_masivas)
-    
-    placeholder_tabla_masiva = st.empty()
-    
-    st.subheader("📊 Datos a cargar (pega aquí desde Excel)")
-    
-    # Tabla editable donde pegar directamente
-    df_editado = placeholder_tabla_masiva.data_editor(
-        st.session_state.df_masivo_precampo,
-        num_rows="dynamic",  # Permite agregar/eliminar filas
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "distrito": st.column_config.SelectboxColumn(
-                "Distrito",
-                options=["Chorrillos", "San Juan De Miraflores", "Villa el Salvador"],
-                required=True
-            ),
-            "sector": st.column_config.TextColumn(
-                "Sector",
-                help="Se formateará automáticamente a 2 dígitos",
-                required=True
-            ),
-            "manzana": st.column_config.TextColumn(
-                "Manzana",
-                help="Se formateará automáticamente a 3 dígitos",
-                required=True
-            ),
-            "tipo": st.column_config.SelectboxColumn(
-                "Tipo",
-                options=["Ordinario", "Reproceso Ordinario", "Corrección de Calidad", 
-                        "Corrección de Calidad Extraordinaria", "Producción Horas Extras"],
-                required=True
-            ),
-            "estado": st.column_config.SelectboxColumn(
-                "Estado",
-                options=["Finalizado", "En Conflicto"],
-                required=True
-            ),
-            "numero_lote": st.column_config.TextColumn(
-                "Número de Lote",
-                help="Ej: 001,002,003 o Todos",
-                default="Todos"
-            ),
-            "partida": st.column_config.TextColumn(
-                "Partida",
-                default="N/A"
-            ),
-            "unidades_catastrales": st.column_config.NumberColumn(
-                "Cantidad de Registros",
-                min_value=0,
-                required=True
-            ),
-            "horas": st.column_config.NumberColumn(
-                "Horas Trabajadas",
-                min_value=0.0,
-                required=True
-            ),
-            "observaciones": st.column_config.TextColumn(
-                "Observaciones",
-                default="N/A"
-            )
-        },
-        key="editor_masivo_precampo"
+    # Área de texto para pegar
+    placeholder_texto_pegado = st.empty()
+    texto_pegado = placeholder_texto_pegado.text_area(
+        "📋 Pega aquí los datos desde Excel (incluyendo encabezados)",
+        height=200,
+        key="texto_pegado_precampo",
+        help="Copia desde Excel incluyendo la fila de encabezados y pega aquí con Ctrl+V"
     )
     
-    # Guardar en session_state para persistencia
-    st.session_state.df_masivo_precampo = df_editado
+    df_editado = None
     
-    # Estadísticas en tiempo real
-    if not df_editado.empty:
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("📊 Registros a insertar", len(df_editado))
-        with col2:
-            # Mostrar cómo quedarán los sectores formateados
-            sectores_unicos = df_editado['sector'].dropna().apply(formatear_sector).unique()
-            st.metric("🏘️ Sectores únicos", len(sectores_unicos))
-        with col3:
-            # Mostrar cómo quedarán las manzanas formateadas
-            manzanas_unicas = df_editado['manzana'].dropna().apply(formatear_manzana).unique()
-            st.metric("🏠 Manzanas únicas", len(manzanas_unicas))
+    if texto_pegado:
+        # Procesar los datos pegados
+        try:
+            # Intentar con tabulación (formato Excel)
+            df_pegado = pd.read_csv(io.StringIO(texto_pegado), sep='\t', encoding='utf-8')
+            
+            # Si solo tiene una columna, intentar con otros separadores
+            if len(df_pegado.columns) == 1:
+                df_pegado = pd.read_csv(io.StringIO(texto_pegado), sep=',', encoding='utf-8')
+                if len(df_pegado.columns) == 1:
+                    df_pegado = pd.read_csv(io.StringIO(texto_pegado), sep=';', encoding='utf-8')
+            
+            # Mostrar vista previa editable
+            st.subheader("📊 Vista previa de datos")
+            st.caption("✏️ Puedes editar los datos directamente en esta tabla antes de subir")
+            
+            placeholder_tabla_masiva = st.empty()
+            
+            # Tabla editable
+            df_editado = placeholder_tabla_masiva.data_editor(
+                df_pegado,
+                num_rows="dynamic",
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "distrito": st.column_config.SelectboxColumn(
+                        "Distrito",
+                        options=["Chorrillos", "San Juan De Miraflores", "Villa el Salvador"],
+                        required=True
+                    ),
+                    "sector": st.column_config.TextColumn(
+                        "Sector",
+                        help="Se formateará automáticamente a 2 dígitos (1 → 01)",
+                        required=True
+                    ),
+                    "manzana": st.column_config.TextColumn(
+                        "Manzana",
+                        help="Se formateará automáticamente a 3 dígitos (20 → 020)",
+                        required=True
+                    ),
+                    "tipo": st.column_config.SelectboxColumn(
+                        "Tipo",
+                        options=["Ordinario", "Reproceso Ordinario", "Corrección de Calidad", 
+                                "Corrección de Calidad Extraordinaria", "Producción Horas Extras"],
+                        required=True
+                    ),
+                    "estado": st.column_config.SelectboxColumn(
+                        "Estado",
+                        options=["Finalizado", "En Conflicto"],
+                        required=True
+                    ),
+                    "numero_lote": st.column_config.TextColumn(
+                        "Número de Lote",
+                        help="Ej: 001,002,003 o Todos",
+                        default="Todos"
+                    ),
+                    "partida": st.column_config.TextColumn(
+                        "Partida",
+                        default="N/A"
+                    ),
+                    "unidades_catastrales": st.column_config.NumberColumn(
+                        "Cantidad de Registros",
+                        min_value=0,
+                        required=True
+                    ),
+                    "horas": st.column_config.NumberColumn(
+                        "Horas Trabajadas",
+                        min_value=0.0,
+                        required=True
+                    ),
+                    "observaciones": st.column_config.TextColumn(
+                        "Observaciones",
+                        default="N/A"
+                    )
+                },
+                key="editor_masivo_precampo"
+            )
+            
+            # Estadísticas en tiempo real
+            if not df_editado.empty:
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("📊 Registros a insertar", len(df_editado))
+                with col2:
+                    if 'sector' in df_editado.columns:
+                        sectores_unicos = df_editado['sector'].dropna().apply(formatear_sector).unique()
+                        st.metric("🏘️ Sectores únicos", len(sectores_unicos))
+                with col3:
+                    if 'manzana' in df_editado.columns:
+                        manzanas_unicas = df_editado['manzana'].dropna().apply(formatear_manzana).unique()
+                        st.metric("🏠 Manzanas únicas", len(manzanas_unicas))
+                
+                # Mostrar preview del formateo
+                with st.expander("🔍 Ver vista previa del formateo automático"):
+                    preview_df = df_editado.copy()
+                    if 'sector' in preview_df.columns:
+                        preview_df['sector_formateado'] = preview_df['sector'].apply(formatear_sector)
+                    if 'manzana' in preview_df.columns:
+                        preview_df['manzana_formateada'] = preview_df['manzana'].apply(formatear_manzana)
+                    st.dataframe(preview_df, use_container_width=True)
         
-        # Mostrar preview del formateo
-        with st.expander("🔍 Ver vista previa del formateo automático"):
-            preview_df = df_editado.copy()
-            if 'sector' in preview_df.columns:
-                preview_df['sector_formateado'] = preview_df['sector'].apply(formatear_sector)
-            if 'manzana' in preview_df.columns:
-                preview_df['manzana_formateada'] = preview_df['manzana'].apply(formatear_manzana)
-            st.dataframe(preview_df, use_container_width=True)
+        except Exception as e:
+            st.error(f"❌ Error al procesar los datos pegados: {str(e)}")
+            st.info("💡 Asegúrate de que los encabezados coincidan exactamente con los solicitados y que no haya caracteres especiales.")
     
     # Botón de carga masiva
     placeholder_boton_masivo = st.empty()
@@ -379,15 +433,17 @@ def Precampo_Juridico(usuario,puesto):
         type="primary", 
         use_container_width=True,
         key="subir_masivo_precampo",
-        disabled=df_editado.empty  # Se deshabilita si no hay datos
+        disabled=(df_editado is None or df_editado.empty)
     )
     
-    if subir_masivo:
+    if subir_masivo and df_editado is not None:
         with st.spinner("⏳ Validando datos..."):
             # Aplicar formateo antes de validar
             df_validar = df_editado.copy()
-            df_validar['sector'] = df_validar['sector'].apply(formatear_sector)
-            df_validar['manzana'] = df_validar['manzana'].apply(formatear_manzana)
+            if 'sector' in df_validar.columns:
+                df_validar['sector'] = df_validar['sector'].apply(formatear_sector)
+            if 'manzana' in df_validar.columns:
+                df_validar['manzana'] = df_validar['manzana'].apply(formatear_manzana)
             
             es_valido, mensaje_validacion = validar_datos_masivos(df_validar, fecha_masiva)
             
@@ -410,48 +466,50 @@ def Precampo_Juridico(usuario,puesto):
                     if exito:
                         st.success(f"✅ {mensaje}")
                         st.balloons()
-                        # Limpiar la tabla después del éxito
-                        st.session_state.df_masivo_precampo = pd.DataFrame(columns=columnas_masivas)
                         st.rerun()
                     else:
                         st.error(f"❌ {mensaje}")
                         st.error(f"Se insertaron {insertados} registros antes del error. Verifica los datos restantes.")
 
+  # ============================================
+  # FUNCIÓN PARA LIMPIAR PLACEHOLDERS
+  # ============================================
+  def limpiar_placeholders():
+      """Limpia todos los placeholders posibles"""
+      placeholder1_3.empty()
+      placeholder2_3.empty()
+      placeholder3_3.empty()
+      placeholder4_3.empty()
+      placeholder5_3.empty()
+      placeholder6_3.empty()
+      placeholder7_3.empty()
+      placeholder8_3.empty()
+      placeholder_modo.empty()
+      
+      # Limpiar placeholders del formulario manual
+      if placeholder9_3: placeholder9_3.empty()
+      if placeholder10_3: placeholder10_3.empty()
+      if placeholder12_3: placeholder12_3.empty()
+      if placeholder13_3: placeholder13_3.empty()
+      if placeholder15_3: placeholder15_3.empty()
+      if placeholder16_3: placeholder16_3.empty()
+      if placeholder18_3: placeholder18_3.empty()
+      if placeholder19_3: placeholder19_3.empty()
+      if placeholder20_3: placeholder20_3.empty()
+      if placeholder21_3: placeholder21_3.empty()
+      if placeholder22_3: placeholder22_3.empty()
+      if placeholder23_3: placeholder23_3.empty()
+      
+      # Limpiar placeholders de carga masiva
+      if placeholder_fecha_masiva: placeholder_fecha_masiva.empty()
+      if placeholder_texto_pegado: placeholder_texto_pegado.empty()
+      if placeholder_tabla_masiva: placeholder_tabla_masiva.empty()
+      if placeholder_boton_masivo: placeholder_boton_masivo.empty()
+
   # ----- Procesos ---- #
     
   if procesos_3:
-    placeholder1_3.empty()
-    placeholder2_3.empty()
-    placeholder3_3.empty()
-    placeholder4_3.empty()
-    placeholder5_3.empty()
-    placeholder6_3.empty()
-    placeholder7_3.empty()
-    placeholder8_3.empty()
-    placeholder_modo.empty()
-    
-    if modo_carga == "📝 Carga Manual (Formulario)":
-        placeholder9_3.empty()
-        placeholder10_3.empty()
-        placeholder12_3.empty()
-        placeholder13_3.empty()
-        placeholder15_3.empty()
-        placeholder16_3.empty()
-        placeholder18_3.empty()
-        placeholder19_3.empty()
-        placeholder20_3.empty()
-        placeholder21_3.empty()
-        placeholder22_3.empty()
-        placeholder23_3.empty()
-    else:
-        # Limpiar placeholders de carga masiva
-        if 'placeholder_fecha_masiva' in locals():
-            placeholder_fecha_masiva.empty()
-        if 'placeholder_tabla_masiva' in locals():
-            placeholder_tabla_masiva.empty()
-        if 'placeholder_boton_masivo' in locals():
-            placeholder_boton_masivo.empty()
-    
+    limpiar_placeholders()
     st.session_state.Procesos=False
     st.session_state.Postcampo=False
 
@@ -468,37 +526,7 @@ def Precampo_Juridico(usuario,puesto):
   #----- Historial ---- #
     
   elif historial_3:
-    placeholder1_3.empty()
-    placeholder2_3.empty()
-    placeholder3_3.empty()
-    placeholder4_3.empty()
-    placeholder5_3.empty()
-    placeholder6_3.empty()
-    placeholder7_3.empty()
-    placeholder8_3.empty()
-    placeholder_modo.empty()
-    
-    if modo_carga == "📝 Carga Manual (Formulario)":
-        placeholder9_3.empty()
-        placeholder10_3.empty()
-        placeholder12_3.empty()
-        placeholder13_3.empty()
-        placeholder15_3.empty()
-        placeholder16_3.empty()
-        placeholder18_3.empty()
-        placeholder19_3.empty()
-        placeholder20_3.empty()
-        placeholder21_3.empty()
-        placeholder22_3.empty()
-        placeholder23_3.empty()
-    else:
-        if 'placeholder_fecha_masiva' in locals():
-            placeholder_fecha_masiva.empty()
-        if 'placeholder_tabla_masiva' in locals():
-            placeholder_tabla_masiva.empty()
-        if 'placeholder_boton_masivo' in locals():
-            placeholder_boton_masivo.empty()
-    
+    limpiar_placeholders()
     st.session_state.Postcampo=False
     st.session_state.Historial=True
     Historial.Historial(usuario,puesto)   
@@ -506,37 +534,7 @@ def Precampo_Juridico(usuario,puesto):
   # ----- Capacitación ---- #
     
   elif capacitacion_3:
-    placeholder1_3.empty()
-    placeholder2_3.empty()
-    placeholder3_3.empty()
-    placeholder4_3.empty()
-    placeholder5_3.empty()
-    placeholder6_3.empty()
-    placeholder7_3.empty()
-    placeholder8_3.empty()
-    placeholder_modo.empty()
-    
-    if modo_carga == "📝 Carga Manual (Formulario)":
-        placeholder9_3.empty()
-        placeholder10_3.empty()
-        placeholder12_3.empty()
-        placeholder13_3.empty()
-        placeholder15_3.empty()
-        placeholder16_3.empty()
-        placeholder18_3.empty()
-        placeholder19_3.empty()
-        placeholder20_3.empty()
-        placeholder21_3.empty()
-        placeholder22_3.empty()
-        placeholder23_3.empty()
-    else:
-        if 'placeholder_fecha_masiva' in locals():
-            placeholder_fecha_masiva.empty()
-        if 'placeholder_tabla_masiva' in locals():
-            placeholder_tabla_masiva.empty()
-        if 'placeholder_boton_masivo' in locals():
-            placeholder_boton_masivo.empty()
-    
+    limpiar_placeholders()
     st.session_state.Postcampo=False
     st.session_state.Capacitacion=True
     Capacitacion.Capacitacion(usuario,puesto)
@@ -544,37 +542,7 @@ def Precampo_Juridico(usuario,puesto):
   # ----- Otros Registros ---- #
     
   elif otros_registros_3:
-    placeholder1_3.empty()
-    placeholder2_3.empty()
-    placeholder3_3.empty()
-    placeholder4_3.empty()
-    placeholder5_3.empty()
-    placeholder6_3.empty()
-    placeholder7_3.empty()
-    placeholder8_3.empty()
-    placeholder_modo.empty()
-    
-    if modo_carga == "📝 Carga Manual (Formulario)":
-        placeholder9_3.empty()
-        placeholder10_3.empty()
-        placeholder12_3.empty()
-        placeholder13_3.empty()
-        placeholder15_3.empty()
-        placeholder16_3.empty()
-        placeholder18_3.empty()
-        placeholder19_3.empty()
-        placeholder20_3.empty()
-        placeholder21_3.empty()
-        placeholder22_3.empty()
-        placeholder23_3.empty()
-    else:
-        if 'placeholder_fecha_masiva' in locals():
-            placeholder_fecha_masiva.empty()
-        if 'placeholder_tabla_masiva' in locals():
-            placeholder_tabla_masiva.empty()
-        if 'placeholder_boton_masivo' in locals():
-            placeholder_boton_masivo.empty()
-    
+    limpiar_placeholders()
     st.session_state.Postcampo=False
     st.session_state.Otros_Registros=True
     Otros_Registros.Otros_Registros(usuario,puesto)
@@ -582,37 +550,7 @@ def Precampo_Juridico(usuario,puesto):
   # ----- Bonos y Horas Extras ---- #
     
   elif bonos_extras_3:
-    placeholder1_3.empty()
-    placeholder2_3.empty()
-    placeholder3_3.empty()
-    placeholder4_3.empty()
-    placeholder5_3.empty()
-    placeholder6_3.empty()
-    placeholder7_3.empty()
-    placeholder8_3.empty()
-    placeholder_modo.empty()
-    
-    if modo_carga == "📝 Carga Manual (Formulario)":
-        placeholder9_3.empty()
-        placeholder10_3.empty()
-        placeholder12_3.empty()
-        placeholder13_3.empty()
-        placeholder15_3.empty()
-        placeholder16_3.empty()
-        placeholder18_3.empty()
-        placeholder19_3.empty()
-        placeholder20_3.empty()
-        placeholder21_3.empty()
-        placeholder22_3.empty()
-        placeholder23_3.empty()
-    else:
-        if 'placeholder_fecha_masiva' in locals():
-            placeholder_fecha_masiva.empty()
-        if 'placeholder_tabla_masiva' in locals():
-            placeholder_tabla_masiva.empty()
-        if 'placeholder_boton_masivo' in locals():
-            placeholder_boton_masivo.empty()
-    
+    limpiar_placeholders()
     st.session_state.Postcampo=False
     st.session_state.Bonos_Extras=True
     Bonos_Extras.Bonos_Extras(usuario,puesto)    
@@ -620,37 +558,7 @@ def Precampo_Juridico(usuario,puesto):
   # ----- Salir ---- #
     
   elif salir_3:
-    placeholder1_3.empty()
-    placeholder2_3.empty()
-    placeholder3_3.empty()
-    placeholder4_3.empty()
-    placeholder5_3.empty()
-    placeholder6_3.empty()
-    placeholder7_3.empty()
-    placeholder8_3.empty()
-    placeholder_modo.empty()
-    
-    if modo_carga == "📝 Carga Manual (Formulario)":
-        placeholder9_3.empty()
-        placeholder10_3.empty()
-        placeholder12_3.empty()
-        placeholder13_3.empty()
-        placeholder15_3.empty()
-        placeholder16_3.empty()
-        placeholder18_3.empty()
-        placeholder19_3.empty()
-        placeholder20_3.empty()
-        placeholder21_3.empty()
-        placeholder22_3.empty()
-        placeholder23_3.empty()
-    else:
-        if 'placeholder_fecha_masiva' in locals():
-            placeholder_fecha_masiva.empty()
-        if 'placeholder_tabla_masiva' in locals():
-            placeholder_tabla_masiva.empty()
-        if 'placeholder_boton_masivo' in locals():
-            placeholder_boton_masivo.empty()
-    
+    limpiar_placeholders()
     st.session_state.Ingreso = False
     st.session_state.Postcampo=False
     st.session_state.Salir=True
