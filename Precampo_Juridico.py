@@ -280,8 +280,11 @@ def Precampo_Juridico(usuario,puesto):
     
     # Inicializar DataFrame vacío o cargar datos previos
     if 'df_masivo_precampo' not in st.session_state:
-        st.session_state.df_masivo_precampo = pd.DataFrame(columns=columnas_masivas)
-    
+        # Crear DataFrame con las columnas exactas y al menos una fila vacía
+        st.session_state.df_masivo_precampo = pd.DataFrame(
+            columns=['distrito', 'sector', 'manzana', 'tipo', 'estado', 
+                     'numero_lote', 'partida', 'unidades_catastrales', 'horas', 'observaciones']
+        )    
     placeholder_tabla_masiva = st.empty()
     
     st.subheader("📊 Datos a cargar (pega aquí desde Excel)")
