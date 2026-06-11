@@ -589,8 +589,8 @@ def Precampo_Juridico(usuario,puesto):
                     
                     if exito:
                         st.success(f"✅ {mensaje}")
-                        st.balloons()
-                        st.rerun()
+                        
+                        
                     else:
                         st.error(f"❌ {mensaje}")
                         st.error(f"Se insertaron {insertados} registros antes del error.")
