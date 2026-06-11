@@ -24,12 +24,43 @@ def formatear_manzana(valor):
         return str(valor).zfill(3)
 
 def formatear_lote(valor):
-    """Asegura que el número de lote tenga 3 dígitos (001, 002, etc.)"""
+    """
+    Asegura que cada número de lote tenga 3 dígitos (001, 002, etc.)
+    Soporta:
+    - Número individual: "2" → "002"
+    - Múltiples lotes: "2, 3, 112, 113" → "002, 003, 112, 113"
+    - "Todos" → "Todos"
+    - Ya formateados: "002, 003" → "002, 003"
+    """
     try:
-        return str(int(float(valor))).zfill(3)
+        valor_str = str(valor).strip()
+        
+        # Si es vacío o nulo
+        if not valor_str or valor_str.lower() == 'nan':
+            return 'Todos'
+        
+        # Si es "Todos", devolver sin cambios
+        if valor_str.lower() == 'todos':
+            return 'Todos'
+        
+        # Si contiene comas, procesar cada número por separado
+        if ',' in valor_str:
+            numeros = []
+            for num in valor_str.split(','):
+                num = num.strip()
+                if num:  # Ignorar vacíos
+                    try:
+                        numeros.append(str(int(float(num))).zfill(3))
+                    except:
+                        numeros.append(num)  # Mantener si no es número
+            return ', '.join(numeros) if numeros else 'Todos'
+        else:
+            # Número individual
+            return str(int(float(valor_str))).zfill(3)
+            
     except:
+        # Si todo falla, devolver el valor original
         return str(valor)
-
 def normalizar_horas(valor):
     """Convierte comas a puntos en horas y asegura que sea float"""
     try:
