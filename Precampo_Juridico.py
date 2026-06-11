@@ -695,4 +695,9 @@ def Precampo_Juridico(usuario,puesto):
       )
       """,
       params=[
-        marca_3, usuario,
+        marca_3, usuario, nombre_3, puesto, supervisor_3, "Precampo Jurídico", fecha_3, semana_3, año_3, distrito_3, tipo_3, 0, 0, 0, horas_3,
+        manzana_3, sector_3, numero_lote_3, estado_3, 0.0, unidades_catastrales_3, 0, partida_3, 0, 0, observaciones_3, "N/A",
+        "N/A", horas_bi, 0.0, "N/A", 0, 0, "N/A", 0
+      ],
+    )
+    st.success('Reporte enviado correctamente')
