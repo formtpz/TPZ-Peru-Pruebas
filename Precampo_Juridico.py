@@ -526,6 +526,18 @@ def Precampo_Juridico(usuario,puesto):
                             },
                             key="editor_masivo_precampo"
                         )
+                        
+                        # ⚡ REFORZAR: Asegurar que los campos de texto no tengan nulos
+                        df_editado['observaciones'] = df_editado['observaciones'].fillna('N/A').replace('', 'N/A')
+                        df_editado['partida'] = df_editado['partida'].fillna('N/A').replace('', 'N/A')
+                        df_editado['numero_lote'] = df_editado['numero_lote'].fillna('Todos').replace('', 'Todos')
+                        
+                        # ⚡ También asegurar que sector y manzana estén formateados
+                        df_editado['sector'] = df_editado['sector'].apply(formatear_sector)
+                        df_editado['manzana'] = df_editado['manzana'].apply(formatear_manzana)
+                        df_editado['numero_lote'] = df_editado['numero_lote'].apply(
+                            lambda x: formatear_lote(x) if str(x).strip().lower() != 'todos' else 'Todos'
+                        )
                     
                     # Estadísticas
                     if not df_editado.empty:
