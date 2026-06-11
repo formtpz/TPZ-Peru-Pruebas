@@ -12,16 +12,118 @@ from db_core import execute
 def formatear_sector(valor):
     """Asegura que el sector tenga 2 dígitos (01, 02, etc.)"""
     try:
-        return str(int(valor)).zfill(2)
+        return str(int(float(valor))).zfill(2)
     except:
         return str(valor).zfill(2)
 
 def formatear_manzana(valor):
     """Asegura que la manzana tenga 3 dígitos (001, 002, etc.)"""
     try:
-        return str(int(valor)).zfill(3)
+        return str(int(float(valor))).zfill(3)
     except:
         return str(valor).zfill(3)
+
+def normalizar_horas(valor):
+    """Convierte comas a puntos en horas y asegura que sea float"""
+    try:
+        if isinstance(valor, str):
+            valor = valor.replace(',', '.')
+        return float(valor)
+    except:
+        return 0.0
+
+def normalizar_texto(valor, default="N/A"):
+    """Convierte valores nulos o vacíos al valor por defecto"""
+    if pd.isna(valor) or valor == '' or valor is None:
+        return default
+    return str(valor)
+
+def buscar_columnas_por_coincidencia(df):
+    """
+    Busca las columnas requeridas por coincidencia de nombres
+    Retorna un diccionario mapeando nombre_requerido -> nombre_real_en_excel
+    """
+    columnas_requeridas = {
+        'distrito': ['distrito', 'DISTRITO', 'Distrito'],
+        'sector': ['sector', 'SECTOR', 'Sector'],
+        'manzana': ['manzana', 'MANZANA', 'Manzana', 'mz', 'MZ'],
+        'tipo': ['tipo', 'TIPO', 'Tipo'],
+        'estado': ['estado', 'ESTADO', 'Estado'],
+        'numero_lote': ['numero_lote', 'numero lote', 'NÚMERO LOTE', 'N° Lote', 'lote', 'LOTE'],
+        'partida': ['partida', 'PARTIDA', 'Partida', 'n° partida'],
+        'unidades_catastrales': ['unidades_catastrales', 'unidades catastrales', 'UNIDADES CATASTRALES', 
+                                 'cantidad_registros', 'cantidad registros', 'registros'],
+        'horas': ['horas', 'HORAS', 'Horas', 'horas trabajadas'],
+        'observaciones': ['observaciones', 'OBSERVACIONES', 'Observaciones', 'obs']
+    }
+    
+    mapeo = {}
+    for nombre_requerido, posibles_nombres in columnas_requeridas.items():
+        for posible in posibles_nombres:
+            if posible in df.columns:
+                mapeo[nombre_requerido] = posible
+                break
+    
+    return mapeo
+
+def procesar_dataframe_excel(df):
+    """
+    Procesa el DataFrame del Excel aplicando todas las transformaciones
+    """
+    # Buscar columnas por coincidencia
+    mapeo_columnas = buscar_columnas_por_coincidencia(df)
+    
+    # Verificar columnas encontradas
+    columnas_requeridas = [
+        'distrito', 'sector', 'manzana', 'tipo', 'estado', 
+        'numero_lote', 'partida', 'unidades_catastrales', 'horas', 'observaciones'
+    ]
+    
+    columnas_faltantes = [col for col in columnas_requeridas if col not in mapeo_columnas]
+    
+    if columnas_faltantes:
+        return None, columnas_faltantes, mapeo_columnas
+    
+    # Crear nuevo DataFrame con nombres estandarizados
+    df_procesado = pd.DataFrame()
+    
+    for nombre_requerido, nombre_real in mapeo_columnas.items():
+        df_procesado[nombre_requerido] = df[nombre_real]
+    
+    # Aplicar transformaciones
+    # Sector: convertir a texto con 2 dígitos
+    df_procesado['sector'] = df_procesado['sector'].apply(formatear_sector)
+    
+    # Manzana: convertir a texto con 3 dígitos
+    df_procesado['manzana'] = df_procesado['manzana'].apply(formatear_manzana)
+    
+    # Horas: normalizar (comas a puntos) y convertir a float
+    df_procesado['horas'] = df_procesado['horas'].apply(normalizar_horas)
+    
+    # Unidades catastrales: asegurar que sea número entero
+    df_procesado['unidades_catastrales'] = pd.to_numeric(
+        df_procesado['unidades_catastrales'].apply(
+            lambda x: str(x).replace(',', '.') if isinstance(x, str) else x
+        ), 
+        errors='coerce'
+    ).fillna(0).astype(int)
+    
+    # Observaciones: reemplazar nulos por "N/A"
+    df_procesado['observaciones'] = df_procesado['observaciones'].apply(
+        lambda x: normalizar_texto(x, "N/A")
+    )
+    
+    # Partida: reemplazar nulos por "N/A"
+    df_procesado['partida'] = df_procesado['partida'].apply(
+        lambda x: normalizar_texto(x, "N/A")
+    )
+    
+    # Numero_lote: reemplazar nulos por "Todos"
+    df_procesado['numero_lote'] = df_procesado['numero_lote'].apply(
+        lambda x: normalizar_texto(x, "Todos")
+    )
+    
+    return df_procesado, [], mapeo_columnas
 
 def validar_datos_masivos(df, fecha_seleccionada):
     """
@@ -34,19 +136,8 @@ def validar_datos_masivos(df, fecha_seleccionada):
     if df.empty:
         return False, "La tabla está vacía. No hay datos para procesar."
     
-    # Columnas requeridas (sin fecha porque ya la tenemos)
-    columnas_requeridas = [
-        'distrito', 'sector', 'manzana', 'tipo', 
-        'estado', 'numero_lote', 'partida', 'unidades_catastrales', 
-        'horas', 'observaciones'
-    ]
-    
-    # Verificar columnas faltantes
-    columnas_faltantes = [col for col in columnas_requeridas if col not in df.columns]
-    if columnas_faltantes:
-        return False, f"Faltan las siguientes columnas: {', '.join(columnas_faltantes)}"
-    
-    # Validar valores nulos
+    # Validar valores nulos en columnas requeridas
+    columnas_requeridas = ['distrito', 'sector', 'manzana', 'tipo', 'estado']
     for col in columnas_requeridas:
         nulos = df[col].isnull().sum()
         if nulos > 0:
@@ -56,38 +147,33 @@ def validar_datos_masivos(df, fecha_seleccionada):
     distritos_validos = ["Chorrillos", "San Juan De Miraflores", "Villa el Salvador"]
     distritos_invalidos = df[~df['distrito'].isin(distritos_validos)]
     if not distritos_invalidos.empty:
-        errores.append(f"Hay {len(distritos_invalidos)} registros con distrito inválido. Válidos: {distritos_validos}")
+        filas_invalidas = distritos_invalidos.index.tolist()
+        errores.append(f"Hay {len(distritos_invalidos)} registros con distrito inválido en filas: {filas_invalidas}")
     
     # Validar tipos válidos
     tipos_validos = ["Ordinario", "Reproceso Ordinario", "Corrección de Calidad", 
                      "Corrección de Calidad Extraordinaria", "Producción Horas Extras"]
     tipos_invalidos = df[~df['tipo'].isin(tipos_validos)]
     if not tipos_invalidos.empty:
-        errores.append(f"Hay {len(tipos_invalidos)} registros con tipo inválido. Válidos: {tipos_validos}")
+        filas_invalidas = tipos_invalidos.index.tolist()
+        errores.append(f"Hay {len(tipos_invalidos)} registros con tipo inválido en filas: {filas_invalidas}")
     
     # Validar estados válidos
     estados_validos = ["Finalizado", "En Conflicto"]
     estados_invalidos = df[~df['estado'].isin(estados_validos)]
     if not estados_invalidos.empty:
-        errores.append(f"Hay {len(estados_invalidos)} registros con estado inválido. Válidos: {estados_validos}")
+        filas_invalidas = estados_invalidos.index.tolist()
+        errores.append(f"Hay {len(estados_invalidos)} registros con estado inválido en filas: {filas_invalidas}")
     
     # Validar que horas sea numérico y positivo
-    try:
-        df['horas'] = pd.to_numeric(df['horas'], errors='coerce')
-        horas_invalidas = df[df['horas'].isnull() | (df['horas'] < 0)]
-        if not horas_invalidas.empty:
-            errores.append(f"Hay {len(horas_invalidas)} registros con horas inválidas (debe ser número positivo)")
-    except:
-        errores.append("La columna 'horas' debe contener valores numéricos")
+    horas_invalidas = df[df['horas'] < 0]
+    if not horas_invalidas.empty:
+        errores.append(f"Hay {len(horas_invalidas)} registros con horas negativas")
     
-    # Validar que unidades_catastrales sea entero positivo
-    try:
-        df['unidades_catastrales'] = pd.to_numeric(df['unidades_catastrales'], errors='coerce')
-        uc_invalidas = df[df['unidades_catastrales'].isnull() | (df['unidades_catastrales'] < 0)]
-        if not uc_invalidas.empty:
-            errores.append(f"Hay {len(uc_invalidas)} registros con unidades catastrales inválidas")
-    except:
-        errores.append("La columna 'unidades_catastrales' debe contener valores enteros")
+    # Validar que unidades_catastrales sea positivo
+    uc_invalidas = df[df['unidades_catastrales'] < 0]
+    if not uc_invalidas.empty:
+        errores.append(f"Hay {len(uc_invalidas)} registros con unidades catastrales negativas")
     
     if errores:
         return False, "\n".join(errores)
@@ -112,21 +198,15 @@ def insertar_registros_masivos(df, fecha_seleccionada, usuario, usuario_activo):
         registros_insertados = 0
         
         for index, row in df.iterrows():
-            # Formatear sector y manzana
-            sector_formateado = formatear_sector(row['sector'])
-            manzana_formateada = formatear_manzana(row['manzana'])
-            
-            # Convertir horas a float
+            # Los valores ya vienen formateados del procesamiento
+            sector_formateado = row['sector']
+            manzana_formateada = row['manzana']
             horas = float(row['horas'])
             horas_bi = horas
-            
-            # Convertir unidades catastrales
-            unidades_catastrales = int(float(row['unidades_catastrales']))
-            
-            # Valores por defecto
-            partida = str(row.get('partida', 'N/A'))
-            observaciones = str(row.get('observaciones', 'N/A'))
-            numero_lote = str(row.get('numero_lote', 'Todos'))
+            unidades_catastrales = int(row['unidades_catastrales'])
+            partida = str(row['partida'])
+            observaciones = str(row['observaciones'])
+            numero_lote = str(row['numero_lote'])
             
             execute(
                 """
@@ -156,19 +236,14 @@ def insertar_registros_masivos(df, fecha_seleccionada, usuario, usuario_activo):
     except Exception as e:
         return False, registros_insertados, f"Error al insertar registros: {str(e)}"
 
-def limpiar_todos_placeholders():
-    """Limpia todos los placeholders del formulario"""
-    # Esta función se usa para asegurar que no queden elementos residuales
-    pass
-
 def Precampo_Juridico(usuario,puesto):
 
   # ----- Conexión, Botones y Memoria ---- #
   uri=st.secrets.db_credentials.URI
 
-  # Inicializar variables de placeholders para carga masiva como None
+  # Inicializar variables de placeholders como None
   placeholder_fecha_masiva = None
-  placeholder_texto_pegado = None
+  placeholder_archivo = None
   placeholder_tabla_masiva = None
   placeholder_boton_masivo = None
 
@@ -197,7 +272,7 @@ def Precampo_Juridico(usuario,puesto):
   placeholder_modo = st.empty()
   modo_carga = placeholder_modo.radio(
       "Selecciona el modo de carga:",
-      options=["📝 Carga Manual (Formulario)", "📋 Carga Masiva (Pegar desde Excel)"],
+      options=["📝 Carga Manual (Formulario)", "📋 Carga Masiva (Subir Excel)"],
       key="modo_carga_precampo"
   )
 
@@ -232,7 +307,7 @@ def Precampo_Juridico(usuario,puesto):
   reporte_3 = None
 
   # ============================================
-  # MODO DE CARGA MANUAL (TU CÓDIGO ORIGINAL)
+  # MODO DE CARGA MANUAL (CÓDIGO ORIGINAL)
   # ============================================
   if modo_carga == "📝 Carga Manual (Formulario)":
     
@@ -287,7 +362,7 @@ def Precampo_Juridico(usuario,puesto):
     reporte_3 = placeholder23_3.button("Generar Reporte",key="reporte_3")
 
   # ============================================
-  # MODO DE CARGA MASIVA (PEGAR CON ENCABEZADOS)
+  # MODO DE CARGA MASIVA (SUBIR EXCEL)
   # ============================================
   else:
     
@@ -299,132 +374,166 @@ def Precampo_Juridico(usuario,puesto):
         key="fecha_masiva_precampo"
     )
     
+    # Descargar plantilla
+    with st.expander("📥 Descargar plantilla Excel"):
+        st.markdown("""
+        Descarga la plantilla base para llenar tus datos:
+        
+        **Columnas requeridas:**
+        - **distrito**: Chorrillos, San Juan De Miraflores, Villa el Salvador
+        - **sector**: Número (se formatea a 2 dígitos: 1 → 01)
+        - **manzana**: Número (se formatea a 3 dígitos: 20 → 020)
+        - **tipo**: Ordinario, Reproceso Ordinario, Corrección de Calidad, etc.
+        - **estado**: Finalizado, En Conflicto
+        - **numero_lote**: Ej: 001,002,003 o Todos
+        - **partida**: Número de partida (si no tiene, dejar vacío)
+        - **unidades_catastrales**: Cantidad de registros
+        - **horas**: Horas trabajadas (puede usar coma o punto: 8,5 o 8.5)
+        - **observaciones**: Si no tiene, dejar vacío
+        
+        **Transformaciones automáticas:**
+        - Sector: 1 → 01, 20 → 20
+        - Manzana: 5 → 005, 20 → 020
+        - Horas: 8,5 → 8.5
+        - Campos vacíos: partida → "N/A", observaciones → "N/A", numero_lote → "Todos"
+        """)
+        
+        # Crear plantilla para descargar
+        plantilla = pd.DataFrame(columns=[
+            'distrito', 'sector', 'manzana', 'tipo', 'estado', 
+            'numero_lote', 'partida', 'unidades_catastrales', 'horas', 'observaciones'
+        ])
+        
+        # Agregar ejemplos
+        plantilla.loc[0] = ['Chorrillos', 1, 2, 'Ordinario', 'Finalizado', '001', '12345', 10, 8.5, 'Sin observaciones']
+        plantilla.loc[1] = ['San Juan De Miraflores', 5, 20, 'Ordinario', 'Finalizado', 'Todos', '', 15, 6, '']
+        
+        # Convertir a Excel para descargar
+        from io import BytesIO
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            plantilla.to_excel(writer, index=False, sheet_name='Hoja1')
+        
+        st.download_button(
+            label="📥 Descargar plantilla Excel",
+            data=output.getvalue(),
+            file_name="plantilla_precampo_juridico.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    
     st.info("""
-    📋 **Instrucciones para carga masiva:**
-    1. Prepara tu Excel con estos **encabezados exactos**:
-       `distrito | sector | manzana | tipo | estado | numero_lote | partida | unidades_catastrales | horas | observaciones`
-    2. La **fecha** se asigna arriba para todos los registros
-    3. **Sector** y **manzana** se formatean automáticamente (1 → 01, 20 → 020)
-    4. Copia los datos desde Excel **INCLUYENDO los encabezados** con Ctrl+C
-    5. Pega en el área de texto inferior con Ctrl+V
-    6. Revisa la vista previa y corrige si es necesario
+    📋 **Instrucciones:**
+    1. Descarga la plantilla Excel (opcional)
+    2. Llena tus datos en la **Hoja1** del Excel
+    3. Los nombres de columna pueden variar (se detectan por coincidencia)
+    4. Sube el archivo Excel abajo
+    5. Revisa la vista previa antes de confirmar
     """)
     
-    # Área de texto para pegar
-    placeholder_texto_pegado = st.empty()
-    texto_pegado = placeholder_texto_pegado.text_area(
-        "📋 Pega aquí los datos desde Excel (incluyendo encabezados)",
-        height=200,
-        key="texto_pegado_precampo",
-        help="Copia desde Excel incluyendo la fila de encabezados y pega aquí con Ctrl+V"
+    # Subir archivo Excel
+    placeholder_archivo = st.empty()
+    archivo_excel = placeholder_archivo.file_uploader(
+        "📁 Subir archivo Excel",
+        type=['xlsx', 'xls'],
+        key="archivo_excel_precampo",
+        help="Selecciona el archivo Excel con los datos a cargar"
     )
     
     df_editado = None
     
-    if texto_pegado:
-        # Procesar los datos pegados
+    if archivo_excel is not None:
         try:
-            # Intentar con tabulación (formato Excel)
-            df_pegado = pd.read_csv(io.StringIO(texto_pegado), sep='\t', encoding='utf-8')
+            # Leer el archivo Excel (Hoja1)
+            df_excel = pd.read_excel(archivo_excel, sheet_name=0)
             
-            # Si solo tiene una columna, intentar con otros separadores
-            if len(df_pegado.columns) == 1:
-                df_pegado = pd.read_csv(io.StringIO(texto_pegado), sep=',', encoding='utf-8')
-                if len(df_pegado.columns) == 1:
-                    df_pegado = pd.read_csv(io.StringIO(texto_pegado), sep=';', encoding='utf-8')
-            
-            # Mostrar vista previa editable
-            st.subheader("📊 Vista previa de datos")
-            st.caption("✏️ Puedes editar los datos directamente en esta tabla antes de subir")
-            
-            placeholder_tabla_masiva = st.empty()
-            
-            # Tabla editable
-            df_editado = placeholder_tabla_masiva.data_editor(
-                df_pegado,
-                num_rows="dynamic",
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "distrito": st.column_config.SelectboxColumn(
-                        "Distrito",
-                        options=["Chorrillos", "San Juan De Miraflores", "Villa el Salvador"],
-                        required=True
-                    ),
-                    "sector": st.column_config.TextColumn(
-                        "Sector",
-                        help="Se formateará automáticamente a 2 dígitos (1 → 01)",
-                        required=True
-                    ),
-                    "manzana": st.column_config.TextColumn(
-                        "Manzana",
-                        help="Se formateará automáticamente a 3 dígitos (20 → 020)",
-                        required=True
-                    ),
-                    "tipo": st.column_config.SelectboxColumn(
-                        "Tipo",
-                        options=["Ordinario", "Reproceso Ordinario", "Corrección de Calidad", 
-                                "Corrección de Calidad Extraordinaria", "Producción Horas Extras"],
-                        required=True
-                    ),
-                    "estado": st.column_config.SelectboxColumn(
-                        "Estado",
-                        options=["Finalizado", "En Conflicto"],
-                        required=True
-                    ),
-                    "numero_lote": st.column_config.TextColumn(
-                        "Número de Lote",
-                        help="Ej: 001,002,003 o Todos",
-                        default="Todos"
-                    ),
-                    "partida": st.column_config.TextColumn(
-                        "Partida",
-                        default="N/A"
-                    ),
-                    "unidades_catastrales": st.column_config.NumberColumn(
-                        "Cantidad de Registros",
-                        min_value=0,
-                        required=True
-                    ),
-                    "horas": st.column_config.NumberColumn(
-                        "Horas Trabajadas",
-                        min_value=0.0,
-                        required=True
-                    ),
-                    "observaciones": st.column_config.TextColumn(
-                        "Observaciones",
-                        default="N/A"
-                    )
-                },
-                key="editor_masivo_precampo"
-            )
-            
-            # Estadísticas en tiempo real
-            if not df_editado.empty:
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("📊 Registros a insertar", len(df_editado))
-                with col2:
-                    if 'sector' in df_editado.columns:
-                        sectores_unicos = df_editado['sector'].dropna().apply(formatear_sector).unique()
-                        st.metric("🏘️ Sectores únicos", len(sectores_unicos))
-                with col3:
-                    if 'manzana' in df_editado.columns:
-                        manzanas_unicas = df_editado['manzana'].dropna().apply(formatear_manzana).unique()
-                        st.metric("🏠 Manzanas únicas", len(manzanas_unicas))
+            if df_excel.empty:
+                st.error("❌ El archivo Excel está vacío")
+            else:
+                # Procesar el DataFrame
+                df_procesado, columnas_faltantes, mapeo = procesar_dataframe_excel(df_excel)
                 
-                # Mostrar preview del formateo
-                with st.expander("🔍 Ver vista previa del formateo automático"):
-                    preview_df = df_editado.copy()
-                    if 'sector' in preview_df.columns:
-                        preview_df['sector_formateado'] = preview_df['sector'].apply(formatear_sector)
-                    if 'manzana' in preview_df.columns:
-                        preview_df['manzana_formateada'] = preview_df['manzana'].apply(formatear_manzana)
-                    st.dataframe(preview_df, use_container_width=True)
+                if columnas_faltantes:
+                    st.error(f"❌ No se encontraron las siguientes columnas: {', '.join(columnas_faltantes)}")
+                    st.info(f"Columnas detectadas en el Excel: {', '.join(df_excel.columns.tolist())}")
+                    st.info("💡 Puedes usar nombres similares. Ej: 'cantidad registros' en lugar de 'unidades_catastrales'")
+                else:
+                    # Mostrar mapeo de columnas
+                    with st.expander("🔍 Ver mapeo de columnas detectadas"):
+                        st.write("Columnas encontradas en el Excel y su correspondencia:")
+                        for nombre_requerido, nombre_real in mapeo.items():
+                            st.write(f"  • '{nombre_real}' → **{nombre_requerido}**")
+                    
+                    # Mostrar vista previa editable
+                    st.subheader("📊 Vista previa de datos procesados")
+                    st.caption("✏️ Los datos ya fueron transformados. Puedes editarlos antes de subir.")
+                    
+                    placeholder_tabla_masiva = st.empty()
+                    
+                    # Tabla editable con los datos procesados
+                    df_editado = placeholder_tabla_masiva.data_editor(
+                        df_procesado,
+                        num_rows="dynamic",
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "distrito": st.column_config.SelectboxColumn(
+                                "Distrito",
+                                options=["Chorrillos", "San Juan De Miraflores", "Villa el Salvador"],
+                                required=True
+                            ),
+                            "sector": st.column_config.TextColumn(
+                                "Sector",
+                                help="Formateado a 2 dígitos",
+                                required=True
+                            ),
+                            "manzana": st.column_config.TextColumn(
+                                "Manzana",
+                                help="Formateado a 3 dígitos",
+                                required=True
+                            ),
+                            "tipo": st.column_config.SelectboxColumn(
+                                "Tipo",
+                                options=["Ordinario", "Reproceso Ordinario", "Corrección de Calidad", 
+                                        "Corrección de Calidad Extraordinaria", "Producción Horas Extras"],
+                                required=True
+                            ),
+                            "estado": st.column_config.SelectboxColumn(
+                                "Estado",
+                                options=["Finalizado", "En Conflicto"],
+                                required=True
+                            ),
+                            "numero_lote": st.column_config.TextColumn("N° Lote"),
+                            "partida": st.column_config.TextColumn("Partida"),
+                            "unidades_catastrales": st.column_config.NumberColumn(
+                                "Cant. Registros",
+                                min_value=0,
+                                required=True
+                            ),
+                            "horas": st.column_config.NumberColumn(
+                                "Horas Trab.",
+                                min_value=0.0,
+                                required=True
+                            ),
+                            "observaciones": st.column_config.TextColumn("Observaciones")
+                        },
+                        key="editor_masivo_precampo"
+                    )
+                    
+                    # Estadísticas
+                    if not df_editado.empty:
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("📊 Registros a insertar", len(df_editado))
+                        with col2:
+                            sectores_unicos = df_editado['sector'].unique()
+                            st.metric("🏘️ Sectores", len(sectores_unicos))
+                        with col3:
+                            manzanas_unicas = df_editado['manzana'].unique()
+                            st.metric("🏠 Manzanas", len(manzanas_unicas))
         
         except Exception as e:
-            st.error(f"❌ Error al procesar los datos pegados: {str(e)}")
-            st.info("💡 Asegúrate de que los encabezados coincidan exactamente con los solicitados y que no haya caracteres especiales.")
+            st.error(f"❌ Error al leer el archivo Excel: {str(e)}")
+            st.info("💡 Asegúrate de que el archivo sea un Excel válido (.xlsx o .xls)")
     
     # Botón de carga masiva
     placeholder_boton_masivo = st.empty()
@@ -438,14 +547,7 @@ def Precampo_Juridico(usuario,puesto):
     
     if subir_masivo and df_editado is not None:
         with st.spinner("⏳ Validando datos..."):
-            # Aplicar formateo antes de validar
-            df_validar = df_editado.copy()
-            if 'sector' in df_validar.columns:
-                df_validar['sector'] = df_validar['sector'].apply(formatear_sector)
-            if 'manzana' in df_validar.columns:
-                df_validar['manzana'] = df_validar['manzana'].apply(formatear_manzana)
-            
-            es_valido, mensaje_validacion = validar_datos_masivos(df_validar, fecha_masiva)
+            es_valido, mensaje_validacion = validar_datos_masivos(df_editado, fecha_masiva)
             
             if not es_valido:
                 st.error(f"❌ Error de validación:\n{mensaje_validacion}")
@@ -460,7 +562,7 @@ def Precampo_Juridico(usuario,puesto):
                 
                 with st.spinner("💾 Insertando registros en la base de datos..."):
                     exito, insertados, mensaje = insertar_registros_masivos(
-                        df_validar, fecha_masiva, usuario, usuario_activo
+                        df_editado, fecha_masiva, usuario, usuario_activo
                     )
                     
                     if exito:
@@ -469,7 +571,7 @@ def Precampo_Juridico(usuario,puesto):
                         st.rerun()
                     else:
                         st.error(f"❌ {mensaje}")
-                        st.error(f"Se insertaron {insertados} registros antes del error. Verifica los datos restantes.")
+                        st.error(f"Se insertaron {insertados} registros antes del error.")
 
   # ============================================
   # FUNCIÓN PARA LIMPIAR PLACEHOLDERS
@@ -502,7 +604,7 @@ def Precampo_Juridico(usuario,puesto):
       
       # Limpiar placeholders de carga masiva
       if placeholder_fecha_masiva: placeholder_fecha_masiva.empty()
-      if placeholder_texto_pegado: placeholder_texto_pegado.empty()
+      if placeholder_archivo: placeholder_archivo.empty()
       if placeholder_tabla_masiva: placeholder_tabla_masiva.empty()
       if placeholder_boton_masivo: placeholder_boton_masivo.empty()
 
@@ -593,9 +695,4 @@ def Precampo_Juridico(usuario,puesto):
       )
       """,
       params=[
-        marca_3, usuario, nombre_3, puesto, supervisor_3, "Precampo Jurídico", fecha_3, semana_3, año_3, distrito_3, tipo_3, 0, 0, 0, horas_3,
-        manzana_3, sector_3, numero_lote_3, estado_3, 0.0, unidades_catastrales_3, 0, partida_3, 0, 0, observaciones_3, "N/A",
-        "N/A", horas_bi, 0.0, "N/A", 0, 0, "N/A", 0
-      ],
-    )
-    st.success('Reporte enviado correctamente')
+        marca_3, usuario,
