@@ -643,3 +643,170 @@ def CC_Precampo_Juridico(usuario, puesto):
             type="primary", 
             use_container_width=True,
             key="subir_masivo_cc_precampo",
+            disabled=(df_editado is None or df_editado.empty)
+        )
+        
+        if subir_masivo and df_editado is not None:
+            with st.spinner("⏳ Validando datos..."):
+                es_valido, mensaje_validacion = validar_datos_masivos(df_editado, fecha_masiva)
+                
+                if not es_valido:
+                    st.error(f"❌ Error de validación:\n{mensaje_validacion}")
+                    st.warning("⚠️ No se subió ningún registro. Corrige los errores e intenta de nuevo.")
+                else:
+                    st.success("✅ Validación exitosa")
+                    
+                    usuario_activo = obtener_usuario_activo(usuario)
+                    if not usuario_activo:
+                        st.error("No se encontró un usuario activo para generar el reporte.")
+                        return
+                    
+                    with st.spinner("💾 Insertando registros en la base de datos..."):
+                        exito, insertados, mensaje = insertar_registros_masivos(
+                            df_editado, fecha_masiva, usuario, usuario_activo
+                        )
+                        
+                        if exito:
+                            st.success(f"✅ {mensaje}")
+                            st.balloons()
+                        else:
+                            st.error(f"❌ {mensaje}")
+                            st.error(f"Se insertaron {insertados} registros antes del error.")
+
+    # ============================================
+    # FUNCIÓN PARA LIMPIAR PLACEHOLDERS
+    # ============================================
+    def limpiar_placeholders():
+        """Limpia todos los placeholders posibles"""
+        placeholder1_cc.empty()
+        placeholder2_cc.empty()
+        placeholder3_cc.empty()
+        placeholder4_cc.empty()
+        placeholder5_cc.empty()
+        placeholder6_cc.empty()
+        placeholder7_cc.empty()
+        placeholder8_cc.empty()
+        placeholder_modo.empty()
+        
+        if placeholder9_cc: placeholder9_cc.empty()
+        if placeholder10_cc: placeholder10_cc.empty()
+        if placeholder12_cc: placeholder12_cc.empty()
+        if placeholder13_cc: placeholder13_cc.empty()
+        if placeholder15_cc: placeholder15_cc.empty()
+        if placeholder16_cc: placeholder16_cc.empty()
+        if placeholder18_cc: placeholder18_cc.empty()
+        if placeholder19_cc: placeholder19_cc.empty()
+        if placeholder20_cc: placeholder20_cc.empty()
+        if placeholder20b_cc: placeholder20b_cc.empty()
+        if placeholder20c_cc: placeholder20c_cc.empty()
+        if placeholder21_cc: placeholder21_cc.empty()
+        if placeholder22_cc: placeholder22_cc.empty()
+        if placeholder23_cc: placeholder23_cc.empty()
+        if placeholder24_cc: placeholder24_cc.empty()
+        
+        if placeholder_fecha_masiva: placeholder_fecha_masiva.empty()
+        if placeholder_instrucciones_masivo: placeholder_instrucciones_masivo.empty()
+        if placeholder_descarga: placeholder_descarga.empty()
+        if placeholder_archivo: placeholder_archivo.empty()
+        if placeholder_tabla_masiva: placeholder_tabla_masiva.empty()
+        if placeholder_estadisticas: placeholder_estadisticas.empty()
+        if placeholder_boton_masivo: placeholder_boton_masivo.empty()
+
+    # ============================================
+    # NAVEGACIÓN ENTRE MÓDULOS
+    # ============================================
+    
+    # ----- Procesos ---- #
+    if procesos_cc:
+        limpiar_placeholders()
+        st.session_state.Procesos = False
+        st.session_state.Postcampo = False
+        usuario_activo = obtener_usuario_activo(usuario)
+        perfil = str(usuario_activo["perfil"]) if usuario_activo else ""
+        if perfil == "1":        
+            Procesos.Procesos1(usuario, puesto)
+        elif perfil == "2":        
+            Procesos.Procesos2(usuario, puesto)   
+        elif perfil == "3":  
+            Procesos.Procesos3(usuario, puesto)       
+
+    # ----- Historial ---- #
+    elif historial_cc:
+        limpiar_placeholders()
+        st.session_state.Postcampo = False
+        st.session_state.Historial = True
+        Historial.Historial(usuario, puesto)   
+
+    # ----- Capacitación ---- #
+    elif capacitacion_cc:
+        limpiar_placeholders()
+        st.session_state.Postcampo = False
+        st.session_state.Capacitacion = True
+        Capacitacion.Capacitacion(usuario, puesto)
+
+    # ----- Otros Registros ---- #
+    elif otros_registros_cc:
+        limpiar_placeholders()
+        st.session_state.Postcampo = False
+        st.session_state.Otros_Registros = True
+        Otros_Registros.Otros_Registros(usuario, puesto)
+
+    # ----- Bonos y Horas Extras ---- #
+    elif bonos_extras_cc:
+        limpiar_placeholders()
+        st.session_state.Postcampo = False
+        st.session_state.Bonos_Extras = True
+        Bonos_Extras.Bonos_Extras(usuario, puesto)    
+
+    # ----- Salir ---- #
+    elif salir_cc:
+        limpiar_placeholders()
+        st.session_state.Ingreso = False
+        st.session_state.Postcampo = False
+        st.session_state.Salir = True
+        Salir.Salir()
+
+    # ============================================
+    # ENVÍO DE FORMULARIO MANUAL
+    # ============================================
+    elif modo_carga == "📝 Carga Manual (Formulario)" and reporte_cc:
+
+        marca_cc = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
+        
+        usuario_activo = obtener_usuario_activo(usuario)
+        if not usuario_activo:
+            st.error("No se encontró un usuario activo para generar el reporte.")
+            return
+
+        nombre_cc = usuario_activo["nombre"]
+        supervisor_cc = usuario_activo["supervisor"]
+        semana_cc = fecha_cc.isocalendar()[1]
+        año_cc = fecha_cc.isocalendar()[0]
+        horas_bi = float(horas_cc)
+        operador_cc_valor = "IA"
+        estado_cc_valor = "N/A"  # FIJO para CC Precampo Jurídico
+        unidades_catastrales_cc = int(aprobados_cc) + int(rechazados_cc)
+        
+        execute(
+            """
+            INSERT INTO registro (
+                marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito,tipo,lotes,aprobados,rechazados,horas,
+                manzana,sector,numero_lote,estado,area,unidades_catastrales,edificas,partida,con_fmi,sin_fmi,observaciones,zona,
+                tipo_calidad,horas_bi,area_bi,operador_cc,total_de_errores,errores_por_excepciones,tipo_de_errores,conteo_de_errores
+            )
+            VALUES (
+                %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+                %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+                %s,%s,%s,%s,%s,%s,%s,%s
+            )
+            """,
+            params=[
+                marca_cc, usuario, nombre_cc, puesto, supervisor_cc, "CC Precampo Jurídico", 
+                fecha_cc, semana_cc, año_cc, distrito_cc, tipo_cc, 0, int(aprobados_cc), int(rechazados_cc), horas_cc,
+                manzana_cc, sector_cc, numero_lote_cc, estado_cc_valor, 0.0, unidades_catastrales_cc, 
+                0, partida_cc, 0, 0, observaciones_cc, "N/A",
+                "N/A", horas_bi, 0.0, operador_cc_valor, 0, 0, tipo_errores_cc, 0
+            ],
+        )
+        st.success('✅ Reporte enviado correctamente')
+        st.balloons()
