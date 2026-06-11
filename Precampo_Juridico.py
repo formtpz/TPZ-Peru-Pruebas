@@ -280,11 +280,8 @@ def Precampo_Juridico(usuario,puesto):
     
     # Inicializar DataFrame vacío o cargar datos previos
     if 'df_masivo_precampo' not in st.session_state:
-        # Crear DataFrame con las columnas exactas y al menos una fila vacía
-        st.session_state.df_masivo_precampo = pd.DataFrame(
-            columns=['distrito', 'sector', 'manzana', 'tipo', 'estado', 
-                     'numero_lote', 'partida', 'unidades_catastrales', 'horas', 'observaciones']
-        )    
+        st.session_state.df_masivo_precampo = pd.DataFrame(columns=columnas_masivas)
+    
     placeholder_tabla_masiva = st.empty()
     
     st.subheader("📊 Datos a cargar (pega aquí desde Excel)")
@@ -348,23 +345,6 @@ def Precampo_Juridico(usuario,puesto):
         },
         key="editor_masivo_precampo"
     )
-      # Agrega esto DESPUÉS del data_editor para ocultar la primera columna
-    st.markdown("""
-    <style>
-        /* Oculta la primera columna del data_editor que suele ser el índice */
-        .stDataEditor [data-testid="stDataEditor"] table th:first-child,
-        .stDataEditor [data-testid="stDataEditor"] table td:first-child {
-            display: none;
-        }
-        
-        /* Alternativa más específica */
-        div[data-testid="stDataEditor"] div:first-child table thead tr th:first-child,
-        div[data-testid="stDataEditor"] div:first-child table tbody tr td:first-child {
-            display: none;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-      
     
     # Guardar en session_state para persistencia
     st.session_state.df_masivo_precampo = df_editado
