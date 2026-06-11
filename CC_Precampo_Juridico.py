@@ -30,37 +30,32 @@ def formatear_lote(valor):
     - Número individual: "2" → "002"
     - Múltiples lotes: "2, 3, 112, 113" → "002, 003, 112, 113"
     - "Todos" → "Todos"
-    - Ya formateados: "002, 003" → "002, 003"
     """
     try:
         valor_str = str(valor).strip()
         
-        # Si es vacío o nulo
         if not valor_str or valor_str.lower() == 'nan':
             return 'Todos'
         
-        # Si es "Todos", devolver sin cambios
         if valor_str.lower() == 'todos':
             return 'Todos'
         
-        # Si contiene comas, procesar cada número por separado
         if ',' in valor_str:
             numeros = []
             for num in valor_str.split(','):
                 num = num.strip()
-                if num:  # Ignorar vacíos
+                if num:
                     try:
                         numeros.append(str(int(float(num))).zfill(3))
                     except:
-                        numeros.append(num)  # Mantener si no es número
+                        numeros.append(num)
             return ', '.join(numeros) if numeros else 'Todos'
         else:
-            # Número individual
             return str(int(float(valor_str))).zfill(3)
             
     except:
-        # Si todo falla, devolver el valor original
         return str(valor)
+
 def normalizar_horas(valor):
     """Convierte comas a puntos en horas y asegura que sea float"""
     try:
@@ -80,17 +75,18 @@ def buscar_columnas_por_coincidencia(df):
     """
     Busca las columnas requeridas por coincidencia de nombres
     Retorna un diccionario mapeando nombre_requerido -> nombre_real_en_excel
+    
+    NOTA: 'estado' NO se busca en el Excel, se asigna "N/A" automáticamente
     """
     columnas_requeridas = {
         'distrito': ['distrito', 'DISTRITO', 'Distrito'],
         'sector': ['sector', 'SECTOR', 'Sector'],
         'manzana': ['manzana', 'MANZANA', 'Manzana', 'mz', 'MZ'],
         'tipo': ['tipo', 'TIPO', 'Tipo'],
-        'estado': ['estado', 'ESTADO', 'Estado'],
-        'numero_lote': ['numero_lote', 'numero lote', 'NÚMERO LOTE', 'N° Lote', 'lote', 'LOTE', 'n_lote'],
+        'numero_lote': ['numero_lote', 'numero lote', 'NÚMERO LOTE', 'N° Lote', 'lote', 'LOTE', 'n_lote', 'n° lote'],
         'partida': ['partida', 'PARTIDA', 'Partida', 'n° partida', 'n_partida'],
-        'unidades_catastrales': ['unidades_catastrales', 'unidades catastrales', 'UNIDADES CATASTRALES', 
-                                 'cantidad_registros', 'cantidad registros', 'registros', 'cant_registros'],
+        'aprobados': ['aprobados', 'APROBADOS', 'Aprobados', 'registros_aprobados', 'aprob'],
+        'rechazados': ['rechazados', 'RECHAZADOS', 'Rechazados', 'registros_rechazados', 'rech'],
         'horas': ['horas', 'HORAS', 'Horas', 'horas trabajadas', 'horas_trabajadas'],
         'observaciones': ['observaciones', 'OBSERVACIONES', 'Observaciones', 'obs', 'OBS'],
         'tipo_errores': ['tipo_errores', 'tipo de errores', 'TIPO DE ERRORES', 'TIPO_ERRORES', 
@@ -109,14 +105,15 @@ def buscar_columnas_por_coincidencia(df):
 def procesar_dataframe_excel(df):
     """
     Procesa el DataFrame del Excel aplicando todas las transformaciones
+    'estado' NO se busca en Excel, se asigna "N/A" automáticamente
     """
-    # Buscar columnas por coincidencia
+    # Buscar columnas por coincidencia (sin 'estado')
     mapeo_columnas = buscar_columnas_por_coincidencia(df)
     
-    # Verificar columnas encontradas
+    # Verificar columnas encontradas (NO incluye 'estado')
     columnas_requeridas = [
-        'distrito', 'sector', 'manzana', 'tipo', 'estado', 
-        'numero_lote', 'partida', 'unidades_catastrales', 'horas', 'observaciones', 'tipo_errores'
+        'distrito', 'sector', 'manzana', 'tipo', 
+        'numero_lote', 'partida', 'aprobados', 'rechazados', 'horas', 'observaciones', 'tipo_errores'
     ]
     
     columnas_faltantes = [col for col in columnas_requeridas if col not in mapeo_columnas]
@@ -130,19 +127,22 @@ def procesar_dataframe_excel(df):
     for nombre_requerido, nombre_real in mapeo_columnas.items():
         df_procesado[nombre_requerido] = df[nombre_real]
     
+    # Asignar 'estado' como "N/A" fijo (NO viene del Excel)
+    df_procesado['estado'] = "N/A"
+    
     # Aplicar transformaciones
     df_procesado['sector'] = df_procesado['sector'].apply(formatear_sector)
     df_procesado['manzana'] = df_procesado['manzana'].apply(formatear_manzana)
-    df_procesado['numero_lote'] = df_procesado['numero_lote'].apply(
-        lambda x: formatear_lote(x) if str(x).strip().lower() != 'todos' else 'Todos'
-    )
+    df_procesado['numero_lote'] = df_procesado['numero_lote'].apply(formatear_lote)
     df_procesado['horas'] = df_procesado['horas'].apply(normalizar_horas)
-    df_procesado['unidades_catastrales'] = pd.to_numeric(
-        df_procesado['unidades_catastrales'].apply(
-            lambda x: str(x).replace(',', '.') if isinstance(x, str) else x
-        ), 
-        errors='coerce'
-    ).fillna(0).astype(int)
+    
+    # Aprobados y rechazados: convertir a entero
+    df_procesado['aprobados'] = pd.to_numeric(df_procesado['aprobados'], errors='coerce').fillna(0).astype(int)
+    df_procesado['rechazados'] = pd.to_numeric(df_procesado['rechazados'], errors='coerce').fillna(0).astype(int)
+    
+    # Unidades catastrales = Aprobados + Rechazados (cálculo automático)
+    df_procesado['unidades_catastrales'] = df_procesado['aprobados'] + df_procesado['rechazados']
+    
     df_procesado['observaciones'] = df_procesado['observaciones'].apply(lambda x: normalizar_texto(x, "N/A"))
     df_procesado['partida'] = df_procesado['partida'].apply(lambda x: normalizar_texto(x, "N/A"))
     df_procesado['numero_lote'] = df_procesado['numero_lote'].apply(lambda x: normalizar_texto(x, "Todos"))
@@ -157,13 +157,14 @@ def validar_datos_masivos(df, fecha_seleccionada):
     """
     Valida los datos antes de la inserción masiva
     Retorna (es_valido, mensaje_error)
+    NOTA: No valida 'estado' porque es "N/A" fijo
     """
     errores = []
     
     if df.empty:
         return False, "La tabla está vacía. No hay datos para procesar."
     
-    columnas_requeridas = ['distrito', 'sector', 'manzana', 'tipo', 'estado']
+    columnas_requeridas = ['distrito', 'sector', 'manzana', 'tipo']
     for col in columnas_requeridas:
         nulos = df[col].isnull().sum()
         if nulos > 0:
@@ -182,19 +183,17 @@ def validar_datos_masivos(df, fecha_seleccionada):
         filas_invalidas = tipos_invalidos.index.tolist()
         errores.append(f"Hay {len(tipos_invalidos)} registros con tipo inválido en filas: {filas_invalidas}")
     
-    estados_validos = ["Finalizado", "En Conflicto"]
-    estados_invalidos = df[~df['estado'].isin(estados_validos)]
-    if not estados_invalidos.empty:
-        filas_invalidas = estados_invalidos.index.tolist()
-        errores.append(f"Hay {len(estados_invalidos)} registros con estado inválido en filas: {filas_invalidas}")
-    
     horas_invalidas = df[df['horas'] < 0]
     if not horas_invalidas.empty:
         errores.append(f"Hay {len(horas_invalidas)} registros con horas negativas")
     
-    uc_invalidas = df[df['unidades_catastrales'] < 0]
-    if not uc_invalidas.empty:
-        errores.append(f"Hay {len(uc_invalidas)} registros con unidades catastrales negativas")
+    aprobados_invalidos = df[df['aprobados'] < 0]
+    if not aprobados_invalidos.empty:
+        errores.append(f"Hay {len(aprobados_invalidos)} registros con aprobados negativos")
+    
+    rechazados_invalidos = df[df['rechazados'] < 0]
+    if not rechazados_invalidos.empty:
+        errores.append(f"Hay {len(rechazados_invalidos)} registros con rechazados negativos")
     
     if errores:
         return False, "\n".join(errores)
@@ -204,7 +203,6 @@ def validar_datos_masivos(df, fecha_seleccionada):
 def insertar_registros_masivos(df, fecha_seleccionada, usuario, usuario_activo):
     """
     Inserta múltiples registros usando la función execute existente
-    Retorna (exito, registros_insertados, mensaje)
     """
     try:
         marca = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
@@ -222,12 +220,15 @@ def insertar_registros_masivos(df, fecha_seleccionada, usuario, usuario_activo):
             manzana_formateada = row['manzana']
             horas = float(row['horas'])
             horas_bi = horas
-            unidades_catastrales = int(row['unidades_catastrales'])
+            aprobados = int(row.get('aprobados', 0))
+            rechazados = int(row.get('rechazados', 0))
+            unidades_catastrales = aprobados + rechazados
             partida = str(row['partida'])
             observaciones = str(row['observaciones'])
             numero_lote = str(row['numero_lote'])
             operador_cc = str(row.get('operador_cc', 'IA'))
             tipo_errores = str(row.get('tipo_errores', 'N/A'))
+            estado = "N/A"  # FIJO para CC Precampo Jurídico
             
             execute(
                 """
@@ -244,8 +245,8 @@ def insertar_registros_masivos(df, fecha_seleccionada, usuario, usuario_activo):
                 """,
                 params=[
                     marca, usuario, nombre, puesto, supervisor, "CC Precampo Jurídico", 
-                    fecha_seleccionada, semana, año, row['distrito'], row['tipo'], 0, 0, 0, horas,
-                    manzana_formateada, sector_formateado, numero_lote, row['estado'], 
+                    fecha_seleccionada, semana, año, row['distrito'], row['tipo'], 0, aprobados, rechazados, horas,
+                    manzana_formateada, sector_formateado, numero_lote, estado, 
                     0.0, unidades_catastrales, 0, partida, 0, 0, observaciones, "N/A",
                     "N/A", horas_bi, 0.0, operador_cc, 0, 0, tipo_errores, 0
                 ],
@@ -309,10 +310,12 @@ def CC_Precampo_Juridico(usuario, puesto):
     placeholder12_cc = None
     placeholder13_cc = None
     placeholder15_cc = None
-    placeholder16_cc = None
+    placeholder16_cc = None  # Ya no se usa pero se mantiene para limpieza
     placeholder18_cc = None
     placeholder19_cc = None
     placeholder20_cc = None
+    placeholder20b_cc = None
+    placeholder20c_cc = None
     placeholder21_cc = None
     placeholder22_cc = None
     placeholder23_cc = None
@@ -323,9 +326,10 @@ def CC_Precampo_Juridico(usuario, puesto):
     sector_cc = None
     manzana_cc = None
     tipo_cc = None
-    estado_cc = None
     numero_lote_cc = None
     partida_cc = None
+    aprobados_cc = None
+    rechazados_cc = None
     unidades_catastrales_cc = None
     horas_cc = None
     observaciones_cc = None
@@ -340,28 +344,27 @@ def CC_Precampo_Juridico(usuario, puesto):
         default_date_cc = datetime.now(pytz.timezone('America/Guatemala'))
 
         placeholder9_cc = st.empty()
-        fecha_cc = placeholder9_cc.date_input("Fecha", value=default_date_cc, key="fecha_cc")
+        fecha_cc = placeholder9_cc.date_input("📅 Fecha", value=default_date_cc, key="fecha_cc")
          
         placeholder10_cc = st.empty()
-        distrito_cc = placeholder10_cc.selectbox("Distrito", options=("Chorrillos", "San Juan De Miraflores", "Villa el Salvador"), key="distrito_cc")
+        distrito_cc = placeholder10_cc.selectbox("📍 Distrito", options=("Chorrillos", "San Juan De Miraflores", "Villa el Salvador"), key="distrito_cc")
         
         placeholder12_cc = st.empty()
-        sector_cc = placeholder12_cc.selectbox("Sector", options=("01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120"), key="sector_cc")
+        sector_cc = placeholder12_cc.selectbox("🏘️ Sector", options=("01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120"), key="sector_cc")
 
         placeholder13_cc = st.empty()
-        manzana_cc = placeholder13_cc.selectbox("Manzana", options=("001","002","003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022","023","024","025","026","027","028","029","030","031","032","033","034","035","036","037","038","039","040","041","042","043","044","045","046","047","048","049","050","051","052","053","054","055","056","057","058","058","059","060","061","062","063","064","065","066","067","068","069","070","071","072","073","074","075","076","077","078","079","080","081","082","083","084","085","086","087","088","089","090","091","092","093","094","095","096","097","098","099","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120"), key="manzana_cc")
+        manzana_cc = placeholder13_cc.selectbox("🏠 Manzana", options=("001","002","003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022","023","024","025","026","027","028","029","030","031","032","033","034","035","036","037","038","039","040","041","042","043","044","045","046","047","048","049","050","051","052","053","054","055","056","057","058","058","059","060","061","062","063","064","065","066","067","068","069","070","071","072","073","074","075","076","077","078","079","080","081","082","083","084","085","086","087","088","089","090","091","092","093","094","095","096","097","098","099","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120"), key="manzana_cc")
         
         placeholder15_cc = st.empty()
-        tipo_cc = placeholder15_cc.selectbox("Tipo", options=("Ordinario", "Reproceso Ordinario", "Corrección de Calidad", "Corrección de Calidad Extraordinaria", "Producción Horas Extras"), key="tipo_cc")
+        tipo_cc = placeholder15_cc.selectbox("📋 Tipo", options=("Ordinario", "Reproceso Ordinario", "Corrección de Calidad", "Corrección de Calidad Extraordinaria", "Producción Horas Extras"), key="tipo_cc")
         
-        placeholder16_cc = st.empty()
-        estado_cc = placeholder16_cc.selectbox("Estado", options=("Finalizado", "En Conflicto"), key="estado_cc")
+        # ⚠️ ELIMINADO: Selector de "Estado" (siempre es "N/A")
         
         lotes = ["Todos"] + [f"{i:03d}" for i in range(1, 249)]
         
         placeholder18_cc = st.empty()
         numero_lote_cc = placeholder18_cc.multiselect(
-            "Número de Lote",
+            "🔢 Número de Lote",
             options=lotes,
             key="numero_lote_cc"
         )
@@ -372,22 +375,65 @@ def CC_Precampo_Juridico(usuario, puesto):
         numero_lote_cc = ",".join(numero_lote_cc) 
         
         placeholder19_cc = st.empty()
-        partida_cc = placeholder19_cc.text_input("Número de Partida", value="N/A", max_chars=60, key="partida_cc")
-             
+        partida_cc = placeholder19_cc.text_input("📄 Número de Partida", value="N/A", max_chars=60, key="partida_cc")
+        
+        # CAMPOS: Aprobados y Rechazados
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            placeholder20b_cc = st.empty()
+            aprobados_cc = placeholder20b_cc.number_input(
+                "✅ Cantidad de Registros Aprobados", 
+                min_value=0, 
+                step=1, 
+                value=0,
+                key="aprobados_cc"
+            )
+        
+        with col2:
+            placeholder20c_cc = st.empty()
+            rechazados_cc = placeholder20c_cc.number_input(
+                "❌ Cantidad de Registros Rechazados", 
+                min_value=0, 
+                step=1, 
+                value=0,
+                key="rechazados_cc"
+            )
+        
+        # Unidades Catastrales = Aprobados + Rechazados (calculado automáticamente)
         placeholder20_cc = st.empty()
-        unidades_catastrales_cc = placeholder20_cc.number_input("Cantidad de Registros", min_value=0, step=1, key="unidades_catastrales_cc")
+        unidades_catastrales_cc = placeholder20_cc.number_input(
+            "📊 Total Unidades Catastrales (Aprobados + Rechazados)",
+            value=aprobados_cc + rechazados_cc,
+            disabled=True,
+            key="unidades_catastrales_cc"
+        )
         
         placeholder21_cc = st.empty()
-        horas_cc = placeholder21_cc.number_input("Cantidad de Horas Trabajadas en el Proceso", min_value=0.0, key="horas_cc")
+        horas_cc = placeholder21_cc.number_input("⏱️ Cantidad de Horas Trabajadas en el Proceso", min_value=0.0, key="horas_cc")
 
         placeholder22_cc = st.empty()
-        observaciones_cc = placeholder22_cc.text_input("Observaciones", value="N/A", max_chars=60, key="observaciones_cc")
+        observaciones_cc = placeholder22_cc.text_input("📝 Observaciones", value="N/A", max_chars=60, key="observaciones_cc")
         
         placeholder24_cc = st.empty()
-        tipo_errores_cc = placeholder24_cc.text_input("Tipo de Errores", value="N/A", max_chars=255, key="tipo_errores_cc")
+        tipo_errores_cc = placeholder24_cc.text_input(
+            "⚠️ Tipo de Errores (separados por coma si son varios)",
+            value="N/A",
+            max_chars=255,
+            key="tipo_errores_cc",
+            help="Ej: Error de digitalización, Error de georreferenciación, Datos incompletos"
+        )
+        
+        # Mostrar info de campos automáticos
+        with st.expander("ℹ️ Campos automáticos"):
+            st.info("""
+            Los siguientes campos se asignan automáticamente:
+            - **Estado**: "N/A" (no aplica para CC Precampo Jurídico)
+            - **Operador CC**: "IA"
+            """)
        
         placeholder23_cc = st.empty()
-        reporte_cc = placeholder23_cc.button("Generar Reporte", key="reporte_cc")
+        reporte_cc = placeholder23_cc.button("🚀 Generar Reporte", key="reporte_cc", type="primary")
 
     # ============================================
     # MODO DE CARGA MASIVA (SUBIR EXCEL)
@@ -411,20 +457,28 @@ def CC_Precampo_Juridico(usuario, puesto):
         4. Sube el archivo Excel
         5. Revisa la vista previa antes de confirmar
         
+        **Columnas requeridas en el Excel:**
+        - Distrito, Sector, Manzana, Tipo
+        - N° Lote, Partida, Aprobados, Rechazados
+        - Horas, Observaciones, Tipo de Errores
+        
+        **⚠️ NO incluir columna "Estado"** (se asigna "N/A" automáticamente)
+        
         **Transformaciones automáticas:**
         - Sector: 1 → 01
         - Manzana: 5 → 005
-        - N° Lote: 1 → 001
+        - N° Lote: 2,3,112 → 002,003,112
         - Horas: 8,5 → 8.5
         - Campos vacíos → "N/A" o "Todos"
-        - Operador CC → "IA" (automático)
+        - Estado → "N/A" (fijo)
+        - Operador CC → "IA" (fijo)
+        - **Unidades Catastrales = Aprobados + Rechazados** (automático)
             """)
         
         placeholder_descarga = st.empty()
         with placeholder_descarga.container():
             st.markdown("### 📥 Plantilla oficial")
             
-            # URL directa al archivo raw en GitHub (ccprecampojuridico.xlsx)
             url_plantilla = "https://raw.githubusercontent.com/formtpz/TPZ-Peru-Pruebas/main/docs/ccprecampojuridico.xlsx"
             
             col1, col2 = st.columns([1, 3])
@@ -468,6 +522,8 @@ def CC_Precampo_Juridico(usuario, puesto):
                             st.error(f"❌ No se encontraron las siguientes columnas: {', '.join(columnas_faltantes)}")
                             st.info(f"Columnas detectadas en el Excel: {', '.join(df_excel.columns.tolist())}")
                             st.info("💡 Puedes usar nombres similares. Revisa la plantilla oficial para ver los nombres exactos.")
+                            st.info("📋 Columnas requeridas: Distrito, Sector, Manzana, Tipo, N° Lote, Partida, Aprobados, Rechazados, Horas, Observaciones, Tipo de Errores")
+                            st.info("⚠️ La columna 'Estado' NO debe incluirse (se asigna 'N/A' automáticamente)")
                     else:
                         with placeholder_tabla_masiva.container():
                             with st.expander("🔍 Ver mapeo de columnas detectadas"):
@@ -486,50 +542,60 @@ def CC_Precampo_Juridico(usuario, puesto):
                                 hide_index=True,
                                 column_config={
                                     "distrito": st.column_config.SelectboxColumn(
-                                        "Distrito",
+                                        "📍 Distrito",
                                         options=["Chorrillos", "San Juan De Miraflores", "Villa el Salvador"],
                                         required=True
                                     ),
                                     "sector": st.column_config.TextColumn(
-                                        "Sector",
+                                        "🏘️ Sector",
                                         help="Formateado a 2 dígitos",
                                         required=True
                                     ),
                                     "manzana": st.column_config.TextColumn(
-                                        "Manzana",
+                                        "🏠 Manzana",
                                         help="Formateado a 3 dígitos",
                                         required=True
                                     ),
                                     "tipo": st.column_config.SelectboxColumn(
-                                        "Tipo",
+                                        "📋 Tipo",
                                         options=["Ordinario", "Reproceso Ordinario", "Corrección de Calidad", 
                                                 "Corrección de Calidad Extraordinaria", "Producción Horas Extras"],
                                         required=True
                                     ),
-                                    "estado": st.column_config.SelectboxColumn(
-                                        "Estado",
-                                        options=["Finalizado", "En Conflicto"],
-                                        required=True
+                                    "estado": st.column_config.TextColumn(
+                                        "📌 Estado",
+                                        disabled=True,
+                                        help="Valor fijo: N/A (no aplica para CC Precampo Jurídico)"
                                     ),
                                     "numero_lote": st.column_config.TextColumn(
-                                        "N° Lote",
-                                        help="Formateado a 3 dígitos"
+                                        "🔢 N° Lote",
+                                        help="Para múltiples lotes, separar por comas. Ej: 2,3,112 → 002,003,112"
                                     ),
-                                    "partida": st.column_config.TextColumn("Partida"),
-                                    "unidades_catastrales": st.column_config.NumberColumn(
-                                        "Cant. Registros",
+                                    "partida": st.column_config.TextColumn("📄 Partida"),
+                                    "aprobados": st.column_config.NumberColumn(
+                                        "✅ Aprobados",
                                         min_value=0,
                                         required=True
                                     ),
+                                    "rechazados": st.column_config.NumberColumn(
+                                        "❌ Rechazados",
+                                        min_value=0,
+                                        required=True
+                                    ),
+                                    "unidades_catastrales": st.column_config.NumberColumn(
+                                        "📊 Total U.C.",
+                                        disabled=True,
+                                        help="Aprobados + Rechazados (automático)"
+                                    ),
                                     "horas": st.column_config.NumberColumn(
-                                        "Horas Trab.",
+                                        "⏱️ Horas Trab.",
                                         min_value=0.0,
                                         required=True
                                     ),
-                                    "observaciones": st.column_config.TextColumn("Observaciones"),
-                                    "tipo_errores": st.column_config.TextColumn("Tipo de Errores"),
+                                    "observaciones": st.column_config.TextColumn("📝 Observaciones"),
+                                    "tipo_errores": st.column_config.TextColumn("⚠️ Tipo de Errores"),
                                     "operador_cc": st.column_config.TextColumn(
-                                        "Operador CC",
+                                        "🤖 Operador CC",
                                         disabled=True,
                                         help="Valor fijo: IA"
                                     )
@@ -537,29 +603,34 @@ def CC_Precampo_Juridico(usuario, puesto):
                                 key="editor_masivo_cc_precampo"
                             )
                             
+                            # Recalcular después de edición
                             df_editado['observaciones'] = df_editado['observaciones'].fillna('N/A').replace('', 'N/A')
                             df_editado['partida'] = df_editado['partida'].fillna('N/A').replace('', 'N/A')
                             df_editado['numero_lote'] = df_editado['numero_lote'].fillna('Todos').replace('', 'Todos')
                             df_editado['tipo_errores'] = df_editado['tipo_errores'].fillna('N/A').replace('', 'N/A')
+                            df_editado['estado'] = 'N/A'  # Asegurar que estado siempre sea N/A
+                            df_editado['aprobados'] = pd.to_numeric(df_editado['aprobados'], errors='coerce').fillna(0).astype(int)
+                            df_editado['rechazados'] = pd.to_numeric(df_editado['rechazados'], errors='coerce').fillna(0).astype(int)
+                            df_editado['unidades_catastrales'] = df_editado['aprobados'] + df_editado['rechazados']
                             df_editado['sector'] = df_editado['sector'].apply(formatear_sector)
                             df_editado['manzana'] = df_editado['manzana'].apply(formatear_manzana)
-                            df_editado['numero_lote'] = df_editado['numero_lote'].apply(
-                                lambda x: formatear_lote(x) if str(x).strip().lower() != 'todos' else 'Todos'
-                            )
-                            # Asegurar operador_cc sea "IA"
+                            df_editado['numero_lote'] = df_editado['numero_lote'].apply(formatear_lote)
                             df_editado['operador_cc'] = 'IA'
                         
                         if not df_editado.empty:
                             with placeholder_estadisticas.container():
-                                col1, col2, col3 = st.columns(3)
+                                col1, col2, col3, col4 = st.columns(4)
                                 with col1:
                                     st.metric("📊 Registros", len(df_editado))
                                 with col2:
                                     sectores_unicos = df_editado['sector'].unique()
                                     st.metric("🏘️ Sectores", len(sectores_unicos))
                                 with col3:
-                                    manzanas_unicas = df_editado['manzana'].unique()
-                                    st.metric("🏠 Manzanas", len(manzanas_unicas))
+                                    total_aprobados = df_editado['aprobados'].sum()
+                                    st.metric("✅ Total Aprobados", total_aprobados)
+                                with col4:
+                                    total_rechazados = df_editado['rechazados'].sum()
+                                    st.metric("❌ Total Rechazados", total_rechazados)
             
             except Exception as e:
                 with placeholder_tabla_masiva.container():
@@ -572,157 +643,3 @@ def CC_Precampo_Juridico(usuario, puesto):
             type="primary", 
             use_container_width=True,
             key="subir_masivo_cc_precampo",
-            disabled=(df_editado is None or df_editado.empty)
-        )
-        
-        if subir_masivo and df_editado is not None:
-            with st.spinner("⏳ Validando datos..."):
-                es_valido, mensaje_validacion = validar_datos_masivos(df_editado, fecha_masiva)
-                
-                if not es_valido:
-                    st.error(f"❌ Error de validación:\n{mensaje_validacion}")
-                    st.warning("⚠️ No se subió ningún registro. Corrige los errores e intenta de nuevo.")
-                else:
-                    st.success("✅ Validación exitosa")
-                    
-                    usuario_activo = obtener_usuario_activo(usuario)
-                    if not usuario_activo:
-                        st.error("No se encontró un usuario activo para generar el reporte.")
-                        return
-                    
-                    with st.spinner("💾 Insertando registros en la base de datos..."):
-                        exito, insertados, mensaje = insertar_registros_masivos(
-                            df_editado, fecha_masiva, usuario, usuario_activo
-                        )
-                        
-                        if exito:
-                            st.success(f"✅ {mensaje}")
-                        else:
-                            st.error(f"❌ {mensaje}")
-                            st.error(f"Se insertaron {insertados} registros antes del error.")
-
-    # ============================================
-    # FUNCIÓN PARA LIMPIAR PLACEHOLDERS
-    # ============================================
-    def limpiar_placeholders():
-        """Limpia todos los placeholders posibles"""
-        placeholder1_cc.empty()
-        placeholder2_cc.empty()
-        placeholder3_cc.empty()
-        placeholder4_cc.empty()
-        placeholder5_cc.empty()
-        placeholder6_cc.empty()
-        placeholder7_cc.empty()
-        placeholder8_cc.empty()
-        placeholder_modo.empty()
-        
-        if placeholder9_cc: placeholder9_cc.empty()
-        if placeholder10_cc: placeholder10_cc.empty()
-        if placeholder12_cc: placeholder12_cc.empty()
-        if placeholder13_cc: placeholder13_cc.empty()
-        if placeholder15_cc: placeholder15_cc.empty()
-        if placeholder16_cc: placeholder16_cc.empty()
-        if placeholder18_cc: placeholder18_cc.empty()
-        if placeholder19_cc: placeholder19_cc.empty()
-        if placeholder20_cc: placeholder20_cc.empty()
-        if placeholder21_cc: placeholder21_cc.empty()
-        if placeholder22_cc: placeholder22_cc.empty()
-        if placeholder23_cc: placeholder23_cc.empty()
-        if placeholder24_cc: placeholder24_cc.empty()
-        
-        if placeholder_fecha_masiva: placeholder_fecha_masiva.empty()
-        if placeholder_instrucciones_masivo: placeholder_instrucciones_masivo.empty()
-        if placeholder_descarga: placeholder_descarga.empty()
-        if placeholder_archivo: placeholder_archivo.empty()
-        if placeholder_tabla_masiva: placeholder_tabla_masiva.empty()
-        if placeholder_estadisticas: placeholder_estadisticas.empty()
-        if placeholder_boton_masivo: placeholder_boton_masivo.empty()
-
-    # ----- Procesos ---- #
-    if procesos_cc:
-        limpiar_placeholders()
-        st.session_state.Procesos = False
-        st.session_state.Postcampo = False
-        usuario_activo = obtener_usuario_activo(usuario)
-        perfil = str(usuario_activo["perfil"]) if usuario_activo else ""
-        if perfil == "1":        
-            Procesos.Procesos1(usuario, puesto)
-        elif perfil == "2":        
-            Procesos.Procesos2(usuario, puesto)   
-        elif perfil == "3":  
-            Procesos.Procesos3(usuario, puesto)       
-
-    # ----- Historial ---- #
-    elif historial_cc:
-        limpiar_placeholders()
-        st.session_state.Postcampo = False
-        st.session_state.Historial = True
-        Historial.Historial(usuario, puesto)   
-
-    # ----- Capacitación ---- #
-    elif capacitacion_cc:
-        limpiar_placeholders()
-        st.session_state.Postcampo = False
-        st.session_state.Capacitacion = True
-        Capacitacion.Capacitacion(usuario, puesto)
-
-    # ----- Otros Registros ---- #
-    elif otros_registros_cc:
-        limpiar_placeholders()
-        st.session_state.Postcampo = False
-        st.session_state.Otros_Registros = True
-        Otros_Registros.Otros_Registros(usuario, puesto)
-
-    # ----- Bonos y Horas Extras ---- #
-    elif bonos_extras_cc:
-        limpiar_placeholders()
-        st.session_state.Postcampo = False
-        st.session_state.Bonos_Extras = True
-        Bonos_Extras.Bonos_Extras(usuario, puesto)    
-
-    # ----- Salir ---- #
-    elif salir_cc:
-        limpiar_placeholders()
-        st.session_state.Ingreso = False
-        st.session_state.Postcampo = False
-        st.session_state.Salir = True
-        Salir.Salir()
-
-    elif modo_carga == "📝 Carga Manual (Formulario)" and reporte_cc:
-
-        marca_cc = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
-        
-        usuario_activo = obtener_usuario_activo(usuario)
-        if not usuario_activo:
-            st.error("No se encontró un usuario activo para generar el reporte.")
-            return
-
-        nombre_cc = usuario_activo["nombre"]
-        supervisor_cc = usuario_activo["supervisor"]
-        semana_cc = fecha_cc.isocalendar()[1]
-        año_cc = fecha_cc.isocalendar()[0]
-        horas_bi = float(horas_cc)
-        operador_cc_valor = "IA"  # Valor fijo para CC
-        
-        execute(
-            """
-            INSERT INTO registro (
-                marca,usuario,nombre,puesto,supervisor,proceso,fecha,semana,año,distrito,tipo,lotes,aprobados,rechazados,horas,
-                manzana,sector,numero_lote,estado,area,unidades_catastrales,edificas,partida,con_fmi,sin_fmi,observaciones,zona,
-                tipo_calidad,horas_bi,area_bi,operador_cc,total_de_errores,errores_por_excepciones,tipo_de_errores,conteo_de_errores
-            )
-            VALUES (
-                %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
-                %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
-                %s,%s,%s,%s,%s,%s,%s,%s
-            )
-            """,
-            params=[
-                marca_cc, usuario, nombre_cc, puesto, supervisor_cc, "CC Precampo Jurídico", 
-                fecha_cc, semana_cc, año_cc, distrito_cc, tipo_cc, 0, 0, 0, horas_cc,
-                manzana_cc, sector_cc, numero_lote_cc, estado_cc, 0.0, unidades_catastrales_cc, 
-                0, partida_cc, 0, 0, observaciones_cc, "N/A",
-                "N/A", horas_bi, 0.0, operador_cc_valor, 0, 0, tipo_errores_cc, 0
-            ],
-        )
-        st.success('Reporte enviado correctamente')
