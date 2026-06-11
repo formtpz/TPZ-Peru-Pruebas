@@ -23,6 +23,15 @@ def formatear_manzana(valor):
     except:
         return str(valor).zfill(3)
 
+def formatear_lote(valor):
+    """Asegura que el número de lote tenga 3 dígitos (001, 002, etc.)"""
+    try:
+        # Si es un número, formatear a 3 dígitos
+        return str(int(float(valor))).zfill(3)
+    except:
+        # Si ya es texto como "Todos" o "001,002", devolver tal cual
+        return str(valor)
+
 def normalizar_horas(valor):
     """Convierte comas a puntos en horas y asegura que sea float"""
     try:
@@ -49,12 +58,12 @@ def buscar_columnas_por_coincidencia(df):
         'manzana': ['manzana', 'MANZANA', 'Manzana', 'mz', 'MZ'],
         'tipo': ['tipo', 'TIPO', 'Tipo'],
         'estado': ['estado', 'ESTADO', 'Estado'],
-        'numero_lote': ['numero_lote', 'numero lote', 'NÚMERO LOTE', 'N° Lote', 'lote', 'LOTE'],
-        'partida': ['partida', 'PARTIDA', 'Partida', 'n° partida'],
+        'numero_lote': ['numero_lote', 'numero lote', 'NÚMERO LOTE', 'N° Lote', 'lote', 'LOTE', 'n_lote'],
+        'partida': ['partida', 'PARTIDA', 'Partida', 'n° partida', 'n_partida'],
         'unidades_catastrales': ['unidades_catastrales', 'unidades catastrales', 'UNIDADES CATASTRALES', 
-                                 'cantidad_registros', 'cantidad registros', 'registros'],
-        'horas': ['horas', 'HORAS', 'Horas', 'horas trabajadas'],
-        'observaciones': ['observaciones', 'OBSERVACIONES', 'Observaciones', 'obs']
+                                 'cantidad_registros', 'cantidad registros', 'registros', 'cant_registros'],
+        'horas': ['horas', 'HORAS', 'Horas', 'horas trabajadas', 'horas_trabajadas'],
+        'observaciones': ['observaciones', 'OBSERVACIONES', 'Observaciones', 'obs', 'OBS']
     }
     
     mapeo = {}
@@ -96,6 +105,11 @@ def procesar_dataframe_excel(df):
     
     # Manzana: convertir a texto con 3 dígitos
     df_procesado['manzana'] = df_procesado['manzana'].apply(formatear_manzana)
+    
+    # Número de lote: formatear a 3 dígitos (excepto "Todos")
+    df_procesado['numero_lote'] = df_procesado['numero_lote'].apply(
+        lambda x: formatear_lote(x) if str(x).strip().lower() != 'todos' else 'Todos'
+    )
     
     # Horas: normalizar (comas a puntos) y convertir a float
     df_procesado['horas'] = df_procesado['horas'].apply(normalizar_horas)
@@ -198,7 +212,6 @@ def insertar_registros_masivos(df, fecha_seleccionada, usuario, usuario_activo):
         registros_insertados = 0
         
         for index, row in df.iterrows():
-            # Los valores ya vienen formateados del procesamiento
             sector_formateado = row['sector']
             manzana_formateada = row['manzana']
             horas = float(row['horas'])
@@ -241,11 +254,14 @@ def Precampo_Juridico(usuario,puesto):
   # ----- Conexión, Botones y Memoria ---- #
   uri=st.secrets.db_credentials.URI
 
-  # Inicializar variables de placeholders como None
+  # Inicializar TODOS los placeholders como None
   placeholder_fecha_masiva = None
+  placeholder_instrucciones_masivo = None
+  placeholder_descarga = None
   placeholder_archivo = None
   placeholder_tabla_masiva = None
   placeholder_boton_masivo = None
+  placeholder_estadisticas = None
 
   placeholder1_3= st.sidebar.empty()
   titulo= placeholder1_3.title("Menú")
@@ -374,72 +390,59 @@ def Precampo_Juridico(usuario,puesto):
         key="fecha_masiva_precampo"
     )
     
-    # Descargar plantilla
-    with st.expander("📥 Descargar plantilla Excel"):
-        st.markdown("""
-        Descarga la plantilla base para llenar tus datos:
-        
-        **Columnas requeridas:**
-        - **distrito**: Chorrillos, San Juan De Miraflores, Villa el Salvador
-        - **sector**: Número (se formatea a 2 dígitos: 1 → 01)
-        - **manzana**: Número (se formatea a 3 dígitos: 20 → 020)
-        - **tipo**: Ordinario, Reproceso Ordinario, Corrección de Calidad, etc.
-        - **estado**: Finalizado, En Conflicto
-        - **numero_lote**: Ej: 001,002,003 o Todos
-        - **partida**: Número de partida (si no tiene, dejar vacío)
-        - **unidades_catastrales**: Cantidad de registros
-        - **horas**: Horas trabajadas (puede usar coma o punto: 8,5 o 8.5)
-        - **observaciones**: Si no tiene, dejar vacío
-        
-        **Transformaciones automáticas:**
-        - Sector: 1 → 01, 20 → 20
-        - Manzana: 5 → 005, 20 → 020
-        - Horas: 8,5 → 8.5
-        - Campos vacíos: partida → "N/A", observaciones → "N/A", numero_lote → "Todos"
-        """)
-        
-        # Crear plantilla para descargar
-        plantilla = pd.DataFrame(columns=[
-            'distrito', 'sector', 'manzana', 'tipo', 'estado', 
-            'numero_lote', 'partida', 'unidades_catastrales', 'horas', 'observaciones'
-        ])
-        
-        # Agregar ejemplos
-        plantilla.loc[0] = ['Chorrillos', 1, 2, 'Ordinario', 'Finalizado', '001', '12345', 10, 8.5, 'Sin observaciones']
-        plantilla.loc[1] = ['San Juan De Miraflores', 5, 20, 'Ordinario', 'Finalizado', 'Todos', '', 15, 6, '']
-        
-        # Convertir a Excel para descargar
-        from io import BytesIO
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            plantilla.to_excel(writer, index=False, sheet_name='Hoja1')
-        
-        st.download_button(
-            label="📥 Descargar plantilla Excel",
-            data=output.getvalue(),
-            file_name="plantilla_precampo_juridico.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    
-    st.info("""
+    # Instrucciones dentro de placeholder
+    placeholder_instrucciones_masivo = st.empty()
+    with placeholder_instrucciones_masivo.container():
+        st.info("""
     📋 **Instrucciones:**
-    1. Descarga la plantilla Excel (opcional)
+    1. Descarga la plantilla Excel oficial (abajo)
     2. Llena tus datos en la **Hoja1** del Excel
-    3. Los nombres de columna pueden variar (se detectan por coincidencia)
-    4. Sube el archivo Excel abajo
+    3. Los nombres de columna pueden variar ligeramente (se detectan por coincidencia)
+    4. Sube el archivo Excel
     5. Revisa la vista previa antes de confirmar
-    """)
+    
+    **Transformaciones automáticas:**
+    - Sector: 1 → 01
+    - Manzana: 5 → 005
+    - N° Lote: 1 → 001
+    - Horas: 8,5 → 8.5
+    - Campos vacíos → "N/A" o "Todos"
+        """)
+    
+    # Enlace de descarga de plantilla desde GitHub
+    placeholder_descarga = st.empty()
+    with placeholder_descarga.container():
+        st.markdown("### 📥 Plantilla oficial")
+        
+        # URL directa al archivo raw en GitHub
+        url_plantilla = "https://raw.githubusercontent.com/formtpz/TPZ-Peru-Pruebas/main/docs/precampojuridico.xlsx"
+        
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.markdown(f'''
+            <a href="{url_plantilla}" download>
+                <button style="background-color: #4CAF50; color: white; padding: 10px 20px; 
+                border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                    📥 Descargar Plantilla
+                </button>
+            </a>
+            ''', unsafe_allow_html=True)
+        with col2:
+            st.caption("Descarga el machote oficial `precampojuridico.xlsx`")
+            st.caption(f"🔗 [Enlace directo]({url_plantilla})")
     
     # Subir archivo Excel
     placeholder_archivo = st.empty()
     archivo_excel = placeholder_archivo.file_uploader(
-        "📁 Subir archivo Excel",
+        "📁 Subir archivo Excel con datos",
         type=['xlsx', 'xls'],
         key="archivo_excel_precampo",
-        help="Selecciona el archivo Excel con los datos a cargar"
+        help="Selecciona el archivo Excel con los datos a cargar (Hoja1)"
     )
     
     df_editado = None
+    placeholder_tabla_masiva = st.empty()
+    placeholder_estadisticas = st.empty()
     
     if archivo_excel is not None:
         try:
@@ -447,93 +450,100 @@ def Precampo_Juridico(usuario,puesto):
             df_excel = pd.read_excel(archivo_excel, sheet_name=0)
             
             if df_excel.empty:
-                st.error("❌ El archivo Excel está vacío")
+                with placeholder_tabla_masiva.container():
+                    st.error("❌ El archivo Excel está vacío")
             else:
                 # Procesar el DataFrame
                 df_procesado, columnas_faltantes, mapeo = procesar_dataframe_excel(df_excel)
                 
                 if columnas_faltantes:
-                    st.error(f"❌ No se encontraron las siguientes columnas: {', '.join(columnas_faltantes)}")
-                    st.info(f"Columnas detectadas en el Excel: {', '.join(df_excel.columns.tolist())}")
-                    st.info("💡 Puedes usar nombres similares. Ej: 'cantidad registros' en lugar de 'unidades_catastrales'")
+                    with placeholder_tabla_masiva.container():
+                        st.error(f"❌ No se encontraron las siguientes columnas: {', '.join(columnas_faltantes)}")
+                        st.info(f"Columnas detectadas en el Excel: {', '.join(df_excel.columns.tolist())}")
+                        st.info("💡 Puedes usar nombres similares. Revisa la plantilla oficial para ver los nombres exactos.")
                 else:
                     # Mostrar mapeo de columnas
-                    with st.expander("🔍 Ver mapeo de columnas detectadas"):
-                        st.write("Columnas encontradas en el Excel y su correspondencia:")
-                        for nombre_requerido, nombre_real in mapeo.items():
-                            st.write(f"  • '{nombre_real}' → **{nombre_requerido}**")
+                    with placeholder_tabla_masiva.container():
+                        with st.expander("🔍 Ver mapeo de columnas detectadas"):
+                            st.write("Columnas encontradas en el Excel y su correspondencia:")
+                            for nombre_requerido, nombre_real in mapeo.items():
+                                st.write(f"  • '{nombre_real}' → **{nombre_requerido}**")
                     
                     # Mostrar vista previa editable
-                    st.subheader("📊 Vista previa de datos procesados")
-                    st.caption("✏️ Los datos ya fueron transformados. Puedes editarlos antes de subir.")
-                    
-                    placeholder_tabla_masiva = st.empty()
-                    
-                    # Tabla editable con los datos procesados
-                    df_editado = placeholder_tabla_masiva.data_editor(
-                        df_procesado,
-                        num_rows="dynamic",
-                        use_container_width=True,
-                        hide_index=True,
-                        column_config={
-                            "distrito": st.column_config.SelectboxColumn(
-                                "Distrito",
-                                options=["Chorrillos", "San Juan De Miraflores", "Villa el Salvador"],
-                                required=True
-                            ),
-                            "sector": st.column_config.TextColumn(
-                                "Sector",
-                                help="Formateado a 2 dígitos",
-                                required=True
-                            ),
-                            "manzana": st.column_config.TextColumn(
-                                "Manzana",
-                                help="Formateado a 3 dígitos",
-                                required=True
-                            ),
-                            "tipo": st.column_config.SelectboxColumn(
-                                "Tipo",
-                                options=["Ordinario", "Reproceso Ordinario", "Corrección de Calidad", 
-                                        "Corrección de Calidad Extraordinaria", "Producción Horas Extras"],
-                                required=True
-                            ),
-                            "estado": st.column_config.SelectboxColumn(
-                                "Estado",
-                                options=["Finalizado", "En Conflicto"],
-                                required=True
-                            ),
-                            "numero_lote": st.column_config.TextColumn("N° Lote"),
-                            "partida": st.column_config.TextColumn("Partida"),
-                            "unidades_catastrales": st.column_config.NumberColumn(
-                                "Cant. Registros",
-                                min_value=0,
-                                required=True
-                            ),
-                            "horas": st.column_config.NumberColumn(
-                                "Horas Trab.",
-                                min_value=0.0,
-                                required=True
-                            ),
-                            "observaciones": st.column_config.TextColumn("Observaciones")
-                        },
-                        key="editor_masivo_precampo"
-                    )
+                    with placeholder_tabla_masiva.container():
+                        st.subheader("📊 Vista previa de datos procesados")
+                        st.caption("✏️ Los datos ya fueron transformados. Puedes editarlos antes de subir.")
+                        
+                        # Tabla editable con los datos procesados
+                        df_editado = st.data_editor(
+                            df_procesado,
+                            num_rows="dynamic",
+                            use_container_width=True,
+                            hide_index=True,
+                            column_config={
+                                "distrito": st.column_config.SelectboxColumn(
+                                    "Distrito",
+                                    options=["Chorrillos", "San Juan De Miraflores", "Villa el Salvador"],
+                                    required=True
+                                ),
+                                "sector": st.column_config.TextColumn(
+                                    "Sector",
+                                    help="Formateado a 2 dígitos",
+                                    required=True
+                                ),
+                                "manzana": st.column_config.TextColumn(
+                                    "Manzana",
+                                    help="Formateado a 3 dígitos",
+                                    required=True
+                                ),
+                                "tipo": st.column_config.SelectboxColumn(
+                                    "Tipo",
+                                    options=["Ordinario", "Reproceso Ordinario", "Corrección de Calidad", 
+                                            "Corrección de Calidad Extraordinaria", "Producción Horas Extras"],
+                                    required=True
+                                ),
+                                "estado": st.column_config.SelectboxColumn(
+                                    "Estado",
+                                    options=["Finalizado", "En Conflicto"],
+                                    required=True
+                                ),
+                                "numero_lote": st.column_config.TextColumn(
+                                    "N° Lote",
+                                    help="Formateado a 3 dígitos"
+                                ),
+                                "partida": st.column_config.TextColumn("Partida"),
+                                "unidades_catastrales": st.column_config.NumberColumn(
+                                    "Cant. Registros",
+                                    min_value=0,
+                                    required=True
+                                ),
+                                "horas": st.column_config.NumberColumn(
+                                    "Horas Trab.",
+                                    min_value=0.0,
+                                    required=True
+                                ),
+                                "observaciones": st.column_config.TextColumn("Observaciones")
+                            },
+                            key="editor_masivo_precampo"
+                        )
                     
                     # Estadísticas
                     if not df_editado.empty:
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("📊 Registros a insertar", len(df_editado))
-                        with col2:
-                            sectores_unicos = df_editado['sector'].unique()
-                            st.metric("🏘️ Sectores", len(sectores_unicos))
-                        with col3:
-                            manzanas_unicas = df_editado['manzana'].unique()
-                            st.metric("🏠 Manzanas", len(manzanas_unicas))
+                        with placeholder_estadisticas.container():
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("📊 Registros", len(df_editado))
+                            with col2:
+                                sectores_unicos = df_editado['sector'].unique()
+                                st.metric("🏘️ Sectores", len(sectores_unicos))
+                            with col3:
+                                manzanas_unicas = df_editado['manzana'].unique()
+                                st.metric("🏠 Manzanas", len(manzanas_unicas))
         
         except Exception as e:
-            st.error(f"❌ Error al leer el archivo Excel: {str(e)}")
-            st.info("💡 Asegúrate de que el archivo sea un Excel válido (.xlsx o .xls)")
+            with placeholder_tabla_masiva.container():
+                st.error(f"❌ Error al leer el archivo Excel: {str(e)}")
+                st.info("💡 Asegúrate de que el archivo sea un Excel válido (.xlsx o .xls) y que los datos estén en la Hoja1")
     
     # Botón de carga masiva
     placeholder_boton_masivo = st.empty()
@@ -604,8 +614,11 @@ def Precampo_Juridico(usuario,puesto):
       
       # Limpiar placeholders de carga masiva
       if placeholder_fecha_masiva: placeholder_fecha_masiva.empty()
+      if placeholder_instrucciones_masivo: placeholder_instrucciones_masivo.empty()
+      if placeholder_descarga: placeholder_descarga.empty()
       if placeholder_archivo: placeholder_archivo.empty()
       if placeholder_tabla_masiva: placeholder_tabla_masiva.empty()
+      if placeholder_estadisticas: placeholder_estadisticas.empty()
       if placeholder_boton_masivo: placeholder_boton_masivo.empty()
 
   # ----- Procesos ---- #
