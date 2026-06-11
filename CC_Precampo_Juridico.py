@@ -386,7 +386,7 @@ def CC_Precampo_Juridico(usuario, puesto):
         placeholder14_cc = st.empty()
         operador_cc = placeholder14_cc.selectbox("📋 Objeto de CC",
             options=("IA"),
-            key="tipo_cc"
+            key="operador_cc"
         )
         
         placeholder15_cc = st.empty()
