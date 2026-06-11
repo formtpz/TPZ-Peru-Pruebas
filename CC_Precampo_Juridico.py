@@ -384,10 +384,7 @@ def CC_Precampo_Juridico(usuario, puesto):
             opciones_operadores = ["No hay operadores disponibles"]
         
         placeholder14_cc = st.empty()
-        operador_cc = placeholder14_cc.selectbox(
-            "👤 Operador objeto de CC",
-            options=opciones_operadores,
-            key="operador_cc"
+        operador_cc = "IA"
         )
         
         placeholder15_cc = st.empty()
