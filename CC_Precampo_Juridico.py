@@ -228,6 +228,15 @@ def insertar_registros_masivos(df, fecha_seleccionada, usuario, usuario_activo):
             numero_lote = str(row['numero_lote'])
             operador_cc = str(row.get('operador_cc', 'IA'))
             tipo_errores = str(row.get('tipo_errores', 'N/A'))
+            
+            # Calcular conteo de errores (similar al manual)
+            if tipo_errores and tipo_errores != 'N/A' and tipo_errores.strip():
+                # Dividir por coma y contar elementos no vacíos
+                errores_lista = [e.strip() for e in tipo_errores.split(',') if e.strip()]
+                conteo_errores = len(errores_lista)
+            else:
+                conteo_errores = 0
+            
             estado = "N/A"  # FIJO para CC Precampo Jurídico
             
             execute(
@@ -248,7 +257,7 @@ def insertar_registros_masivos(df, fecha_seleccionada, usuario, usuario_activo):
                     fecha_seleccionada, semana, año, row['distrito'], row['tipo'], 0, aprobados, rechazados, horas,
                     manzana_formateada, sector_formateado, numero_lote, estado, 
                     0.0, unidades_catastrales, 0, partida, 0, 0, observaciones, "N/A",
-                    "N/A", horas_bi, 0.0, operador_cc, 0, 0, tipo_errores, 0
+                    "N/A", horas_bi, 0.0, operador_cc, 0, 0, tipo_errores, conteo_errores
                 ],
             )
             registros_insertados += 1
