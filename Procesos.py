@@ -8,6 +8,7 @@ import Precampo_Juridico, Descarga_Partidas_Juridico, Asignacion_Partidas, CC_Pr
 import Consulta_Campo, Restitucion_Tierras, Revision_Segregados, Estado_UIT_Hito
 import Precampo, CC_Precampo, Preparacion_Insumos, Entregas_Postcampo, Postcampo, CC_Postcampo
 import CC_Vinculacion_Precampo, Vinculacion_Precampo
+import Masivos_QC_Vinculacion            # <--- NUEVO MÓDULO
 
 # ------------------- CONTADOR PARA REFRESCAR PÁGINA ------------------- #
 if "start_time" not in st.session_state:
@@ -41,7 +42,8 @@ def navegar_a(modulo_func, usuario, puesto, flag_name):
                 "CC_Precampo_Juridico", "Asignacion_Partidas", "Precampo", "CC_Precampo",
                 "Vinculacion_Precampo", "Preparacion_Insumos", "Entregas_Postcampo",
                 "Postcampo", "CC_Postcampo", "CC_Vinculacion_Precampo",
-                "Restitucion_Tierras", "Revision_Segregados", "Estado_UIT_Hito"]:
+                "Restitucion_Tierras", "Revision_Segregados", "Estado_UIT_Hito",
+                "Masivos_QC_Vinculacion"]:   # <--- agregada la nueva clave
         st.session_state[key] = (key == flag_name)
     modulo_func(usuario, puesto)
 
@@ -104,6 +106,7 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         btn_cc_precampo = st.empty()
         btn_vinculacion = st.empty()
         btn_cc_vinculacion = st.empty()
+        btn_masivos_qc_vinculacion = st.empty()   # <--- nuevo placeholder
         
         # Botones Postcampo (Azul)
         btn_prep_insumos = st.empty()
@@ -115,6 +118,7 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         # Agregar todos a la lista de limpieza
         botones_procesos = [btn_precampo_jur, btn_descarga_partidas, btn_cc_precampo_jur, btn_asig_partidas,
                            btn_precampo, btn_cc_precampo, btn_vinculacion, btn_cc_vinculacion,
+                           btn_masivos_qc_vinculacion,   # <--- añadido
                            btn_prep_insumos, btn_entregas, btn_postcampo, btn_cc_postcampo, btn_estado_uit]
     
         # --- BOTONES JURÍDICOS (Naranja) ---
@@ -152,6 +156,10 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(CC_Vinculacion_Precampo.CC_Vinculacion_Precampo, usuario, puesto, "CC_Vinculacion_Precampo")
             return True
+        if btn_masivos_qc_vinculacion.button(":green[Masivos QC Vinculación]", key="masivos_qc_vinculacion_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Masivos_QC_Vinculacion.Masivos_QC_Vinculacion, usuario, puesto, "Masivos_QC_Vinculacion")
+            return True
         
         # --- BOTONES POSTCAMPO (Azul) ---
         # Botón deshabilitado (comentado)
@@ -181,6 +189,7 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         btn_cc_precampo = st.empty()
         btn_vinculacion = st.empty()
         btn_cc_vinculacion = st.empty()
+        btn_masivos_qc_vinculacion = st.empty()   # <--- nuevo placeholder
         
         # Botones Postcampo (Azul)
         btn_entregas = st.empty()
@@ -188,6 +197,7 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         btn_cc_postcampo = st.empty()
         
         botones_procesos = [btn_precampo, btn_cc_precampo, btn_vinculacion, btn_cc_vinculacion,
+                           btn_masivos_qc_vinculacion,   # <--- añadido
                            btn_entregas, btn_postcampo, btn_cc_postcampo]
         
         # --- BOTONES PRECAMPO (Verde) ---
@@ -206,6 +216,10 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         if btn_cc_vinculacion.button(":green[Control de Calidad Vinculación Precampo]", key="cc_vinculacion_precampo_2"):
             limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
             navegar_a(CC_Vinculacion_Precampo.CC_Vinculacion_Precampo, usuario, puesto, "CC_Vinculacion_Precampo")
+            return True
+        if btn_masivos_qc_vinculacion.button(":green[Masivos QC Vinculación]", key="masivos_qc_vinculacion_2"):
+            limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+            navegar_a(Masivos_QC_Vinculacion.Masivos_QC_Vinculacion, usuario, puesto, "Masivos_QC_Vinculacion")
             return True
         
         # --- BOTONES POSTCAMPO (Azul) ---
@@ -322,6 +336,8 @@ def Procesos1(usuario, puesto):
             CC_Vinculacion_Precampo.CC_Vinculacion_Precampo(usuario, puesto)
         elif st.session_state.get("Estado_UIT_Hito"):
             Estado_UIT_Hito.Estado_UIT_Hito(usuario, puesto)
+        elif st.session_state.get("Masivos_QC_Vinculacion"):    # <--- nueva delegación
+            Masivos_QC_Vinculacion.Masivos_QC_Vinculacion(usuario, puesto)
         # Si no hay bandera activa, se muestra el menú
         else:
             st.session_state.Procesos = False
@@ -356,6 +372,8 @@ def Procesos2(usuario, puesto):
             CC_Postcampo.CC_Postcampo(usuario, puesto)
         elif st.session_state.get("CC_Vinculacion_Precampo"):
             CC_Vinculacion_Precampo.CC_Vinculacion_Precampo(usuario, puesto)
+        elif st.session_state.get("Masivos_QC_Vinculacion"):    # <--- nueva delegación
+            Masivos_QC_Vinculacion.Masivos_QC_Vinculacion(usuario, puesto)
         else:
             st.session_state.Procesos = False
             menu_principal_por_perfil(usuario, puesto, "2")
@@ -383,6 +401,7 @@ def Procesos3(usuario, puesto):
             CC_Precampo_Juridico.CC_Precampo_Juridico(usuario, puesto)
         elif st.session_state.get("Asignacion_Partidas"):
             Asignacion_Partidas.Asignacion_Partidas(usuario, puesto)
+        # No se incluye Masivos_QC_Vinculacion para perfil 3
         else:
             st.session_state.Procesos = False
             menu_principal_por_perfil(usuario, puesto, "3")
