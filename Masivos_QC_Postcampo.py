@@ -55,27 +55,12 @@ def Masivos_QC_Postcampo(usuario, puesto):
         tipo_de_masivo = st.multiselect(
             "Tipo de Masivo",
             options=(
-                "Puertas",
-                "Puertas duplicadas",
-                "Sin rentas",
-                "Areas",
-                "QGIS-SICUN (construcciones)",
-                "Pisos",
+                "Sin-Rentas",
                 "UA-Rentas",
-                "Vias",
-                "UA consecutivas",
-                "Entradas consecutivas",
-                "Comparacion UA-Vinculacion",
+                "UAvsRentas",
+                "No Código/No Partida",
                 "Titulares",
-                "Sincronizacion",
-                "Area de terreno",
-                "Muros y columnas",
-                "Control CIIU",
-                "Estadisticas",
-                "Rentas duplicadas",
-                "Domicilio fiscal",
-                "Coincidencias rentas",
-                "Observaciones"
+                "Partidas"
             ),
             key="tipo_de_masivo_mqcp"
         )
