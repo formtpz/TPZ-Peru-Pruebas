@@ -38,6 +38,14 @@ def Masivos_QC_Postcampo(usuario, puesto):
             key="distrito_mqcp"
         )
 
+        # Mapeo de abreviatura según distrito
+        abrev_distrito = {
+            "Chorrillos": "CH",
+            "San Juan De Miraflores": "SJM",
+            "Villa el Salvador": "VES"
+        }
+        abrev = abrev_distrito[distrito]  # se usará para la observación
+
         tipo = st.selectbox(
             "Tipo",
             options=("Ordinario", "Producción Horas Extras"),
@@ -84,6 +92,20 @@ def Masivos_QC_Postcampo(usuario, puesto):
             min_value=0.0,
             key="horas_mqcp"
         )
+
+        # --- NUEVO: número para observación automática ---
+        numero_obs = st.number_input(
+            "Número para Observación",
+            min_value=0,
+            max_value=99,
+            step=1,
+            format="%02d",          # muestra siempre dos dígitos (09, 99, etc.)
+            key="numero_obs_mqcp"
+        )
+
+        # Previsualización de la observación que se guardará
+        observacion = f"{abrev}{numero_obs:02d}"
+        st.caption(f"📝 Observación que se registrará: **{observacion}**")
 
         reporte_btn = st.button("Guardar Registro", key="reporte_mqcp")
 
@@ -163,7 +185,7 @@ def Masivos_QC_Postcampo(usuario, puesto):
         operador_cc         = "N/A"
         aprobados           = 0
         rechazados          = 0
-        unidades_catastrales = int(cantidad_masivos)   # se guarda en unidades_catastrales
+        unidades_catastrales = int(cantidad_masivos)
 
         execute(
             """
@@ -187,9 +209,10 @@ def Masivos_QC_Postcampo(usuario, puesto):
             params=[
                 marca, usuario, nombre, puesto, supervisor, "Masivos QC Postcampo",
                 fecha, semana, año, distrito, tipo, 0, aprobados, rechazados, horas,
-                0, 0, "0",   # manzana=0, sector=0, numero_lote="0"
+                0, 0, "0",
                 "N/A", 0.0, unidades_catastrales,
-                0, "N/A", 0, 0, "N/A", "N/A",
+                0, "N/A", 0, 0, observacion,   # ¡Aquí va la observación generada!
+                "N/A",
                 "N/A", horas_bi, 0, operador_cc, 0,
                 0, tipos_de_masivo_str, conteo
             ],
