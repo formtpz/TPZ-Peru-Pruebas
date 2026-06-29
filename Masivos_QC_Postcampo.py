@@ -95,7 +95,7 @@ def Masivos_QC_Postcampo(usuario, puesto):
 
         # --- NUEVO: número para observación automática ---
         numero_obs = st.number_input(
-            "Número para Observación",
+            "Número de Polígono",
             min_value=0,
             max_value=99,
             step=1,
@@ -105,7 +105,7 @@ def Masivos_QC_Postcampo(usuario, puesto):
 
         # Previsualización de la observación que se guardará
         observacion = f"{abrev}{numero_obs:02d}"
-        st.caption(f"📝 Observación que se registrará: **{observacion}**")
+        st.caption(f"📝 Polígono que se registrará: **{observacion}**")
 
         reporte_btn = st.button("Guardar Registro", key="reporte_mqcp")
 
