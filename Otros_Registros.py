@@ -12,26 +12,22 @@ from db_core import fetch_df, fetch_one, execute
 PUESTOS_PERUANOS = ("Supervisor Perú", "Operario Perú", "Coordinador Perú")
 
 def obtener_modulo_historial(puesto):
-    """Retorna el módulo de historial adecuado según el puesto."""
     if puesto in PUESTOS_PERUANOS:
         return historial_peru.Historial_Peru
     else:
         return Historial.Historial
 
 def limpiar_placeholders(lista_placeholders):
-    """Vacía todos los placeholders proporcionados."""
     for ph in lista_placeholders:
         if ph is not None:
             ph.empty()
 
 def navegar_a_procesos(usuario, puesto):
-    """Determina el perfil y redirige a la función correspondiente de Procesos."""
     usuario_activo = fetch_one(
         "SELECT perfil FROM usuarios WHERE usuario = %s",
         params=[usuario]
     )
     perfil = str(usuario_activo["perfil"]) if usuario_activo else "1"
-
     if perfil == "1":
         Procesos.Procesos1(usuario, puesto)
     elif perfil == "2":
@@ -40,11 +36,6 @@ def navegar_a_procesos(usuario, puesto):
         Procesos.Procesos3(usuario, puesto)
 
 def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usuario, puesto):
-    """
-    Carga el historial de 'otros_registros' según el filtro seleccionado.
-    Retorna un DataFrame con los resultados.
-    """
-    # Determinar si es peruano para ajustar filtros de puesto
     es_peruano = puesto in PUESTOS_PERUANOS
     puesto_operario = "Operario Perú" if es_peruano else "Operario Catastral"
     puesto_juridico = "Profesional Jurídico Perú" if es_peruano else "Profesional Jurídico"
@@ -59,10 +50,10 @@ def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usua
 
     if filtro == "Todos":
         query = base_query
-    elif filtro == "Operarios Perú" if es_peruano else "Operarios":
+    elif filtro in ("Operarios Perú", "Operarios"):
         query = base_query + " AND puesto = %s"
         params.append(puesto_operario)
-    elif filtro == "Profesional Jurídico Perú" if es_peruano else "Profesional Jurídico":
+    elif filtro in ("Profesional Jurídico Perú", "Profesional Jurídico"):
         query = base_query + " AND puesto = %s"
         params.append(puesto_juridico)
     elif filtro == "Propio":
@@ -74,8 +65,7 @@ def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usua
     elif filtro == "Reportados":
         query = base_query + " AND reporte = %s"
         params.append(nombre_usuario)
-    elif filtro == "Personal Reciente" and puesto == "Supervisor":
-        # Obtener proceso y subproceso del supervisor logueado
+    elif filtro == "Personal Reciente" and puesto in ("Supervisor", "Supervisor Perú"):
         supervisor_data = fetch_one(
             """
             SELECT proceso, subproceso 
@@ -112,17 +102,13 @@ def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usua
     return fetch_df(query, params=params)
 
 def Otros_Registros(usuario, puesto):
-    # Obtener nombre completo del usuario
     nombre_df = fetch_df("SELECT nombre FROM usuarios WHERE usuario = %s", params=[usuario])
     nombre_13 = nombre_df.loc[0, 'nombre'] if not nombre_df.empty else ""
 
-    # Determinar si es peruano para ajustar opciones
     es_peruano = puesto in PUESTOS_PERUANOS
-
-    # Fecha por defecto
     default_date = datetime.now(pytz.timezone('America/Guatemala'))
 
-    # --- Sidebar (con botón Bonos condicional) ---
+    # --- Sidebar (con Bonos condicional) ---
     ph_sidebar = []
     ph_titulo = st.sidebar.empty()
     ph_titulo.title("Menú")
@@ -134,8 +120,7 @@ def Otros_Registros(usuario, puesto):
     ph_sidebar.append(btn_historial)
     btn_capacitacion = st.sidebar.empty()
     ph_sidebar.append(btn_capacitacion)
-    
-    # Botón Bonos solo si NO es peruano
+
     if not es_peruano:
         btn_bonos = st.sidebar.empty()
         ph_sidebar.append(btn_bonos)
@@ -159,23 +144,19 @@ def Otros_Registros(usuario, puesto):
     observaciones_13 = ""
     data_historial = pd.DataFrame()
 
-    # ---------------------------
-    # PERFIL COORDINADOR / SUPERVISOR
-    # ---------------------------
-    if puesto in ["Coordinador", "Supervisor"]:
+    # ----- PERFIL COORDINADOR / SUPERVISOR (incluyendo peruanos) -----
+    if puesto in ["Coordinador", "Supervisor", "Coordinador Perú", "Supervisor Perú"]:
         # Registro
         ph_sub_registro = st.empty()
         placeholders_contenido.append(ph_sub_registro)
         ph_sub_registro.subheader("Registro")
 
-        # Obtener lista de personal (incluyendo puesto para filtrar)
-        if puesto == "Coordinador":
-            # Si es Coordinador Perú, obtener solo personal con puestos peruanos
+        # Obtener lista de personal (con puesto)
+        if puesto in ["Coordinador", "Coordinador Perú"]:
             data_personal = fetch_df("SELECT nombre, puesto FROM usuarios WHERE estado = 'Activo'")
             if es_peruano:
                 data_personal = data_personal[data_personal["puesto"].isin(PUESTOS_PERUANOS)]
-        else:  # Supervisor
-            # Primero obtener personal asignado directamente (incluyendo puesto)
+        else:  # Supervisor o Supervisor Perú
             data_personal = fetch_df(
                 "SELECT nombre, puesto FROM usuarios WHERE estado = 'Activo' AND (supervisor = %s OR usuario = %s)",
                 params=[nombre_13, usuario]
@@ -183,7 +164,7 @@ def Otros_Registros(usuario, puesto):
             if es_peruano:
                 data_personal = data_personal[data_personal["puesto"].isin(PUESTOS_PERUANOS)]
 
-            # Agregar "Personal Reciente" (solo para Supervisores, incluyendo puesto)
+            # Personal Reciente
             supervisor_data = fetch_one(
                 """
                 SELECT proceso, subproceso 
@@ -245,10 +226,10 @@ def Otros_Registros(usuario, puesto):
         ph_reporte = st.empty()
         placeholders_contenido.append(ph_reporte)
         reporte_btn = ph_reporte.button("Generar Reporte", key="reporte_13")
-        
+
         ph_mensaje = st.empty()
         placeholders_contenido.append(ph_mensaje)
-        
+
         if reporte_btn:
             if not personal_13:
                 ph_mensaje.error("Favor ingresar el nombre de alguna persona")
@@ -262,7 +243,6 @@ def Otros_Registros(usuario, puesto):
                         )
                         if not persona:
                             continue
-
                         execute(
                             """
                             INSERT INTO otros_registros (
@@ -299,9 +279,9 @@ def Otros_Registros(usuario, puesto):
 
         ph_filtro = st.empty()
         placeholders_contenido.append(ph_filtro)
-        
-        # Opciones de filtro según perfil
-        if puesto == "Supervisor":
+
+        # Opciones de filtro
+        if puesto in ["Supervisor", "Supervisor Perú"]:
             opciones_filtro = ("Todos", 
                                "Operarios Perú" if es_peruano else "Operarios",
                                "Profesional Jurídico Perú" if es_peruano else "Profesional Jurídico",
@@ -311,14 +291,14 @@ def Otros_Registros(usuario, puesto):
                                "Operarios Perú" if es_peruano else "Operarios",
                                "Profesional Jurídico Perú" if es_peruano else "Profesional Jurídico",
                                "Propio", "Personal Asignado", "Reportados")
-        
+
         filtro_val = ph_filtro.selectbox(
             "Filtro",
             options=opciones_filtro,
             key="filtro_13"
         )
-        
-        if filtro_val == "Personal Reciente" and puesto == "Supervisor":
+
+        if filtro_val == "Personal Reciente" and puesto in ["Supervisor", "Supervisor Perú"]:
             supervisor_info = fetch_one(
                 """
                 SELECT proceso, subproceso 
@@ -336,14 +316,11 @@ def Otros_Registros(usuario, puesto):
                     f"Subproceso '{supervisor_info['subproceso']}'"
                 )
 
-        # Cargar historial
         data_historial = cargar_historial_otros(
             filtro_val, fecha_inicio_val, fecha_fin_val, usuario, nombre_13, puesto
         )
 
-    # ---------------------------
-    # PERFIL OPERARIO / PROFESIONAL JURÍDICO / QC
-    # ---------------------------
+    # ----- PERFIL OPERARIO / PROFESIONAL JURÍDICO / QC (incluyendo peruanos) -----
     else:
         ph_sub_historial = st.empty()
         placeholders_contenido.append(ph_sub_historial)
@@ -376,9 +353,7 @@ def Otros_Registros(usuario, puesto):
     else:
         ph_dataframe.dataframe(data_historial, use_container_width=True)
 
-    # ---------------------------
-    # Navegación (con Historial y Bonos condicionales)
-    # ---------------------------
+    # ----- Navegación -----
     if btn_procesos.button("Procesos", key="procesos_13"):
         limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
         st.session_state.Otros_Registros = False
@@ -388,7 +363,6 @@ def Otros_Registros(usuario, puesto):
         limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
         st.session_state.Otros_Registros = False
         st.session_state.Historial = True
-        # Usar el módulo de historial adecuado
         modulo_hist = obtener_modulo_historial(puesto)
         modulo_hist(usuario, puesto)
 
