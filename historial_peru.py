@@ -1,4 +1,4 @@
-# ----- historial_peru.py -----
+# ----- historial_peru.py (corregido) -----
 import numpy as np
 import streamlit as st
 import pandas as pd
@@ -31,7 +31,6 @@ def convertir_lotes(df):
 
 def cargar_datos_supervisor_peru(fecha_inicio, fecha_fin, personal, proceso, tipo, nombre_usuario):
     """Carga datos solo de los puestos peruanos."""
-    # Filtro global por puesto
     puestos_peru = ("'Operario Perú'", "'Supervisor Perú'", "'Coordinador Perú'")
     filtro_puesto = f"puesto IN ({', '.join(puestos_peru)})"
 
@@ -65,41 +64,40 @@ def cargar_datos_supervisor_peru(fecha_inicio, fecha_fin, personal, proceso, tip
         params=[fecha_inicio, fecha_fin]
     )
 
-    data_r = base_r.copy()
-    data_c = base_c.copy()
-    data_o = base_o.copy()
+    data_r = base_r.copy() if base_r is not None else pd.DataFrame()
+    data_c = base_c.copy() if base_c is not None else pd.DataFrame()
+    data_o = base_o.copy() if base_o is not None else pd.DataFrame()
 
-    # Aplicar conversión de lotes
-    data_r = convertir_lotes(data_r)
+    if not data_r.empty:
+        data_r = convertir_lotes(data_r)
 
-    # Filtros adicionales según personal
     if personal == "Operarios Perú":
-        data_r = data_r[data_r["puesto"] == "Operario Perú"]
-        data_c = data_c[data_c["puesto"] == "Operario Perú"]
-        data_o = data_o[data_o["puesto"] == "Operario Perú"]
+        data_r = data_r[data_r["puesto"] == "Operario Perú"] if not data_r.empty else data_r
+        data_c = data_c[data_c["puesto"] == "Operario Perú"] if not data_c.empty else data_c
+        data_o = data_o[data_o["puesto"] == "Operario Perú"] if not data_o.empty else data_o
     elif personal == "Profesional Jurídico Perú":
-        data_r = data_r[data_r["puesto"] == "Profesional Jurídico Perú"]  # si existe
-        data_c = data_c[data_c["puesto"] == "Profesional Jurídico Perú"]
-        data_o = data_o[data_o["puesto"] == "Profesional Jurídico Perú"]
+        data_r = data_r[data_r["puesto"] == "Profesional Jurídico Perú"] if not data_r.empty else data_r
+        data_c = data_c[data_c["puesto"] == "Profesional Jurídico Perú"] if not data_c.empty else data_c
+        data_o = data_o[data_o["puesto"] == "Profesional Jurídico Perú"] if not data_o.empty else data_o
     elif personal == "Propio":
-        data_r = data_r[data_r["nombre"] == nombre_usuario]
-        data_c = data_c[data_c["nombre"] == nombre_usuario]
-        data_o = data_o[data_o["nombre"] == nombre_usuario]
+        data_r = data_r[data_r["nombre"] == nombre_usuario] if not data_r.empty else data_r
+        data_c = data_c[data_c["nombre"] == nombre_usuario] if not data_c.empty else data_c
+        data_o = data_o[data_o["nombre"] == nombre_usuario] if not data_o.empty else data_o
     elif personal == "Personal Asignado":
-        data_r = data_r[data_r["supervisor"] == nombre_usuario]
-        data_c = data_c[data_c["supervisor"] == nombre_usuario]
-        data_o = data_o[data_o["supervisor"] == nombre_usuario]
+        data_r = data_r[data_r["supervisor"] == nombre_usuario] if not data_r.empty else data_r
+        data_c = data_c[data_c["supervisor"] == nombre_usuario] if not data_c.empty else data_c
+        data_o = data_o[data_o["supervisor"] == nombre_usuario] if not data_o.empty else data_o
 
-    if proceso != "Todos":
+    if proceso != "Todos" and not data_r.empty:
         data_r = data_r[data_r["proceso"] == proceso]
-    if tipo != "Todos":
+    if tipo != "Todos" and not data_r.empty:
         data_r = data_r[data_r["tipo"] == tipo]
 
     return data_r, data_c, data_o
 
 def cargar_datos_operario_peru(usuario, fecha_inicio, fecha_fin, proceso, tipo, nombre_completo):
     """Carga datos para operario peruano."""
-    puestos_peru = ("'Operario Perú'",)  # solo operario
+    puestos_peru = ("'Operario Perú'",)
     filtro_puesto = f"puesto IN ({', '.join(puestos_peru)})"
 
     condiciones = [f"usuario = %s", filtro_puesto]
@@ -162,11 +160,11 @@ def cargar_datos_operario_peru(usuario, fecha_inicio, fecha_fin, proceso, tipo, 
         params=[nombre_completo, fecha_inicio, fecha_fin]
     )
 
-    # Aplicar conversión de lotes
-    data_1_r = convertir_lotes(data_1_r)
-    data_8_r = convertir_lotes(data_8_r)
-    data_6_r = convertir_lotes(data_6_r)
-    data_5_r = convertir_lotes(data_5_r)
+    # Convertir lotes si hay datos
+    data_1_r = convertir_lotes(data_1_r) if not data_1_r.empty else data_1_r
+    data_8_r = convertir_lotes(data_8_r) if not data_8_r.empty else data_8_r
+    data_6_r = convertir_lotes(data_6_r) if not data_6_r.empty else data_6_r
+    data_5_r = convertir_lotes(data_5_r) if not data_5_r.empty else data_5_r
 
     data_1_c = fetch_df(
         f"""
@@ -217,32 +215,139 @@ def cargar_datos_operario_peru(usuario, fecha_inicio, fecha_fin, proceso, tipo, 
         params=[usuario, fecha_inicio, fecha_fin]
     )
 
+    # Asegurar que todos sean DataFrames (pueden estar vacíos)
+    data_1_r = data_1_r if data_1_r is not None else pd.DataFrame()
+    data_8_r = data_8_r if data_8_r is not None else pd.DataFrame()
+    data_6_r = data_6_r if data_6_r is not None else pd.DataFrame()
+    data_5_r = data_5_r if data_5_r is not None else pd.DataFrame()
+    data_1_c = data_1_c if data_1_c is not None else pd.DataFrame()
+    data_1_o = data_1_o if data_1_o is not None else pd.DataFrame()
+    data_6_o = data_6_o if data_6_o is not None else pd.DataFrame()
+    data_9_o = data_9_o if data_9_o is not None else pd.DataFrame()
+    data_7_o = data_7_o if data_7_o is not None else pd.DataFrame()
+
     return data_1_r, data_8_r, data_6_r, data_5_r, data_1_c, data_1_o, data_6_o, data_9_o, data_7_o
 
 # -------------------------------------------------------------------
-# FUNCIONES DE PROCESAMIENTO (idénticas a las originales)
+# FUNCIONES DE PROCESAMIENTO (con manejo de DataFrames vacíos)
 # -------------------------------------------------------------------
 
 def generar_resumen_horas(data_r, data_c, data_o):
-    # ... (código exactamente igual al de historial.py) ...
-    # (se omite por brevedad, pero debe ser copiado tal cual)
-    # Asegúrate de incluir toda la lógica de agrupación y merge.
-    pass
+    # Asegurar DataFrames
+    data_r = data_r if data_r is not None else pd.DataFrame()
+    data_c = data_c if data_c is not None else pd.DataFrame()
+    data_o = data_o if data_o is not None else pd.DataFrame()
+
+    if data_r.empty and data_c.empty and data_o.empty:
+        return pd.DataFrame()
+
+    # Filtros
+    data_8_r = data_r[~data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy() if not data_r.empty else pd.DataFrame()
+    data_6_r = data_r[data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy() if not data_r.empty else pd.DataFrame()
+    data_6_o = data_o[data_o["motivo"].isin(["Horas Extra", "Horas Extra Apoyo Otros Proyectos", "Horas Extras"])].copy() if not data_o.empty else pd.DataFrame()
+    data_7_o = data_o[data_o["motivo"] == "Reposición de tiempo"].copy() if not data_o.empty else pd.DataFrame()
+    data_9_o = data_o[~data_o["motivo"].isin(["Reposición de tiempo", "Horas Extra", "Horas Extra Apoyo Otros Proyectos", "Horas Extras"])].copy() if not data_o.empty else pd.DataFrame()
+
+    def agrupar_o_vacio(df, group_cols, agg_col, rename_dict):
+        if df is not None and not df.empty:
+            res = df.groupby(group_cols, as_index=False)[[agg_col]].agg(np.sum)
+            res.rename(columns=rename_dict, inplace=True)
+            return res
+        else:
+            return pd.DataFrame(columns=group_cols + list(rename_dict.values()))
+
+    prod_normal = agrupar_o_vacio(data_8_r, ["nombre", "fecha"], "horas", {"horas": "horas_produccion"})
+    prod_extra = agrupar_o_vacio(data_6_r, ["nombre", "fecha"], "horas", {"horas": "horas_extra_produccion"})
+    cap = agrupar_o_vacio(data_c, ["nombre", "fecha"], "horas", {"horas": "horas_capacitacion"})
+    otros = agrupar_o_vacio(data_9_o, ["nombre", "fecha"], "horas", {"horas": "horas_otros_registros"})
+    otros_extra = agrupar_o_vacio(data_6_o, ["nombre", "fecha"], "horas", {"horas": "horas_extra_otros_registros"})
+    reposicion = agrupar_o_vacio(data_7_o, ["nombre", "fecha"], "horas", {"horas": "reposicion"})
+
+    datos_horas = pd.concat([prod_normal, prod_extra, cap, otros, otros_extra], axis=0)
+    if datos_horas.empty:
+        return pd.DataFrame()
+
+    keys = datos_horas[["nombre", "fecha"]].drop_duplicates()
+    merged = keys.merge(prod_normal, on=["nombre", "fecha"], how="left")
+    merged = merged.merge(prod_extra, on=["nombre", "fecha"], how="left")
+    merged = merged.merge(cap, on=["nombre", "fecha"], how="left")
+    merged = merged.merge(otros, on=["nombre", "fecha"], how="left")
+    merged = merged.merge(otros_extra, on=["nombre", "fecha"], how="left")
+    merged = merged.merge(reposicion, on=["nombre", "fecha"], how="left")
+    merged = merged.fillna(0)
+
+    cols_numeric = ["horas_produccion", "horas_extra_produccion", "horas_capacitacion",
+                    "horas_otros_registros", "horas_extra_otros_registros", "reposicion"]
+    for col in cols_numeric:
+        if col in merged.columns:
+            merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(0)
+
+    merged["Total"] = merged["horas_produccion"] + merged["horas_capacitacion"] + merged["horas_otros_registros"]
+    return merged
 
 def generar_resumen_produccion(data_r, modo_supervisor=False):
-    # ... (código exactamente igual) ...
-    pass
+    # Asegurar que data_r sea DataFrame
+    data_r = data_r if data_r is not None else pd.DataFrame()
+    if data_r.empty:
+        return pd.DataFrame(), pd.DataFrame()  # <-- CORRECCIÓN: retorna tupla vacía
+
+    diario = data_r.groupby(["nombre", "fecha"], as_index=False)[["lotes", "edificas", "horas"]].agg(np.sum)
+    diario["rendimiento"] = (diario["edificas"] / diario["horas"]) * 8.5
+
+    semanal = data_r.groupby(["nombre", "semana", "proceso"], as_index=False)[["edificas", "unidades_catastrales", "horas"]].agg(np.sum)
+
+    if modo_supervisor:
+        valor_esperado_map = {
+            'Precampo': 340,
+            'Control de Calidad Precampo': 510,
+            'Postcampo': 340,
+            'Control de Calidad Postcampo': 765
+        }
+        semanal["valor esperado"] = semanal["proceso"].map(valor_esperado_map).fillna(0)
+        semanal["diferencia"] = semanal["edificas"] - semanal["valor esperado"]
+    else:
+        tasa_por_hora = {
+            'Precampo': 8,
+            'Control de Calidad Precampo': 10,
+            'Postcampo': 7,
+            'Control de Calidad Postcampo': 10,
+            'Vinculación Precampo': 8,
+            'Control de Calidad Vinculación Precampo': 10
+        }
+        semanal["valor esperado"] = semanal["proceso"].map(tasa_por_hora).fillna(0) * semanal["horas"]
+        semanal["diferencia"] = semanal["edificas"] + semanal["unidades_catastrales"] - semanal["valor esperado"]
+        semanal["ratio bruto"] = (semanal["edificas"] + semanal["unidades_catastrales"]) / semanal["horas"]
+
+    return diario, semanal
 
 def generar_resumen_calidad(data_r):
-    # ... (código exactamente igual) ...
-    pass
+    data_r = data_r if data_r is not None else pd.DataFrame()
+    if data_r.empty:
+        return pd.DataFrame()
+
+    data_filtrada = data_r[(data_r["tipo"] == "Inspección") & (data_r["operador_cc"].notna()) & (data_r["operador_cc"] != "N/A")]
+    if data_filtrada.empty:
+        return pd.DataFrame()
+
+    resumen = data_filtrada.groupby(["operador_cc", "semana"], as_index=False)[["edificas", "aprobados", "rechazados"]].agg(np.sum)
+    resumen["porcentaje_aprobacion"] = ((resumen["aprobados"] / resumen["edificas"]) * 100).round(2).astype(str) + "%"
+    return resumen
 
 def generar_resumen_calidad_operario(data_5_r):
-    # ... (código exactamente igual) ...
-    pass
+    data_5_r = data_5_r if data_5_r is not None else pd.DataFrame()
+    if data_5_r.empty:
+        return pd.DataFrame()
+
+    data_filtrada = data_5_r[data_5_r["tipo"] == "Inspección"]
+    if data_filtrada.empty:
+        return pd.DataFrame()
+
+    resumen = data_filtrada.groupby(["operador_cc", "semana"], as_index=False)[["edificas", "unidades_catastrales", "aprobados", "rechazados"]].agg(np.sum)
+    resumen["porcentaje_aprobacion"] = ((resumen["aprobados"] / (resumen["edificas"] + resumen["unidades_catastrales"])) * 100).round(2).astype(str) + "%"
+    return resumen
 
 # -------------------------------------------------------------------
-# FUNCIONES DE VISUALIZACIÓN (idénticas)
+# FUNCIONES DE VISUALIZACIÓN
 # -------------------------------------------------------------------
 
 def limpiar_placeholders(lista_placeholders):
@@ -251,25 +356,39 @@ def limpiar_placeholders(lista_placeholders):
             ph.empty()
 
 def mostrar_reporte_base(data, placeholder):
-    if len(data) == 0:
+    data = data if data is not None else pd.DataFrame()
+    if data.empty:
         placeholder.error("No existen reportes para mostrar")
     else:
         placeholder.dataframe(data)
 
 def mostrar_resumen_horas(datos_horas, placeholder_tabla, placeholder_error):
-    if len(datos_horas) == 0:
+    datos_horas = datos_horas if datos_horas is not None else pd.DataFrame()
+    if datos_horas.empty:
         placeholder_error.error("No existen horas para mostrar")
     else:
         placeholder_tabla.dataframe(datos_horas)
 
 def mostrar_resumen_produccion(diario, semanal, data_r, placeholder_diario, placeholder_semanal_titulo,
                                placeholder_semanal, placeholder_error):
-    if len(data_r) == 0:
+    data_r = data_r if data_r is not None else pd.DataFrame()
+    if data_r.empty:
         placeholder_error.error("No existe producción para mostrar")
         return
-    placeholder_diario.dataframe(diario)
+
+    diario = diario if diario is not None else pd.DataFrame()
+    semanal = semanal if semanal is not None else pd.DataFrame()
+
+    if not diario.empty:
+        placeholder_diario.dataframe(diario)
+    else:
+        placeholder_diario.info("No hay datos diarios")
+
     placeholder_semanal_titulo.subheader("Resumen Semanal")
-    placeholder_semanal.dataframe(semanal)
+    if not semanal.empty:
+        placeholder_semanal.dataframe(semanal)
+    else:
+        placeholder_semanal.info("No hay datos semanales")
 
 # -------------------------------------------------------------------
 # FUNCIÓN PRINCIPAL Historial_Peru
@@ -314,7 +433,7 @@ def Historial_Peru(usuario, puesto):
 
     placeholders_contenido = []
 
-    # Filtros según perfil (usamos los mismos roles pero con denominación Perú)
+    # Filtros según perfil
     if puesto in ["Supervisor Perú", "Técnico SIG Perú", "Coordinador Perú"]:
         filtro_personal = st.empty()
         placeholders_contenido.append(filtro_personal)
@@ -344,7 +463,7 @@ def Historial_Peru(usuario, puesto):
         data_c = data_1_c
         data_o = data_1_o
 
-    # --- Placeholders para resultados (igual que en historial.py) ---
+    # --- Placeholders para resultados ---
     ph_reporte_titulo = st.empty()
     placeholders_contenido.append(ph_reporte_titulo)
     ph_reporte_data = st.empty()
@@ -387,16 +506,25 @@ def Historial_Peru(usuario, puesto):
     if puesto in ["Supervisor Perú", "Técnico SIG Perú", "Coordinador Perú"]:
         datos_horas = generar_resumen_horas(data_r, data_c, data_o)
     else:
-        # lógica para operario (copiada de historial.py)
+        # Generar resumen para operario
         def generar_horas_operario():
-            prod_normal = data_8_r.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_produccion"}) if len(data_8_r) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_produccion"])
-            prod_extra = data_6_r.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_extra_produccion"}) if len(data_6_r) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_extra_produccion"])
-            cap = data_1_c.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_capacitacion"}) if len(data_1_c) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_capacitacion"])
-            otros = data_9_o.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_otros_registros"}) if len(data_9_o) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_otros_registros"])
-            otros_extra = data_6_o.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_extra_otros_registros"}) if len(data_6_o) > 0 else pd.DataFrame(columns=["nombre","fecha","horas_extra_otros_registros"])
-            reposicion = data_7_o.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "reposicion"}) if len(data_7_o) > 0 else pd.DataFrame(columns=["nombre","fecha","reposicion"])
+            # Asegurar DataFrames
+            d8 = data_8_r if data_8_r is not None else pd.DataFrame()
+            d6 = data_6_r if data_6_r is not None else pd.DataFrame()
+            c1 = data_1_c if data_1_c is not None else pd.DataFrame()
+            o9 = data_9_o if data_9_o is not None else pd.DataFrame()
+            o6 = data_6_o if data_6_o is not None else pd.DataFrame()
+            o7 = data_7_o if data_7_o is not None else pd.DataFrame()
+
+            prod_normal = d8.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_produccion"}) if not d8.empty else pd.DataFrame(columns=["nombre","fecha","horas_produccion"])
+            prod_extra = d6.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_extra_produccion"}) if not d6.empty else pd.DataFrame(columns=["nombre","fecha","horas_extra_produccion"])
+            cap = c1.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_capacitacion"}) if not c1.empty else pd.DataFrame(columns=["nombre","fecha","horas_capacitacion"])
+            otros = o9.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_otros_registros"}) if not o9.empty else pd.DataFrame(columns=["nombre","fecha","horas_otros_registros"])
+            otros_extra = o6.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "horas_extra_otros_registros"}) if not o6.empty else pd.DataFrame(columns=["nombre","fecha","horas_extra_otros_registros"])
+            reposicion = o7.groupby(["nombre", "fecha"], as_index=False)["horas"].agg(np.sum).rename(columns={"horas": "reposicion"}) if not o7.empty else pd.DataFrame(columns=["nombre","fecha","reposicion"])
+
             combined = pd.concat([prod_normal, prod_extra, cap, otros, otros_extra], axis=0)
-            if len(combined) == 0:
+            if combined.empty:
                 return pd.DataFrame()
             keys = combined[["nombre","fecha"]].drop_duplicates()
             merged = keys.merge(prod_normal, on=["nombre","fecha"], how="left").merge(prod_extra, on=["nombre","fecha"], how="left").merge(cap, on=["nombre","fecha"], how="left").merge(otros, on=["nombre","fecha"], how="left").merge(otros_extra, on=["nombre","fecha"], how="left").merge(reposicion, on=["nombre","fecha"], how="left").fillna(0)
@@ -405,6 +533,7 @@ def Historial_Peru(usuario, puesto):
                     merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(0)
             merged["Total"] = merged["horas_produccion"] + merged["horas_capacitacion"] + merged["horas_otros_registros"]
             return merged
+
         datos_horas = generar_horas_operario()
 
     mostrar_resumen_horas(datos_horas, ph_horas_data, ph_horas_error)
@@ -416,7 +545,7 @@ def Historial_Peru(usuario, puesto):
                                    ph_prod_semanal, ph_prod_error)
     else:
         diario, semanal = generar_resumen_produccion(data_r, modo_supervisor=False)
-        if len(data_r) == 0:
+        if data_r.empty:
             ph_prod_error.error("No existe producción para mostrar")
         else:
             ph_prod_semanal_titulo.subheader("Resumen de Producción por Proceso")
@@ -426,7 +555,7 @@ def Historial_Peru(usuario, puesto):
     if puesto in ["Supervisor Perú", "Técnico SIG Perú", "Coordinador Perú"]:
         ph_calidad_titulo.subheader("Resumen Calidad")
         calidad = generar_resumen_calidad(data_r)
-        if len(calidad) == 0:
+        if calidad.empty:
             ph_calidad_data.error("No existen reportes para mostrar")
         else:
             calidad_vista = calidad.rename(columns={"edificas": "muestra"})
@@ -434,13 +563,13 @@ def Historial_Peru(usuario, puesto):
     else:
         ph_calidad_titulo_op.subheader("Resumen Calidad")
         calidad_op = generar_resumen_calidad_operario(data_5_r)
-        if len(calidad_op) == 0:
+        if calidad_op.empty:
             ph_calidad_data_op.error("No existen reportes para mostrar")
         else:
             calidad_vista = calidad_op.rename(columns={"unidades_catastrales": "muestra unidades catastrales", "edificas": "muestra edificas"})
             ph_calidad_data_op.dataframe(calidad_vista)
 
-    # --- Navegación (con redirección a los mismos módulos) ---
+    # --- Navegación ---
     if btn_procesos.button("Procesos", key="procesos_hist_peru"):
         limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
         st.session_state.Historial = False
