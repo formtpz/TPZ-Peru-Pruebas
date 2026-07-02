@@ -1,10 +1,9 @@
-# ----- procesos.py (modificado con perfiles peruanos y historial_peru) -----
+# ----- procesos.py (con menú personalizado para Perú) -----
 import streamlit as st
 import time
 
-# Importaciones de módulos (se mantienen igual)
 import Historial
-import historial_peru 
+import historial_peru
 import Capacitacion, Otros_Registros, Correcciones, Bonos_Extras, Salir
 import Precampo_Juridico, Descarga_Partidas_Juridico, Asignacion_Partidas, CC_Precampo_Juridico
 import Consulta_Campo, Restitucion_Tierras, Revision_Segregados, Estado_UIT_Hito
@@ -30,23 +29,20 @@ def auto_refresh(seconds=30600):
 auto_refresh(30600)
 # --------------------------------------------------------------------- #
 
-# ---------- NUEVA FUNCIÓN PARA SELECCIONAR EL MÓDULO DE HISTORIAL ----------
+PUESTOS_PERUANOS = ("Supervisor Perú", "Operario Perú", "Coordinador Perú")
+
 def obtener_modulo_historial(puesto):
-    """Retorna la función del módulo de historial adecuada según el puesto."""
-    puestos_peru = ("Supervisor Perú", "Operario Perú", "Coordinador Perú")
-    if puesto in puestos_peru:
+    if puesto in PUESTOS_PERUANOS:
         return historial_peru.Historial_Peru
     else:
         return Historial.Historial
 
 def limpiar_sidebar_y_contenido(placeholder_list):
-    """Vacía todos los placeholders proporcionados."""
     for ph in placeholder_list:
         if ph is not None:
             ph.empty()
 
 def navegar_a(modulo_func, usuario, puesto, flag_name):
-    """Establece flags de estado y llama al módulo correspondiente."""
     st.session_state.Procesos = True
     # Activar solo la bandera del módulo destino
     for key in ["Historial", "Capacitacion", "Otros_Registros", "Bonos_Extras",
@@ -59,16 +55,98 @@ def navegar_a(modulo_func, usuario, puesto, flag_name):
         st.session_state[key] = (key == flag_name)
     modulo_func(usuario, puesto)
 
+# ------------------- MENÚ PERUANO (solo 4 botones, sin Bonos) -------------------
+def menu_peruano(usuario, puesto):
+    """Muestra el menú específico para usuarios peruanos (sin Bonos y solo 4 procesos)."""
+    # Sidebar (sin Bonos)
+    ph_sidebar = []
+    ph_titulo = st.sidebar.empty()
+    ph_titulo.title("Menú")
+    ph_sidebar.append(ph_titulo)
+
+    btn_historial = st.sidebar.empty()
+    ph_sidebar.append(btn_historial)
+    btn_capacitacion = st.sidebar.empty()
+    ph_sidebar.append(btn_capacitacion)
+    btn_otros = st.sidebar.empty()
+    ph_sidebar.append(btn_otros)
+    # No se agrega btn_bonos
+    btn_correcciones = st.sidebar.empty()
+    ph_sidebar.append(btn_correcciones)
+    btn_salir = st.sidebar.empty()
+    ph_sidebar.append(btn_salir)
+
+    # Contenido principal
+    ph_main = []
+    titulo_procesos = st.empty()
+    ph_main.append(titulo_procesos)
+    titulo_procesos.title("Procesos")
+
+    # Placeholders para los 4 botones
+    btn_postcampo = st.empty()
+    btn_cc_postcampo = st.empty()
+    btn_vinculacion = st.empty()
+    btn_cc_vinculacion = st.empty()
+    botones_procesos = [btn_postcampo, btn_cc_postcampo, btn_vinculacion, btn_cc_vinculacion]
+
+    # --- BOTONES ---
+    if btn_postcampo.button(":blue[Postcampo]", key="postcampo_peru"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(Postcampo.Postcampo, usuario, puesto, "Postcampo")
+        return True
+    if btn_cc_postcampo.button(":blue[Control de Calidad Postcampo]", key="cc_postcampo_peru"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(CC_Postcampo.CC_Postcampo, usuario, puesto, "CC_Postcampo")
+        return True
+    if btn_vinculacion.button(":green[Vinculación Precampo]", key="vinculacion_precampo_peru"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(Vinculacion_Precampo.Vinculacion_Precampo, usuario, puesto, "Vinculacion_Precampo")
+        return True
+    if btn_cc_vinculacion.button(":green[Control de Calidad Vinculación Precampo]", key="cc_vinculacion_precampo_peru"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(CC_Vinculacion_Precampo.CC_Vinculacion_Precampo, usuario, puesto, "CC_Vinculacion_Precampo")
+        return True
+
+    # --- Botones comunes del sidebar (sin Bonos) ---
+    if btn_historial.button("Historial", key="historial_peru"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        modulo_hist = obtener_modulo_historial(puesto)
+        navegar_a(modulo_hist, usuario, puesto, "Historial")
+        return True
+    if btn_capacitacion.button("Capacitaciones", key="capacitacion_peru"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(Capacitacion.Capacitacion, usuario, puesto, "Capacitacion")
+        return True
+    if btn_otros.button("Otros Registros", key="otros_peru"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(Otros_Registros.Otros_Registros, usuario, puesto, "Otros_Registros")
+        return True
+    if btn_correcciones.button("Solicitud Correcciones", key="correcciones_peru"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        navegar_a(Correcciones.Correcciones, usuario, puesto, "Correcciones")
+        return True
+    if btn_salir.button("Salir", key="salir_peru"):
+        limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
+        st.session_state.Ingreso = False
+        st.session_state.Procesos = True
+        st.session_state.Salir = True
+        Salir.Salir()
+        return True
+
+    return False
+
+# ------------------- MENÚ POR PERFIL (original) -------------------
 def menu_principal_por_perfil(usuario, puesto, perfil):
-    """
-    Muestra el menú de procesos según el perfil.
-    Retorna True si se debe salir de la función (para evitar doble render).
-    """
+    # Si es usuario peruano, mostrar menú peruano (si no está en un submódulo)
+    if puesto in PUESTOS_PERUANOS:
+        if st.session_state.get("Procesos"):
+            return True
+        return menu_peruano(usuario, puesto)
+
     # Inicializar estado si no existe
     if "Procesos" not in st.session_state:
         st.session_state.Procesos = False
 
-    # Si ya estamos dentro de un submódulo, la función padre ya llamó al submódulo.
     if st.session_state.Procesos:
         return True
 
@@ -288,10 +366,9 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
             return True
 
     # --- Botones comunes del sidebar ---
-    # MODIFICADO: uso de obtener_modulo_historial
     if btn_historial.button("Historial", key="historial_2"):
         limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
-        modulo_hist = obtener_modulo_historial(puesto)   # <--- NUEVO
+        modulo_hist = obtener_modulo_historial(puesto)
         navegar_a(modulo_hist, usuario, puesto, "Historial")
         return True
     if btn_capacitacion.button("Capacitaciones", key="capacitacion_2"):
@@ -320,14 +397,12 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
 
     return False
 
-# ------------------- FUNCIONES PÚBLICAS (mantienen compatibilidad) ------------------- #
-
+# ------------------- FUNCIONES PÚBLICAS (Procesos1/2/3) -------------------
 def Procesos1(usuario, puesto):
     st.session_state.Ingreso = True
-    # Si ya estamos en un submódulo, delegar
     if st.session_state.get("Procesos"):
         if st.session_state.get("Historial"):
-            modulo_hist = obtener_modulo_historial(puesto)   # <--- NUEVO
+            modulo_hist = obtener_modulo_historial(puesto)
             modulo_hist(usuario, puesto)
         elif st.session_state.get("Capacitacion"):
             Capacitacion.Capacitacion(usuario, puesto)
@@ -367,7 +442,6 @@ def Procesos1(usuario, puesto):
             Masivos_QC_Vinculacion.Masivos_QC_Vinculacion(usuario, puesto)
         elif st.session_state.get("Masivos_QC_Postcampo"):
             Masivos_QC_Postcampo.Masivos_QC_Postcampo(usuario, puesto)
-        # Si no hay bandera activa, se muestra el menú
         else:
             st.session_state.Procesos = False
             menu_principal_por_perfil(usuario, puesto, "1")
@@ -378,7 +452,7 @@ def Procesos2(usuario, puesto):
     st.session_state.Ingreso = True
     if st.session_state.get("Procesos"):
         if st.session_state.get("Historial"):
-            modulo_hist = obtener_modulo_historial(puesto)   # <--- NUEVO
+            modulo_hist = obtener_modulo_historial(puesto)
             modulo_hist(usuario, puesto)
         elif st.session_state.get("Capacitacion"):
             Capacitacion.Capacitacion(usuario, puesto)
@@ -416,7 +490,7 @@ def Procesos3(usuario, puesto):
     st.session_state.Ingreso = True
     if st.session_state.get("Procesos"):
         if st.session_state.get("Historial"):
-            modulo_hist = obtener_modulo_historial(puesto)   # <--- NUEVO
+            modulo_hist = obtener_modulo_historial(puesto)
             modulo_hist(usuario, puesto)
         elif st.session_state.get("Capacitacion"):
             Capacitacion.Capacitacion(usuario, puesto)
@@ -434,7 +508,6 @@ def Procesos3(usuario, puesto):
             CC_Precampo_Juridico.CC_Precampo_Juridico(usuario, puesto)
         elif st.session_state.get("Asignacion_Partidas"):
             Asignacion_Partidas.Asignacion_Partidas(usuario, puesto)
-        # No se incluye Masivos_QC_Vinculacion ni Masivos_QC_Postcampo para perfil 3
         else:
             st.session_state.Procesos = False
             menu_principal_por_perfil(usuario, puesto, "3")
