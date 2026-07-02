@@ -1,15 +1,17 @@
-# ----- Librerías ---- #
+# ----- procesos.py (modificado con perfiles peruanos y historial_peru) -----
 import streamlit as st
 import time
 
 # Importaciones de módulos (se mantienen igual)
-import Historial, Capacitacion, Otros_Registros, Correcciones, Bonos_Extras, Salir
+import Historial
+import historial_peru  # <-- NUEVO módulo para perfiles peruanos
+import Capacitacion, Otros_Registros, Correcciones, Bonos_Extras, Salir
 import Precampo_Juridico, Descarga_Partidas_Juridico, Asignacion_Partidas, CC_Precampo_Juridico
 import Consulta_Campo, Restitucion_Tierras, Revision_Segregados, Estado_UIT_Hito
 import Precampo, CC_Precampo, Preparacion_Insumos, Entregas_Postcampo, Postcampo, CC_Postcampo
 import CC_Vinculacion_Precampo, Vinculacion_Precampo
-import Masivos_QC_Vinculacion            # NUEVO
-import Masivos_QC_Postcampo              # NUEVO
+import Masivos_QC_Vinculacion
+import Masivos_QC_Postcampo
 
 # ------------------- CONTADOR PARA REFRESCAR PÁGINA ------------------- #
 if "start_time" not in st.session_state:
@@ -28,6 +30,15 @@ def auto_refresh(seconds=30600):
 auto_refresh(30600)
 # --------------------------------------------------------------------- #
 
+# ---------- NUEVA FUNCIÓN PARA SELECCIONAR EL MÓDULO DE HISTORIAL ----------
+def obtener_modulo_historial(puesto):
+    """Retorna la función del módulo de historial adecuada según el puesto."""
+    puestos_peru = ("Supervisor Perú", "Operario Perú", "Coordinador Perú")
+    if puesto in puestos_peru:
+        return historial_peru.Historial_Peru
+    else:
+        return Historial.Historial
+
 def limpiar_sidebar_y_contenido(placeholder_list):
     """Vacía todos los placeholders proporcionados."""
     for ph in placeholder_list:
@@ -44,7 +55,7 @@ def navegar_a(modulo_func, usuario, puesto, flag_name):
                 "Vinculacion_Precampo", "Preparacion_Insumos", "Entregas_Postcampo",
                 "Postcampo", "CC_Postcampo", "CC_Vinculacion_Precampo",
                 "Restitucion_Tierras", "Revision_Segregados", "Estado_UIT_Hito",
-                "Masivos_QC_Vinculacion", "Masivos_QC_Postcampo"]:   # <--- agregadas las nuevas claves
+                "Masivos_QC_Vinculacion", "Masivos_QC_Postcampo"]:
         st.session_state[key] = (key == flag_name)
     modulo_func(usuario, puesto)
 
@@ -107,14 +118,14 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         btn_cc_precampo = st.empty()
         btn_vinculacion = st.empty()
         btn_cc_vinculacion = st.empty()
-        btn_masivos_qc_vinculacion = st.empty()   # <--- nuevo placeholder
+        btn_masivos_qc_vinculacion = st.empty()
         
         # Botones Postcampo (Azul)
         btn_prep_insumos = st.empty()
         btn_entregas = st.empty()
         btn_postcampo = st.empty()
         btn_cc_postcampo = st.empty()
-        btn_masivos_qc_postcampo = st.empty()     # <--- NUEVO placeholder
+        btn_masivos_qc_postcampo = st.empty()
         btn_estado_uit = st.empty()
         
         # Agregar todos a la lista de limpieza
@@ -122,7 +133,7 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
                            btn_precampo, btn_cc_precampo, btn_vinculacion, btn_cc_vinculacion,
                            btn_masivos_qc_vinculacion,
                            btn_prep_insumos, btn_entregas, btn_postcampo, btn_cc_postcampo,
-                           btn_masivos_qc_postcampo,   # <--- añadido
+                           btn_masivos_qc_postcampo,
                            btn_estado_uit]
     
         # --- BOTONES JURÍDICOS (Naranja) ---
@@ -196,18 +207,18 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
         btn_cc_precampo = st.empty()
         btn_vinculacion = st.empty()
         btn_cc_vinculacion = st.empty()
-        btn_masivos_qc_vinculacion = st.empty()   # <--- placeholder existente
+        btn_masivos_qc_vinculacion = st.empty()
         
         # Botones Postcampo (Azul)
         btn_entregas = st.empty()
         btn_postcampo = st.empty()
         btn_cc_postcampo = st.empty()
-        btn_masivos_qc_postcampo = st.empty()     # <--- NUEVO placeholder
+        btn_masivos_qc_postcampo = st.empty()
         
         botones_procesos = [btn_precampo, btn_cc_precampo, btn_vinculacion, btn_cc_vinculacion,
                            btn_masivos_qc_vinculacion,
                            btn_entregas, btn_postcampo, btn_cc_postcampo,
-                           btn_masivos_qc_postcampo]   # <--- añadido
+                           btn_masivos_qc_postcampo]
         
         # --- BOTONES PRECAMPO (Verde) ---
         if btn_precampo.button(":green[Precampo]", key="precampo_2"):
@@ -277,9 +288,11 @@ def menu_principal_por_perfil(usuario, puesto, perfil):
             return True
 
     # --- Botones comunes del sidebar ---
+    # MODIFICADO: uso de obtener_modulo_historial
     if btn_historial.button("Historial", key="historial_2"):
         limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
-        navegar_a(Historial.Historial, usuario, puesto, "Historial")
+        modulo_hist = obtener_modulo_historial(puesto)   # <--- NUEVO
+        navegar_a(modulo_hist, usuario, puesto, "Historial")
         return True
     if btn_capacitacion.button("Capacitaciones", key="capacitacion_2"):
         limpiar_sidebar_y_contenido(ph_sidebar + ph_main + botones_procesos)
@@ -314,7 +327,8 @@ def Procesos1(usuario, puesto):
     # Si ya estamos en un submódulo, delegar
     if st.session_state.get("Procesos"):
         if st.session_state.get("Historial"):
-            Historial.Historial(usuario, puesto)
+            modulo_hist = obtener_modulo_historial(puesto)   # <--- NUEVO
+            modulo_hist(usuario, puesto)
         elif st.session_state.get("Capacitacion"):
             Capacitacion.Capacitacion(usuario, puesto)
         elif st.session_state.get("Otros_Registros"):
@@ -351,7 +365,7 @@ def Procesos1(usuario, puesto):
             Estado_UIT_Hito.Estado_UIT_Hito(usuario, puesto)
         elif st.session_state.get("Masivos_QC_Vinculacion"):
             Masivos_QC_Vinculacion.Masivos_QC_Vinculacion(usuario, puesto)
-        elif st.session_state.get("Masivos_QC_Postcampo"):   # <--- NUEVA delegación
+        elif st.session_state.get("Masivos_QC_Postcampo"):
             Masivos_QC_Postcampo.Masivos_QC_Postcampo(usuario, puesto)
         # Si no hay bandera activa, se muestra el menú
         else:
@@ -364,7 +378,8 @@ def Procesos2(usuario, puesto):
     st.session_state.Ingreso = True
     if st.session_state.get("Procesos"):
         if st.session_state.get("Historial"):
-            Historial.Historial(usuario, puesto)
+            modulo_hist = obtener_modulo_historial(puesto)   # <--- NUEVO
+            modulo_hist(usuario, puesto)
         elif st.session_state.get("Capacitacion"):
             Capacitacion.Capacitacion(usuario, puesto)
         elif st.session_state.get("Otros_Registros"):
@@ -389,7 +404,7 @@ def Procesos2(usuario, puesto):
             CC_Vinculacion_Precampo.CC_Vinculacion_Precampo(usuario, puesto)
         elif st.session_state.get("Masivos_QC_Vinculacion"):
             Masivos_QC_Vinculacion.Masivos_QC_Vinculacion(usuario, puesto)
-        elif st.session_state.get("Masivos_QC_Postcampo"):   # <--- NUEVA delegación
+        elif st.session_state.get("Masivos_QC_Postcampo"):
             Masivos_QC_Postcampo.Masivos_QC_Postcampo(usuario, puesto)
         else:
             st.session_state.Procesos = False
@@ -401,7 +416,8 @@ def Procesos3(usuario, puesto):
     st.session_state.Ingreso = True
     if st.session_state.get("Procesos"):
         if st.session_state.get("Historial"):
-            Historial.Historial(usuario, puesto)
+            modulo_hist = obtener_modulo_historial(puesto)   # <--- NUEVO
+            modulo_hist(usuario, puesto)
         elif st.session_state.get("Capacitacion"):
             Capacitacion.Capacitacion(usuario, puesto)
         elif st.session_state.get("Otros_Registros"):
