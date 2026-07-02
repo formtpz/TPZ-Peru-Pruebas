@@ -4,24 +4,38 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import pytz
-import Procesos,Historial,Capacitacion,Otros_Registros,Bonos_Extras,Salir
+import Procesos, Historial, Capacitacion, Otros_Registros, Bonos_Extras, Salir
+import historial_peru  # <-- NUEVO
 from Autenticacion import obtener_usuario_activo
 from db_core import execute, fetch_operadores_cc, fetch_registros_corregidos_pendientes, actualizar_estado_revision
+
+# Constante para puestos peruanos
+PUESTOS_PERUANOS = ("Supervisor Perú", "Operario Perú", "Coordinador Perú")
+
+def obtener_modulo_historial(puesto):
+    """Retorna la función del módulo de historial adecuada según el puesto."""
+    if puesto in PUESTOS_PERUANOS:
+        return historial_peru.Historial_Peru
+    else:
+        return Historial.Historial
 
 def CC_Vinculacion_Precampo(usuario, puesto):
     
     # ----- Sidebar (placeholders individuales necesarios para detectar clicks) ----- #
-    with st.sidebar:
-        ph_sidebar = st.empty()
-        
-        with ph_sidebar.container():
-            st.title("Menú")
-            procesos_btn = st.button("Procesos", key="procesos_3")
-            historial_btn = st.button("Historial", key="historial_3")
-            capacitacion_btn = st.button("Capacitaciones", key="capacitacion_3")
-            otros_registros_btn = st.button("Otros Registros", key="otros_registros_3")
-            bonos_extras_btn = st.button("Bonos y Extras", key="bonos_extras_3")
-            salir_btn = st.button("Salir", key="salir_3")
+    ph_sidebar = st.sidebar.empty()
+    
+    with ph_sidebar.container():
+        st.title("Menú")
+        procesos_btn = st.button("Procesos", key="procesos_3")
+        historial_btn = st.button("Historial", key="historial_3")
+        capacitacion_btn = st.button("Capacitaciones", key="capacitacion_3")
+        otros_registros_btn = st.button("Otros Registros", key="otros_registros_3")
+        # Botón de Bonos solo si NO es peruano
+        if puesto not in PUESTOS_PERUANOS:
+            bonos_extras_btn = st.button("Bonos y Horas Extras", key="bonos_extras_3")
+        else:
+            bonos_extras_btn = False
+        salir_btn = st.button("Salir", key="salir_3")
     
     # ----- Contenido Principal (un solo placeholder) ----- #
     ph_main = st.empty()
@@ -175,7 +189,9 @@ def CC_Vinculacion_Precampo(usuario, puesto):
         ph_sidebar.empty()
         st.session_state.CC_Vinculacion_Precampo = False
         st.session_state.Historial = True
-        Historial.Historial(usuario, puesto)
+        # Llamar al módulo de historial adecuado según puesto
+        modulo_hist = obtener_modulo_historial(puesto)
+        modulo_hist(usuario, puesto)
     
     elif capacitacion_btn:
         ph_main.empty()
@@ -191,7 +207,7 @@ def CC_Vinculacion_Precampo(usuario, puesto):
         st.session_state.Otros_Registros = True
         Otros_Registros.Otros_Registros(usuario, puesto)
     
-    elif bonos_extras_btn:
+    elif bonos_extras_btn:  # Este bloque solo se ejecuta si el botón existe y se presiona
         ph_main.empty()
         ph_sidebar.empty()
         st.session_state.CC_Vinculacion_Precampo = False
