@@ -1,11 +1,11 @@
-# ----- historial_peru.py (corregido) -----
+# ----- historial_peru.py (sin botón de Bonos y Horas Extras) -----
 import numpy as np
 import streamlit as st
 import pandas as pd
 from datetime import datetime
 import pytz
 
-import Procesos, Capacitacion, Otros_Registros, Bonos_Extras, Salir
+import Procesos, Capacitacion, Otros_Registros, Salir  # <-- Bonos_Extras eliminado
 from db_core import fetch_df
 
 # -------------------------------------------------------------------
@@ -160,7 +160,6 @@ def cargar_datos_operario_peru(usuario, fecha_inicio, fecha_fin, proceso, tipo, 
         params=[nombre_completo, fecha_inicio, fecha_fin]
     )
 
-    # Convertir lotes si hay datos
     data_1_r = convertir_lotes(data_1_r) if not data_1_r.empty else data_1_r
     data_8_r = convertir_lotes(data_8_r) if not data_8_r.empty else data_8_r
     data_6_r = convertir_lotes(data_6_r) if not data_6_r.empty else data_6_r
@@ -215,7 +214,6 @@ def cargar_datos_operario_peru(usuario, fecha_inicio, fecha_fin, proceso, tipo, 
         params=[usuario, fecha_inicio, fecha_fin]
     )
 
-    # Asegurar que todos sean DataFrames (pueden estar vacíos)
     data_1_r = data_1_r if data_1_r is not None else pd.DataFrame()
     data_8_r = data_8_r if data_8_r is not None else pd.DataFrame()
     data_6_r = data_6_r if data_6_r is not None else pd.DataFrame()
@@ -229,11 +227,10 @@ def cargar_datos_operario_peru(usuario, fecha_inicio, fecha_fin, proceso, tipo, 
     return data_1_r, data_8_r, data_6_r, data_5_r, data_1_c, data_1_o, data_6_o, data_9_o, data_7_o
 
 # -------------------------------------------------------------------
-# FUNCIONES DE PROCESAMIENTO (con manejo de DataFrames vacíos)
+# FUNCIONES DE PROCESAMIENTO
 # -------------------------------------------------------------------
 
 def generar_resumen_horas(data_r, data_c, data_o):
-    # Asegurar DataFrames
     data_r = data_r if data_r is not None else pd.DataFrame()
     data_c = data_c if data_c is not None else pd.DataFrame()
     data_o = data_o if data_o is not None else pd.DataFrame()
@@ -241,7 +238,6 @@ def generar_resumen_horas(data_r, data_c, data_o):
     if data_r.empty and data_c.empty and data_o.empty:
         return pd.DataFrame()
 
-    # Filtros
     data_8_r = data_r[~data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy() if not data_r.empty else pd.DataFrame()
     data_6_r = data_r[data_r["tipo"].isin(["Producción Horas Extras", "Inspección Horas Extras", "Reproceso Horas Extras"])].copy() if not data_r.empty else pd.DataFrame()
     data_6_o = data_o[data_o["motivo"].isin(["Horas Extra", "Horas Extra Apoyo Otros Proyectos", "Horas Extras"])].copy() if not data_o.empty else pd.DataFrame()
@@ -286,10 +282,9 @@ def generar_resumen_horas(data_r, data_c, data_o):
     return merged
 
 def generar_resumen_produccion(data_r, modo_supervisor=False):
-    # Asegurar que data_r sea DataFrame
     data_r = data_r if data_r is not None else pd.DataFrame()
     if data_r.empty:
-        return pd.DataFrame(), pd.DataFrame()  # <-- CORRECCIÓN: retorna tupla vacía
+        return pd.DataFrame(), pd.DataFrame()
 
     diario = data_r.groupby(["nombre", "fecha"], as_index=False)[["lotes", "edificas", "horas"]].agg(np.sum)
     diario["rendimiento"] = (diario["edificas"] / diario["horas"]) * 8.5
@@ -391,7 +386,7 @@ def mostrar_resumen_produccion(diario, semanal, data_r, placeholder_diario, plac
         placeholder_semanal.info("No hay datos semanales")
 
 # -------------------------------------------------------------------
-# FUNCIÓN PRINCIPAL Historial_Peru
+# FUNCIÓN PRINCIPAL Historial_Peru (sin botón Bonos)
 # -------------------------------------------------------------------
 
 def Historial_Peru(usuario, puesto):
@@ -400,7 +395,7 @@ def Historial_Peru(usuario, puesto):
 
     default_date = datetime.now(pytz.timezone('America/Guatemala'))
 
-    # --- Sidebar ---
+    # --- Sidebar (sin Bonos) ---
     ph_sidebar = []
     ph_titulo = st.sidebar.empty()
     ph_titulo.title("Menú")
@@ -412,8 +407,7 @@ def Historial_Peru(usuario, puesto):
     ph_sidebar.append(btn_capacitacion)
     btn_otros = st.sidebar.empty()
     ph_sidebar.append(btn_otros)
-    btn_bonos = st.sidebar.empty()
-    ph_sidebar.append(btn_bonos)
+    # btn_bonos eliminado
     btn_salir = st.sidebar.empty()
     ph_sidebar.append(btn_salir)
 
@@ -506,9 +500,7 @@ def Historial_Peru(usuario, puesto):
     if puesto in ["Supervisor Perú", "Técnico SIG Perú", "Coordinador Perú"]:
         datos_horas = generar_resumen_horas(data_r, data_c, data_o)
     else:
-        # Generar resumen para operario
         def generar_horas_operario():
-            # Asegurar DataFrames
             d8 = data_8_r if data_8_r is not None else pd.DataFrame()
             d6 = data_6_r if data_6_r is not None else pd.DataFrame()
             c1 = data_1_c if data_1_c is not None else pd.DataFrame()
@@ -569,7 +561,7 @@ def Historial_Peru(usuario, puesto):
             calidad_vista = calidad_op.rename(columns={"unidades_catastrales": "muestra unidades catastrales", "edificas": "muestra edificas"})
             ph_calidad_data_op.dataframe(calidad_vista)
 
-    # --- Navegación ---
+    # --- Navegación (sin Bonos) ---
     if btn_procesos.button("Procesos", key="procesos_hist_peru"):
         limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
         st.session_state.Historial = False
@@ -594,11 +586,7 @@ def Historial_Peru(usuario, puesto):
         st.session_state.Otros_Registros = True
         Otros_Registros.Otros_Registros(usuario, puesto)
 
-    elif btn_bonos.button("Bonos y Horas Extras", key="bonos_hist_peru"):
-        limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
-        st.session_state.Historial = False
-        st.session_state.Bonos_Extras = True
-        Bonos_Extras.Bonos_Extras(usuario, puesto)
+    # El botón de Bonos ha sido eliminado
 
     elif btn_salir.button("Salir", key="salir_hist_peru"):
         limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
