@@ -1,5 +1,4 @@
 # ----- Librerías ---- #
-
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -7,7 +6,7 @@ import pytz
 import Procesos, Historial, Capacitacion, Otros_Registros, Bonos_Extras, Salir
 import historial_peru  # <-- NUEVO
 from Autenticacion import obtener_usuario_activo
-from db_core import execute, fetch_operadores_cc, fetch_registros_corregidos_pendientes, actualizar_estado_revision
+from db_core import execute
 
 # Constante para puestos peruanos
 PUESTOS_PERUANOS = ("Supervisor Perú", "Operario Perú", "Coordinador Perú")
@@ -18,294 +17,349 @@ def obtener_modulo_historial(puesto):
     else:
         return Historial.Historial
 
-def CC_Vinculacion_Precampo(usuario, puesto):
-    
-    # ----- Sidebar con botones condicionales ----- #
-    ph_sidebar = st.sidebar.empty()
-    
-    with ph_sidebar.container():
-        st.title("Menú")
-        procesos_btn = st.button("Procesos", key="procesos_3")
-        historial_btn = st.button("Historial", key="historial_3")
-        capacitacion_btn = st.button("Capacitaciones", key="capacitacion_3")
-        otros_registros_btn = st.button("Otros Registros", key="otros_registros_3")
-        
-        # Botón de Bonos solo si NO es peruano
-        if puesto not in PUESTOS_PERUANOS:
-            bonos_extras_btn = st.button("Bonos y Horas Extras", key="bonos_extras_3")
-        else:
-            bonos_extras_btn = False  # No se muestra
-        
-        salir_btn = st.button("Salir", key="salir_3")
-    
-    # ----- Contenido Principal ----- #
-    ph_main = st.empty()
-    
-    with ph_main.container():
-        st.title(":blue[Control de Calidad Vinculación Precampo]")
-        
-        # Checkbox para marcar como corregido por QC
-        corregido_qc = st.checkbox(
-            "Marcar como Corregido por QC",
-            value=False,
-            key="corregido_qc_toggle",
-            help="Active esta opción si el reporte ya fue corregido por Control de Calidad y NO debe enviarse al operador"
+def Vinculacion_Precampo(usuario, puesto):
+
+    uri = st.secrets.db_credentials.URI
+
+    # =========================
+    # SIDEBAR (con botón Bonos condicional)
+    # =========================
+    placeholder1_3 = st.sidebar.empty()
+    placeholder1_3.title("Menú")
+
+    placeholder2_3 = st.sidebar.empty()
+    procesos_3 = placeholder2_3.button("Procesos", key="procesos_3")
+
+    placeholder3_3 = st.sidebar.empty()
+    historial_3 = placeholder3_3.button("Historial", key="historial_3")
+
+    placeholder4_3 = st.sidebar.empty()
+    capacitacion_3 = placeholder4_3.button("Capacitaciones", key="capacitacion_3")
+
+    placeholder5_3 = st.sidebar.empty()
+    otros_registros_3 = placeholder5_3.button("Otros Registros", key="otros_registros_3")
+
+    # ----- Botón de Bonos solo si NO es peruano -----
+    if puesto not in PUESTOS_PERUANOS:
+        placeholder6_3 = st.sidebar.empty()
+        bonos_extras_3 = placeholder6_3.button("Bonos y Horas Extras", key="bonos_extras_3")
+    else:
+        placeholder6_3 = None
+        bonos_extras_3 = False
+
+    placeholder7_3 = st.sidebar.empty()
+    salir_3 = placeholder7_3.button("Salir", key="salir_3")
+
+    # =========================
+    # FORMULARIO
+    # =========================
+    placeholder8_3 = st.empty()
+    placeholder8_3.title("Vinculación Precampo")
+
+    placeholder8a_3 = st.empty()
+    tipo_vinculacion_3 = placeholder8a_3.radio(
+        "Tipo de Vinculación",
+        options=("Vinculación Precampo", "Puntos Jurídicos"),
+        index=0,
+        key="tipo_vinculacion_3"
+    )
+
+    default_date_3 = datetime.now(pytz.timezone('America/Guatemala'))
+
+    placeholder9_3 = st.empty()
+    fecha_3 = placeholder9_3.date_input("Fecha", value=default_date_3, key="fecha_3")
+
+    placeholder10_3 = st.empty()
+    distrito_3 = placeholder10_3.selectbox(
+        "Distrito",
+        options=("Chorrillos", "San Juan De Miraflores", "Villa el Salvador"),
+        key="distrito_3"
+    )
+
+    placeholder12_3 = st.empty()
+    sector_3 = placeholder12_3.selectbox(
+        "Sector",
+        options=[f"{i:02d}" for i in range(1, 121)],
+        key="sector_3"
+    )
+
+    placeholder13_3 = st.empty()
+    manzana_3 = placeholder13_3.selectbox(
+        "Manzana",
+        options=[f"{i:03d}" for i in range(1, 121)],
+        key="manzana_3"
+    )
+
+    placeholder14_3 = st.empty()
+    if tipo_vinculacion_3 == "Vinculación Precampo":
+        unidades_catastrales_3 = placeholder14_3.number_input(
+            "Cantidad de Unidades Catastrales",
+            min_value=0,
+            step=1,
+            key="unidades_catastrales_3"
         )
-        
-        if corregido_qc:
-            st.warning(
-                "⚠️ ATENCIÓN: Este reporte no se enviará al operador para ser corregido. "
-                "Se marcará como 'Corregido por QC' directamente."
-            )
-        
-        estado_reporte = "Corregido por QC" if corregido_qc else "N/A"
-        
-        default_date = datetime.now(pytz.timezone('America/Guatemala'))
-        
-        fecha = st.date_input("Fecha", value=default_date, key="fecha_3")
-        
-        distrito = st.selectbox(
-            "Distrito", 
-            options=("Chorrillos", "San Juan De Miraflores", "Villa el Salvador"),
-            key="distrito_3"
-        )
-        
-        manzana = st.selectbox(
-            "Manzana", 
-            options=("001","002","003","004","005","006","007","008","009","010",
-                    "011","012","013","014","015","016","017","018","019","020",
-                    "021","022","023","024","025","026","027","028","029","030",
-                    "031","032","033","034","035","036","037","038","039","040",
-                    "041","042","043","044","045","046","047","048","049","050",
-                    "051","052","053","054","055","056","057","058","058","059",
-                    "060","061","062","063","064","065","066","067","068","069",
-                    "070","071","072","073","074","075","076","077","078","079",
-                    "080","081","082","083","084","085","086","087","088","089",
-                    "090","091","092","093","094","095","096","097","098","099",
-                    "100","101","102","103","104","105","106","107","108","109",
-                    "110","111","112","113","114","115","116","117","118","119","120"),
-            key="manzana_3"
-        )
-        
-        sector = st.selectbox(
-            "Sector", 
-            options=("01","02","03","04","05","06","07","08","09","10",
-                    "11","12","13","14","15","16","17","18","19","20",
-                    "21","22","23","24","25","26","27","28","29","30",
-                    "31","32","33","34","35","36","37","38","39","40",
-                    "41","42","43","44","45","46","47","48","49","50",
-                    "51","52","53","54","55","56","57","58","59","60",
-                    "61","62","63","64","65","66","67","68","69","70",
-                    "71","72","73","74","75","76","77","78","79","80",
-                    "81","82","83","84","85","86","87","88","89","90",
-                    "91","92","93","94","95","96","97","98","99","100",
-                    "101","102","103","104","105","106","107","108","109",
-                    "110","111","112","113","114","115","116","117","118","119","120"),
-            key="sector_3"
-        )
-        
-        lotes = ["Todos"] + [f"{i:03d}" for i in range(1, 249)]
-        numero_lote = st.multiselect(
-            "Número de Lote",
-            options=lotes,
-            key="numero_lote_3"
-        )
-        if "Todos" in numero_lote:
-            numero_lote = ["Todos"]
-        numero_lote_str = ",".join(numero_lote)
-        
-        operadores_disponibles = fetch_operadores_cc(
-            filtro_proceso='Precampo',
-            filtro_subproceso='Vinculación',
-            filtro_proceso_anterior='Precampo',
-            filtro_subproceso_anterior='Vinculación'
-        )
-        if operadores_disponibles:
-            opciones_operadores = [op['nombre'] for op in operadores_disponibles]
-        else:
-            opciones_operadores = ["No hay operadores disponibles"]
-        
-        operador = st.selectbox(
-            "Operador objeto de CC",
-            options=opciones_operadores,
-            key="operador_3"
-        )
-        
-        tipo = st.selectbox(
-            "Tipo", 
-            options=("Inspección", "Primera Reinspección", "Inspección Horas Extras", "Control de Calidad Supervisión"),
-            key="tipo_3"
-        )
-        
-        tipo_de_errores = st.multiselect(
-            "Tipo Errores", 
-            options=("Numeración errónea o incompleta", "Errores geométricos y/o de forma", 
-                    "Polígonos y/o puntos duplicados", "Omisión/Comisión de polígonos", 
-                    "Polígonos no se ajustan a ortofoto", "Omisión/Comisión de puertas"),
-            key="tipo_de_errores_3"
-        )
-        
-        aprobados = st.number_input("Cantidad de Unidades Catastrales Aprobados", min_value=0, step=1, key="aprobados_3")
-        rechazados = st.number_input("Cantidad de Unidades Catastrales Rechazados", min_value=0, step=1, key="rechazados_3")
-        horas = st.number_input("Cantidad de Horas Trabajadas en el Proceso", min_value=0.0, key="horas_3")
-        
-        reporte_btn = st.button("Generar Reporte", key="reporte_3")
-    
+    else:
+        placeholder14_3.caption("No aplica para Puntos Jurídicos")
+        unidades_catastrales_3 = 0
+
+    placeholder15_3 = st.empty()
+    tipo_3 = placeholder15_3.selectbox(
+        "Tipo",
+        options=(
+            "Ordinario",
+            "Reproceso Ordinario",
+            "Corrección de Calidad",
+            "Corrección de Calidad Extraordinaria",
+            "Producción Horas Extras",
+            "Reproceso Horas Extras"
+        ),
+        key="tipo_3"
+    )
+
+    placeholder16_3 = st.empty()
+    estado_3 = placeholder16_3.selectbox(
+        "Estado",
+        options=("Finalizado", "En Conflicto"),
+        key="estado_3"
+    )
+
+    lotes = ["Todos"] + [f"{i:03d}" for i in range(1,249)]
+    placeholder18_3 = st.empty()
+    numero_lote_3 = placeholder18_3.multiselect(
+        "Número de Lote",
+        options=lotes,
+        key="numero_lote_3"
+    )
+    if "Todos" in numero_lote_3:
+        numero_lote_3 = ["Todos"]
+    numero_lote_3 = ",".join(numero_lote_3)
+
+    placeholder19_3 = st.empty()
+    horas_3 = placeholder19_3.number_input(
+        "Cantidad de Horas Trabajadas en el Proceso",
+        min_value=0.0,
+        step=0.25,
+        key="horas_3"
+    )
+
+    placeholder20_3 = st.empty()
+    observaciones_3 = placeholder20_3.text_input(
+        "Observaciones",
+        value="N/A",
+        max_chars=60,
+        key="observaciones_3"
+    )
+
+    placeholder21_3 = st.empty()
+    reporte_3 = placeholder21_3.button("Generar Reporte", key="reporte_3")
+
     # ----- Navegación ----- #
-    if procesos_btn:
-        ph_main.empty()
-        ph_sidebar.empty()
-        st.session_state.CC_Vinculacion_Precampo = False
-        st.session_state.Procesos = True
-        
+    if procesos_3:
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        if placeholder6_3 is not None:
+            placeholder6_3.empty()
+        placeholder7_3.empty()
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
+        st.session_state.Procesos = False
+        st.session_state.Vinculacion_Precampo = False
+
         usuario_activo = obtener_usuario_activo(usuario)
         perfil = str(usuario_activo["perfil"]) if usuario_activo else ""
-        
+
         if perfil == "1":
             Procesos.Procesos1(usuario, puesto)
         elif perfil == "2":
             Procesos.Procesos2(usuario, puesto)
         elif perfil == "3":
             Procesos.Procesos3(usuario, puesto)
-    
-    elif historial_btn:
-        ph_main.empty()
-        ph_sidebar.empty()
-        st.session_state.CC_Vinculacion_Precampo = False
+
+    elif historial_3:
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        if placeholder6_3 is not None:
+            placeholder6_3.empty()
+        placeholder7_3.empty()
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
+        st.session_state.Vinculacion_Precampo = False
         st.session_state.Historial = True
         # Llamar al módulo de historial adecuado
         modulo_hist = obtener_modulo_historial(puesto)
         modulo_hist(usuario, puesto)
-    
-    elif capacitacion_btn:
-        ph_main.empty()
-        ph_sidebar.empty()
-        st.session_state.CC_Vinculacion_Precampo = False
+
+    elif capacitacion_3:
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        if placeholder6_3 is not None:
+            placeholder6_3.empty()
+        placeholder7_3.empty()
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
+        st.session_state.Vinculacion_Precampo = False
         st.session_state.Capacitacion = True
         Capacitacion.Capacitacion(usuario, puesto)
-    
-    elif otros_registros_btn:
-        ph_main.empty()
-        ph_sidebar.empty()
-        st.session_state.CC_Vinculacion_Precampo = False
+
+    elif otros_registros_3:
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        if placeholder6_3 is not None:
+            placeholder6_3.empty()
+        placeholder7_3.empty()
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
+        st.session_state.Vinculacion_Precampo = False
         st.session_state.Otros_Registros = True
         Otros_Registros.Otros_Registros(usuario, puesto)
-    
-    elif bonos_extras_btn:  # Solo existe si no es peruano
-        ph_main.empty()
-        ph_sidebar.empty()
-        st.session_state.CC_Vinculacion_Precampo = False
+
+    elif bonos_extras_3:  # Solo existe si no es peruano
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        if placeholder6_3 is not None:
+            placeholder6_3.empty()
+        placeholder7_3.empty()
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
+        st.session_state.Vinculacion_Precampo = False
         st.session_state.Bonos_Extras = True
         Bonos_Extras.Bonos_Extras(usuario, puesto)
-    
-    elif salir_btn:
-        ph_main.empty()
-        ph_sidebar.empty()
-        st.session_state.CC_Vinculacion_Precampo = False
+
+    elif salir_3:
+        placeholder1_3.empty()
+        placeholder2_3.empty()
+        placeholder3_3.empty()
+        placeholder4_3.empty()
+        placeholder5_3.empty()
+        if placeholder6_3 is not None:
+            placeholder6_3.empty()
+        placeholder7_3.empty()
+        placeholder8_3.empty()
+        placeholder8a_3.empty()
+        placeholder9_3.empty()
+        placeholder10_3.empty()
+        placeholder12_3.empty()
+        placeholder13_3.empty()
+        placeholder14_3.empty()
+        placeholder15_3.empty()
+        placeholder16_3.empty()
+        placeholder18_3.empty()
+        placeholder19_3.empty()
+        placeholder20_3.empty()
+        placeholder21_3.empty()
         st.session_state.Ingreso = False
+        st.session_state.Vinculacion_Precampo = False
         st.session_state.Salir = True
         Salir.Salir()
-    
-    elif reporte_btn:
-        # Generar reporte (código original sin cambios, solo se incluye la parte de guardado)
-        marca = datetime.now(pytz.timezone('America/Bogota')).strftime("%Y-%m-%d %H:%M:%S")
-        
+
+    # =========================
+    # GENERAR REPORTE
+    # =========================
+    if reporte_3:
+        if tipo_vinculacion_3 == "Puntos Jurídicos":
+            proceso_3 = "Vinculación Precampo Puntos Juridicos"
+        else:
+            proceso_3 = "Vinculación Precampo"
+
+        marca_3 = datetime.now(pytz.timezone('America/Guatemala')).strftime("%Y-%m-%d %H:%M:%S")
         usuario_activo = obtener_usuario_activo(usuario)
         if not usuario_activo:
             st.error("No se encontró un usuario activo para generar el reporte.")
             return
-        
-        nombre = usuario_activo["nombre"]
-        supervisor = usuario_activo["supervisor"]
-        
-        unidades_catastrales = aprobados + rechazados
-        semana = fecha.isocalendar()[1]
-        año = fecha.isocalendar()[0]
-        horas_bi = float(horas)
-        tipos_de_errores_str = ','.join(tipo_de_errores)
-        conteo = len(tipo_de_errores)
-        
+
+        nombre_3 = usuario_activo["nombre"]
+        supervisor_3 = usuario_activo["supervisor"]
+        semana_3 = fecha_3.isocalendar()[1]
+        año_3 = fecha_3.isocalendar()[0]
+        horas_bi = float(horas_3)
+
         execute(
             """
             INSERT INTO registro (
-                marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año, 
-                distrito, tipo, lotes, aprobados, rechazados, horas,
-                manzana, sector, numero_lote, estado, area, unidades_catastrales, 
-                edificas, partida, con_fmi, sin_fmi, observaciones, zona,
-                tipo_calidad, horas_bi, area_bi, operador_cc, total_de_errores, 
-                errores_por_excepciones, tipo_de_errores, conteo_de_errores
+                marca, usuario, nombre, puesto, supervisor, proceso, fecha, semana, año, distrito, tipo, lotes, aprobados, rechazados, horas,
+                manzana, sector, numero_lote, estado, area, unidades_catastrales, edificas, partida, con_fmi, sin_fmi, observaciones, zona,
+                tipo_calidad, horas_bi, area_bi, operador_cc, total_de_errores, errores_por_excepciones, tipo_de_errores, conteo_de_errores
             )
             VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, 
-                %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, 
-                %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, 
-                %s, %s, %s
+                %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+                %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+                %s,%s,%s,%s,%s,%s,%s,%s
             )
             """,
             params=[
-                marca, usuario, nombre, puesto, supervisor, "Control de Calidad Vinculación Precampo", 
-                fecha, semana, año, distrito, tipo, 0, aprobados, rechazados, horas,
-                manzana, sector, numero_lote_str, estado_reporte, 0.0, unidades_catastrales, 
-                0, "N/A", 0, 0, "N/A", "N/A",
-                "N/A", horas_bi, 0, operador, 0, 
-                0, tipos_de_errores_str, conteo
+                marca_3, usuario, nombre_3, puesto, supervisor_3, proceso_3, fecha_3, semana_3, año_3, distrito_3, tipo_3, 0, 0, 0, horas_3,
+                manzana_3, sector_3, numero_lote_3, estado_3, 0.0, unidades_catastrales_3, 0, "N/A", 0, 0, observaciones_3, "N/A",
+                "N/A", horas_bi, 0.0, "N/A", 0, 0, "N/A", 0
             ],
         )
-        
-        st.success('✅ Reporte enviado correctamente')
-        
-        # ============ TABLA DE REGISTROS PENDIENTES (sin cambios) ============ #
-        st.markdown("---")
-        st.subheader("📋 Registros pendientes de revisión")
-        
-        df_pendientes = fetch_registros_corregidos_pendientes(usuario)
-        
-        if not df_pendientes.empty:
-            df_pendientes['marcar_revisado'] = False
-            st.info(f"Se encontraron {len(df_pendientes)} registro(s) pendiente(s) de revisión")
-            
-            edited_df = st.data_editor(
-                df_pendientes,
-                column_config={
-                    "id": st.column_config.NumberColumn("ID", disabled=True),
-                    "marca": st.column_config.DatetimeColumn("Fecha Registro", disabled=True),
-                    "fecha": st.column_config.DateColumn("Fecha", disabled=True),
-                    "distrito": st.column_config.TextColumn("Distrito", disabled=True),
-                    "manzana": st.column_config.TextColumn("Manzana", disabled=True),
-                    "sector": st.column_config.TextColumn("Sector", disabled=True),
-                    "numero_lote": st.column_config.TextColumn("Lotes", disabled=True),
-                    "operador_cc": st.column_config.TextColumn("Operador CC", disabled=True),
-                    "tipo_de_errores": st.column_config.TextColumn("Tipo de Errores", disabled=True),
-                    "estado": st.column_config.TextColumn("Estado Actual", disabled=True),
-                    "marcar_revisado": st.column_config.CheckboxColumn(
-                        "Marcar como Revisado",
-                        help="Seleccione para cambiar el estado a 'revisado'"
-                    )
-                },
-                hide_index=True,
-                key="tabla_revision_cc"
-            )
-            
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                if st.button("💾 Guardar cambios de estado", key="guardar_revision_cc", use_container_width=True):
-                    registros_a_actualizar = edited_df[edited_df['marcar_revisado'] == True]
-                    if len(registros_a_actualizar) > 0:
-                        actualizaciones_exitosas = 0
-                        actualizaciones_fallidas = 0
-                        for _, row in registros_a_actualizar.iterrows():
-                            if actualizar_estado_revision(row['id']):
-                                actualizaciones_exitosas += 1
-                            else:
-                                actualizaciones_fallidas += 1
-                        if actualizaciones_fallidas == 0:
-                            st.success(f'✅ {actualizaciones_exitosas} registro(s) actualizado(s) a "revisado" exitosamente')
-                        else:
-                            st.warning(f'⚠️ {actualizaciones_exitosas} exitoso(s), {actualizaciones_fallidas} fallido(s)')
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ No se seleccionó ningún registro para actualizar.")
-        else:
-            st.info("ℹ️ No hay registros pendientes de revisión con estado 'corregido' en este momento.")
+        st.success("Reporte generado correctamente")
