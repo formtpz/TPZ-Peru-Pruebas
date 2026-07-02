@@ -4,7 +4,7 @@ import time
 
 # Importaciones de módulos (se mantienen igual)
 import Historial
-import historial_peru  # <-- NUEVO módulo para perfiles peruanos
+import historial_peru 
 import Capacitacion, Otros_Registros, Correcciones, Bonos_Extras, Salir
 import Precampo_Juridico, Descarga_Partidas_Juridico, Asignacion_Partidas, CC_Precampo_Juridico
 import Consulta_Campo, Restitucion_Tierras, Revision_Segregados, Estado_UIT_Hito
