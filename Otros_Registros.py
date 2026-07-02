@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 
 import Procesos, Historial, Capacitacion, Bonos_Extras, Salir
-import historial_peru  # <-- NUEVO
+import historial_peru  # <-- Import para historial peruano
 from db_core import fetch_df, fetch_one, execute
 
 # Constante para puestos peruanos
@@ -24,7 +24,6 @@ def limpiar_placeholders(lista_placeholders):
         if ph is not None:
             ph.empty()
 
-
 def navegar_a_procesos(usuario, puesto):
     """Determina el perfil y redirige a la función correspondiente de Procesos."""
     usuario_activo = fetch_one(
@@ -40,12 +39,16 @@ def navegar_a_procesos(usuario, puesto):
     else:
         Procesos.Procesos3(usuario, puesto)
 
-
 def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usuario, puesto):
     """
     Carga el historial de 'otros_registros' según el filtro seleccionado.
-    Versión adaptada para puestos peruanos.
+    Retorna un DataFrame con los resultados.
     """
+    # Determinar si es peruano para ajustar filtros de puesto
+    es_peruano = puesto in PUESTOS_PERUANOS
+    puesto_operario = "Operario Perú" if es_peruano else "Operario Catastral"
+    puesto_juridico = "Profesional Jurídico Perú" if es_peruano else "Profesional Jurídico"
+
     base_query = """
         SELECT cast(id as integer), marca, usuario, nombre, puesto, supervisor,
                fecha, motivo, horas, observaciones, reporte
@@ -54,26 +57,14 @@ def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usua
     """
     params = [fecha_inicio, fecha_fin]
 
-    # Determinar si el usuario es peruano para ajustar los nombres de puestos
-    es_peruano = puesto in PUESTOS_PERUANOS
-    if es_peruano:
-        # Si es peruano, usar puestos con sufijo " Perú"
-        puesto_operario = "Operario Perú"
-        puesto_profesional = "Profesional Jurídico Perú"
-        # Nota: el filtro "Personal Asignado" sigue usando supervisor, pero solo mostrará peruanos
-    else:
-        puesto_operario = "Operario Catastral"
-        puesto_profesional = "Profesional Jurídico"
-
     if filtro == "Todos":
         query = base_query
-    elif filtro == "Operarios" or filtro == "Operarios Perú":
-        # Si el filtro es "Operarios" o "Operarios Perú", usamos la variable dinámica
-        query = base_query + f" AND puesto = %s"
+    elif filtro == "Operarios Perú" if es_peruano else "Operarios":
+        query = base_query + " AND puesto = %s"
         params.append(puesto_operario)
-    elif filtro == "Profesional Jurídico" or filtro == "Profesional Jurídico Perú":
-        query = base_query + f" AND puesto = %s"
-        params.append(puesto_profesional)
+    elif filtro == "Profesional Jurídico Perú" if es_peruano else "Profesional Jurídico":
+        query = base_query + " AND puesto = %s"
+        params.append(puesto_juridico)
     elif filtro == "Propio":
         query = base_query + " AND usuario = %s"
         params.append(usuario)
@@ -83,8 +74,8 @@ def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usua
     elif filtro == "Reportados":
         query = base_query + " AND reporte = %s"
         params.append(nombre_usuario)
-    elif filtro == "Personal Reciente":
-        # Solo aplica para Supervisores (independientemente de si es peruano o no)
+    elif filtro == "Personal Reciente" and puesto == "Supervisor":
+        # Obtener proceso y subproceso del supervisor logueado
         supervisor_data = fetch_one(
             """
             SELECT proceso, subproceso 
@@ -93,7 +84,6 @@ def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usua
             """,
             params=[nombre_usuario]
         )
-        
         if supervisor_data and supervisor_data["proceso"] and supervisor_data["subproceso"]:
             usuarios_recientes = fetch_df(
                 """
@@ -107,7 +97,6 @@ def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usua
                 """,
                 params=[supervisor_data["proceso"], supervisor_data["subproceso"], usuario]
             )
-            
             if not usuarios_recientes.empty:
                 nombres_recientes = usuarios_recientes["nombre"].tolist()
                 placeholders = ', '.join(['%s'] * len(nombres_recientes))
@@ -122,16 +111,18 @@ def cargar_historial_otros(filtro, fecha_inicio, fecha_fin, usuario, nombre_usua
 
     return fetch_df(query, params=params)
 
-
 def Otros_Registros(usuario, puesto):
     # Obtener nombre completo del usuario
     nombre_df = fetch_df("SELECT nombre FROM usuarios WHERE usuario = %s", params=[usuario])
     nombre_13 = nombre_df.loc[0, 'nombre'] if not nombre_df.empty else ""
 
+    # Determinar si es peruano para ajustar opciones
+    es_peruano = puesto in PUESTOS_PERUANOS
+
     # Fecha por defecto
     default_date = datetime.now(pytz.timezone('America/Guatemala'))
 
-    # --- Sidebar ---
+    # --- Sidebar (con botón Bonos condicional) ---
     ph_sidebar = []
     ph_titulo = st.sidebar.empty()
     ph_titulo.title("Menú")
@@ -144,12 +135,12 @@ def Otros_Registros(usuario, puesto):
     btn_capacitacion = st.sidebar.empty()
     ph_sidebar.append(btn_capacitacion)
     
-    # Botón de Bonos solo si NO es peruano
-    if puesto not in PUESTOS_PERUANOS:
+    # Botón Bonos solo si NO es peruano
+    if not es_peruano:
         btn_bonos = st.sidebar.empty()
         ph_sidebar.append(btn_bonos)
     else:
-        btn_bonos = None  # No se muestra
+        btn_bonos = None
 
     btn_salir = st.sidebar.empty()
     ph_sidebar.append(btn_salir)
@@ -160,10 +151,7 @@ def Otros_Registros(usuario, puesto):
     ph_main.append(titulo)
     titulo.title("Otros Registros")
 
-    # Placeholders que se usarán condicionalmente
     placeholders_contenido = []
-
-    # Variables que se usarán en la navegación
     personal_13 = []
     fecha_13 = default_date
     motivo_13 = ""
@@ -172,42 +160,30 @@ def Otros_Registros(usuario, puesto):
     data_historial = pd.DataFrame()
 
     # ---------------------------
-    # PERFIL COORDINADOR / SUPERVISOR (incluyendo peruanos)
+    # PERFIL COORDINADOR / SUPERVISOR
     # ---------------------------
-    # Vamos a considerar que tanto "Coordinador" como "Coordinador Perú" y "Supervisor" como "Supervisor Perú"
-    # deben tener el mismo comportamiento de registro y filtros.
-    es_supervisor_peru = puesto in ["Supervisor Perú", "Supervisor"]
-    es_coordinador_peru = puesto in ["Coordinador Perú", "Coordinador"]
-    es_peruano = puesto in PUESTOS_PERUANOS
-
-    if puesto in ["Coordinador", "Supervisor"] or es_peruano:
+    if puesto in ["Coordinador", "Supervisor"]:
         # Registro
         ph_sub_registro = st.empty()
         placeholders_contenido.append(ph_sub_registro)
         ph_sub_registro.subheader("Registro")
 
-        # Obtener lista de personal (adaptado para peruanos)
-        if es_coordinador_peru or puesto == "Coordinador":
-            # Para Coordinador (normal o Perú): mostrar todos los activos, pero si es Perú, filtrar por puestos peruanos
+        # Obtener lista de personal (incluyendo puesto para filtrar)
+        if puesto == "Coordinador":
+            # Si es Coordinador Perú, obtener solo personal con puestos peruanos
+            data_personal = fetch_df("SELECT nombre, puesto FROM usuarios WHERE estado = 'Activo'")
             if es_peruano:
-                data_personal = fetch_df(
-                    "SELECT nombre FROM usuarios WHERE estado = 'Activo' AND puesto IN %s",
-                    params=[PUESTOS_PERUANOS]
-                )
-            else:
-                data_personal = fetch_df("SELECT nombre FROM usuarios WHERE estado = 'Activo'")
-        else:  # Supervisor (normal o Perú)
-            # Base: personal asignado al supervisor (supervisor = nombre_usuario) o el mismo supervisor
+                data_personal = data_personal[data_personal["puesto"].isin(PUESTOS_PERUANOS)]
+        else:  # Supervisor
+            # Primero obtener personal asignado directamente (incluyendo puesto)
             data_personal = fetch_df(
-                "SELECT nombre FROM usuarios WHERE estado = 'Activo' AND (supervisor = %s OR usuario = %s)",
+                "SELECT nombre, puesto FROM usuarios WHERE estado = 'Activo' AND (supervisor = %s OR usuario = %s)",
                 params=[nombre_13, usuario]
             )
-            # Si es Supervisor Perú, además filtrar por puestos peruanos
             if es_peruano:
-                # Filtramos después de obtener para mantener solo los peruanos
                 data_personal = data_personal[data_personal["puesto"].isin(PUESTOS_PERUANOS)]
-            
-            # Agregar "Personal Reciente" si existe (para Supervisores, sin importar si es peruano)
+
+            # Agregar "Personal Reciente" (solo para Supervisores, incluyendo puesto)
             supervisor_data = fetch_one(
                 """
                 SELECT proceso, subproceso 
@@ -219,7 +195,7 @@ def Otros_Registros(usuario, puesto):
             if supervisor_data and supervisor_data["proceso"] and supervisor_data["subproceso"]:
                 personal_reciente = fetch_df(
                     """
-                    SELECT nombre 
+                    SELECT nombre, puesto 
                     FROM usuarios 
                     WHERE proceso_anterior = %s 
                       AND subproceso_anterior = %s 
@@ -229,12 +205,11 @@ def Otros_Registros(usuario, puesto):
                     """,
                     params=[supervisor_data["proceso"], supervisor_data["subproceso"], usuario]
                 )
+                if es_peruano and not personal_reciente.empty:
+                    personal_reciente = personal_reciente[personal_reciente["puesto"].isin(PUESTOS_PERUANOS)]
                 if not personal_reciente.empty:
-                    # Si es Perú, también filtrar por puestos peruanos
-                    if es_peruano:
-                        personal_reciente = personal_reciente[personal_reciente["puesto"].isin(PUESTOS_PERUANOS)]
-                    data_personal = pd.concat([data_personal, personal_reciente]).drop_duplicates()
-        
+                    data_personal = pd.concat([data_personal, personal_reciente]).drop_duplicates(subset=["nombre"])
+
         nombres_personal = data_personal["nombre"].tolist() if not data_personal.empty else []
 
         ph_personal = st.empty()
@@ -325,19 +300,17 @@ def Otros_Registros(usuario, puesto):
         ph_filtro = st.empty()
         placeholders_contenido.append(ph_filtro)
         
-        # Construir opciones de filtro según el puesto
-        # Si es peruano, usamos etiquetas con "Perú"
-        if es_peruano:
-            sufijo = " Perú"
-            op_base = ["Todos", "Operarios" + sufijo, "Profesional Jurídico" + sufijo]
+        # Opciones de filtro según perfil
+        if puesto == "Supervisor":
+            opciones_filtro = ("Todos", 
+                               "Operarios Perú" if es_peruano else "Operarios",
+                               "Profesional Jurídico Perú" if es_peruano else "Profesional Jurídico",
+                               "Propio", "Personal Asignado", "Reportados", "Personal Reciente")
         else:
-            op_base = ["Todos", "Operarios", "Profesional Jurídico"]
-        
-        opciones_filtro = op_base + ["Propio", "Personal Asignado", "Reportados"]
-        
-        # Solo Supervisores (normales o peruanos) tienen "Personal Reciente"
-        if puesto in ["Supervisor", "Supervisor Perú"]:
-            opciones_filtro.append("Personal Reciente")
+            opciones_filtro = ("Todos", 
+                               "Operarios Perú" if es_peruano else "Operarios",
+                               "Profesional Jurídico Perú" if es_peruano else "Profesional Jurídico",
+                               "Propio", "Personal Asignado", "Reportados")
         
         filtro_val = ph_filtro.selectbox(
             "Filtro",
@@ -345,8 +318,7 @@ def Otros_Registros(usuario, puesto):
             key="filtro_13"
         )
         
-        # Mostrar información sobre "Personal Reciente"
-        if filtro_val == "Personal Reciente":
+        if filtro_val == "Personal Reciente" and puesto == "Supervisor":
             supervisor_info = fetch_one(
                 """
                 SELECT proceso, subproceso 
@@ -364,13 +336,13 @@ def Otros_Registros(usuario, puesto):
                     f"Subproceso '{supervisor_info['subproceso']}'"
                 )
 
-        # Cargar historial según filtros, pasando el puesto para determinar los puestos peruanos
+        # Cargar historial
         data_historial = cargar_historial_otros(
             filtro_val, fecha_inicio_val, fecha_fin_val, usuario, nombre_13, puesto
         )
 
     # ---------------------------
-    # PERFIL OPERARIO / PROFESIONAL JURÍDICO / QC (incluyendo peruanos)
+    # PERFIL OPERARIO / PROFESIONAL JURÍDICO / QC
     # ---------------------------
     else:
         ph_sub_historial = st.empty()
@@ -405,7 +377,7 @@ def Otros_Registros(usuario, puesto):
         ph_dataframe.dataframe(data_historial, use_container_width=True)
 
     # ---------------------------
-    # Navegación
+    # Navegación (con Historial y Bonos condicionales)
     # ---------------------------
     if btn_procesos.button("Procesos", key="procesos_13"):
         limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
@@ -416,7 +388,7 @@ def Otros_Registros(usuario, puesto):
         limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
         st.session_state.Otros_Registros = False
         st.session_state.Historial = True
-        # Llamar al módulo de historial adecuado
+        # Usar el módulo de historial adecuado
         modulo_hist = obtener_modulo_historial(puesto)
         modulo_hist(usuario, puesto)
 
@@ -426,7 +398,6 @@ def Otros_Registros(usuario, puesto):
         st.session_state.Capacitacion = True
         Capacitacion.Capacitacion(usuario, puesto)
 
-    # Botón de Bonos solo existe si no es peruano
     elif btn_bonos is not None and btn_bonos.button("Bonos y Horas Extra", key="bonos_13"):
         limpiar_placeholders(ph_sidebar + ph_main + placeholders_contenido)
         st.session_state.Otros_Registros = False
