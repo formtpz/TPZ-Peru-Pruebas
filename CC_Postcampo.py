@@ -350,28 +350,28 @@ def CC_Postcampo(usuario, puesto):
         with p.container():
             st.subheader("📊 Tabla de carga masiva")
             if st.button("🗑️ Limpiar tabla"):
-            # Reiniciar el DataFrame
-            st.session_state.tabla_masiva_cc = pd.DataFrame(
-                [{
-                    "distrito": None,
-                    "manzana": "",
-                    "sector": "",
-                    "numero_lote": "Todos",
-                    "operador": None,
-                    "tipo": None,
-                    "tipo_de_errores": "",
-                    "aprobados": 0,
-                    "rechazados": 0,
-                    "horas": 0.0
-                }],
-                columns=columnas_cc
-            )
-        
-            # Eliminar el estado interno del editor
-            if "editor_masivo_cc" in st.session_state:
-                del st.session_state["editor_masivo_cc"]
-        
-            st.rerun()
+                # Reiniciar el DataFrame
+                st.session_state.tabla_masiva_cc = pd.DataFrame(
+                    [{
+                        "distrito": None,
+                        "manzana": "",
+                        "sector": "",
+                        "numero_lote": "Todos",
+                        "operador": None,
+                        "tipo": None,
+                        "tipo_de_errores": "",
+                        "aprobados": 0,
+                        "rechazados": 0,
+                        "horas": 0.0
+                    }],
+                    columns=columnas_cc
+                )
+            
+                # Eliminar el estado interno del editor
+                if "editor_masivo_cc" in st.session_state:
+                    del st.session_state["editor_masivo_cc"]
+            
+                st.rerun()
             df_editado_3 = st.data_editor(
                 st.session_state.tabla_masiva_cc,
                 num_rows="dynamic",
