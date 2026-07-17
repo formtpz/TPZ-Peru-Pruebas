@@ -174,6 +174,10 @@ def insertar_registros_masivos_cc(df, fecha_seleccionada, usuario, usuario_activ
 
 
 def CC_Postcampo(usuario, puesto):
+    # ----- Inicializar contador de versión para el editor masivo (si no existe) -----
+    if "version_tabla_cc" not in st.session_state:
+        st.session_state.version_tabla_cc = 0
+
     # ----- Conexión, Botones y Memoria ---- #
     uri = st.secrets.db_credentials.URI
 
@@ -349,35 +353,40 @@ def CC_Postcampo(usuario, puesto):
         p = st.empty()
         with p.container():
             st.subheader("📊 Tabla de carga masiva")
-            if st.button("🗑️ Limpiar tabla"):
-                # Reiniciar el DataFrame
-                st.session_state.tabla_masiva_cc = pd.DataFrame(
-                    [{
-                        "distrito": None,
-                        "manzana": "",
-                        "sector": "",
-                        "numero_lote": "Todos",
-                        "operador": None,
-                        "tipo": None,
-                        "tipo_de_errores": "",
-                        "aprobados": 0,
-                        "rechazados": 0,
-                        "horas": 0.0
-                    }],
-                    columns=columnas_cc
-                )
             
-                # Eliminar el estado interno del editor
-                if "editor_masivo_cc" in st.session_state:
-                    del st.session_state["editor_masivo_cc"]
-            
-                st.rerun()
+            # Columna para el botón y un mensaje de ayuda
+            col1, col2 = st.columns([1, 6])
+            with col1:
+                if st.button("🗑️ Limpiar tabla"):
+                    # Reiniciar el DataFrame
+                    st.session_state.tabla_masiva_cc = pd.DataFrame(
+                        [{
+                            "distrito": None,
+                            "manzana": "",
+                            "sector": "",
+                            "numero_lote": "Todos",
+                            "operador": None,
+                            "tipo": None,
+                            "tipo_de_errores": "",
+                            "aprobados": 0,
+                            "rechazados": 0,
+                            "horas": 0.0
+                        }],
+                        columns=columnas_cc
+                    )
+                    # Incrementar la versión para cambiar la key del data_editor
+                    st.session_state.version_tabla_cc += 1
+                    st.rerun()
+            with col2:
+                st.caption("Pega tus datos desde Excel con Ctrl+V directamente sobre la tabla")
+
+            # Mostrar el data_editor con clave dinámica
             df_editado_3 = st.data_editor(
                 st.session_state.tabla_masiva_cc,
                 num_rows="dynamic",
                 use_container_width=True,
                 hide_index=True,
-                key="editor_masivo_cc",
+                key=f"editor_masivo_cc_{st.session_state.version_tabla_cc}",  # <--- CLAVE DINÁMICA
                 column_config={
                     "distrito": st.column_config.SelectboxColumn("Distrito", options=list(distritos_opciones), required=True),
                     "manzana": st.column_config.TextColumn("Manzana", help="Ej: 5 → se formatea a 005"),
@@ -546,6 +555,9 @@ def CC_Postcampo(usuario, puesto):
                         columns=["distrito", "manzana", "sector", "numero_lote", "operador",
                                  "tipo", "tipo_de_errores", "aprobados", "rechazados", "horas"]
                     )
+                    # También incrementar versión para que se vea reflejado el reinicio
+                    st.session_state.version_tabla_cc += 1
+                    st.rerun()
                 else:
                     st.error(f"❌ {mensaje}")
                     st.error(f"Se insertaron {insertados} registro(s) antes del error.")
