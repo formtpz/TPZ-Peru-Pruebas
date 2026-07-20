@@ -642,7 +642,7 @@ def CC_Postcampo(usuario, puesto):
                             st.balloons()
                             # Reiniciar el estado para un nuevo lote (opcional)
                             st.session_state.version_tabla_cc += 1
-                            st.rerun()
+                           
                         else:
                             st.error(f"❌ {mensaje}")
                             st.error(f"Se insertaron {insertados} registro(s) antes del error.")
