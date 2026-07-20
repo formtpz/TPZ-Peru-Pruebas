@@ -98,7 +98,7 @@ def traducir_tipos_errores(valor):
         else:
             # Si no es número, intentar dejarlo tal cual (puede ser nombre parcial)
             nombres.append(p)
-    return ', '.join(nombres)  # separados por coma y espacio
+    return ','.join(nombres)  # separados por coma y espacio
 
 def buscar_columnas_por_coincidencia_cc(df):
     """Mapea columnas del Excel a los nombres esperados para CC Postcampo."""
