@@ -305,3 +305,49 @@ def actualizar_estado_revision(id_registro, nuevo_estado='revisado'):
     except Exception as e:
         logging.error(f"Error al actualizar estado revisión: {e}")
         return False
+
+def insertar_registro_con_detalle_qa(datos_registro: dict, detalles_qa: list):
+    """
+    Inserta un registro en public.registro y sus detalles en public.registros_qa1
+    de forma atómica (una sola transacción). Si falla cualquier paso, hace rollback.
+
+    Args:
+        datos_registro: dict con {columna: valor} para el INSERT en registro.
+        detalles_qa: lista de tuplas (crc, aprobados, rechazados).
+
+    Returns:
+        id del registro insertado en public.registro.
+    """
+    from psycopg2.extras import execute_values
+
+    columnas = ', '.join(datos_registro.keys())
+    placeholders = ', '.join(['%s'] * len(datos_registro))
+    valores = list(datos_registro.values())
+
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            f"INSERT INTO public.registro ({columnas}) VALUES ({placeholders}) RETURNING id",
+            valores
+        )
+        fila = cur.fetchone()
+        if not fila:
+            raise Exception("No se pudo obtener el id del registro insertado.")
+        id_registro = fila[0]
+
+        if detalles_qa:
+            execute_values(
+                cur,
+                "INSERT INTO public.registros_qa1 (id_registro, crc, aprobados, rechazados) VALUES %s",
+                [(id_registro, str(crc).strip(), int(ap), int(re)) for crc, ap, re in detalles_qa]
+            )
+
+        conn.commit()
+        return id_registro
+    except Exception as e:
+        conn.rollback()
+        logging.error(f"Error en insertar_registro_con_detalle_qa: {e}")
+        raise
+    finally:
+        cur.close()
